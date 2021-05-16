@@ -1,0 +1,7 @@
+ARG_ENABLE('fileio', 'fileio support', 'no');
+
+if (PHP_FILEIO != 'no') {
+	AC_DEFINE('HAVE_FILEIO', 1, 'fileio support enabled');
+
+	EXTENSION('fileio', 'fileio.c', null, '/DZEND_ENABLE_STATIC_TSRMLS_CACHE=1');
+}
