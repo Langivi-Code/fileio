@@ -60,7 +60,11 @@ PHP_FUNCTION(file_get_contents_async)
         zend_argument_value_error(5, "must be greater than or equal to 0");
         RETURN_THROWS();
     }
-
+    int error = uv_fs_open(fileio_globals.loop, (uv_fs_t*)&uv->uv.fs, filename,  O_RDONLY, S_IRUSR, php_uv_fs_cb);
+	if (error) {
+		PHP_UV_DEINIT_UV(uv);
+		php_error_docref(NULL, E_WARNING, "uv_open failed");
+		return;
     fci.retval = &retval;
     fci.param_count = 1;
     fci.params = &arg;
