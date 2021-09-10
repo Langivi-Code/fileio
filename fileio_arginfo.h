@@ -4,28 +4,29 @@
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_test1, 0, 0, IS_VOID, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_test2, 0, 0, IS_STRING, 0)
-	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, str, IS_STRING, 0, "\"\"")
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_file_get_contents_async, 0, 2, _IS_BOOL, 0)
-	ZEND_ARG_TYPE_INFO(0, filename, IS_STRING, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_setTimeout, 0, 2, IS_NULL, 0)
 	ZEND_ARG_TYPE_INFO(0, callback, IS_CALLABLE, 0)
-	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, useIncludePath, _IS_BOOL, 0, "false")
-	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, zcontext, IS_RESOURCE, 1, "null")
-	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, offset, IS_LONG, 0, "0")
-	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, maxlen, IS_LONG, 0, "0")
+    ZEND_ARG_TYPE_INFO(0, timeout, IS_LONG, 0)
 ZEND_END_ARG_INFO()
+//
+//ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_file_get_contents_async, 0, 2, _IS_BOOL, 0)
+//	ZEND_ARG_TYPE_INFO(0, filename, IS_STRING, 0)
+//	ZEND_ARG_TYPE_INFO(0, callback, IS_CALLABLE, 0)
+//	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, useIncludePath, _IS_BOOL, 0, "false")
+//	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, zcontext, IS_RESOURCE, 1, "null")
+//	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, offset, IS_LONG, 0, "0")
+//	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, maxlen, IS_LONG, 0, "0")
+//ZEND_END_ARG_INFO()
 
 
-ZEND_FUNCTION(exp);
-ZEND_FUNCTION(test2);
-ZEND_FUNCTION(file_get_contents_async);
+ZEND_FUNCTION(retbool);
+ZEND_FUNCTION(setTimeout);
+//ZEND_FUNCTION(file_get_contents_async);
 
 
 static const zend_function_entry file_io_functions[] = {
-        ZEND_FE(exp, arginfo_test1)
-	ZEND_FE(test2, arginfo_test2)
-	ZEND_FE(file_get_contents_async, arginfo_file_get_contents_async)
+        ZEND_FE(retbool, arginfo_test1)
+        ZEND_FE(setTimeout, arginfo_setTimeout)
+//	    ZEND_FE(file_get_contents_async, arginfo_file_get_contents_async)
 	ZEND_FE_END
 };
