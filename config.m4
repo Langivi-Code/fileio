@@ -1,94 +1,96 @@
-dnl config.m4 for extension fileio
+PHP_ARG_WITH(uv, Whether to include "uv" support,
+[ --with-uv[=DIR]        Include "uv" support])
 
-dnl Comments in this file start with the string 'dnl'.
-dnl Remove where necessary.
+PHP_ARG_ENABLE(uv-debug, for uv debug support,
+    [ --enable-uv-debug       Enable enable uv debug support], no, no)
 
-dnl If your extension references something external, use 'with':
+PHP_ARG_ENABLE(dtrace, Whether to enable the "dtrace" debug,
+    [ --enable-dtrace         Enable "dtrace" support], no, no)
 
-dnl PHP_ARG_WITH([fileio],
-dnl   [for fileio support],
-dnl   [AS_HELP_STRING([--with-fileio],
-dnl     [Include fileio support])])
 
-dnl Otherwise use 'enable':
+if test -z "$PHP_DEBUG"; then
+    AC_ARG_ENABLE(debug,
+    [  --enable-debug          compile with debugging symbols],[
+        PHP_DEBUG=$enableval
+    ],[    PHP_DEBUG=no
+    ])
+fi
 
-PHP_ARG_ENABLE([fileio],
-  [whether to enable fileio support],
-  [AS_HELP_STRING([--enable-fileio],
-    [Enable fileio support])],
-  [yes])
+if test "$PHP_UV_DEBUG" != "no"; then
+    CFLAGS="$CFLAGS -Wall -g -ggdb -O0 -DPHP_UV_DEBUG=1"
+    AC_DEFINE(PHP_UV_DEBUG, 1, [Enable uv debug support])
+fi
 
-if test "$PHP_FILEIO" != "no"; then
-  dnl Write more examples of tests here...
+if test "$PHP_DTRACE" != "no"; then
+    dnl TODO: we should move this line to Makefile.frag or somewhere.
+    case $host in
+        *darwin*)
+             dtrace -h -s phpuv_dtrace.d
+             UV_SHARED_DEPENDENCIES=phpuv_dtrace.h
+             PHP_ADD_LIBRARY(dtrace, UV_SHARED_LIBADD)
+             AC_DEFINE(PHP_UV_DTRACE, 1, [Enable uv dtrace support])
+             PHP_SUBST(UV_SHARED_DEPENDENCIES)
+             PHP_ADD_MAKEFILE_FRAGMENT
+        ;;
+        *linux*)
+             echo "dtrace does not support this machine. currently OSX only"
+    esac
+fi
 
-  dnl Remove this code block if the library does not support pkg-config.
-  dnl PKG_CHECK_MODULES([LIBFOO], [foo])
-  dnl PHP_EVAL_INCLINE($LIBFOO_CFLAGS)
-  dnl PHP_EVAL_LIBLINE($LIBFOO_LIBS, FILEIO_SHARED_LIBADD)
+if test $PHP_UV != "no"; then
+    SOURCES=""
 
-  dnl If you need to check for a particular library version using PKG_CHECK_MODULES,
-  dnl you can use comparison operators. For example:
-  dnl PKG_CHECK_MODULES([LIBFOO], [foo >= 1.2.3])
-  dnl PKG_CHECK_MODULES([LIBFOO], [foo < 3.4])
-  dnl PKG_CHECK_MODULES([LIBFOO], [foo = 1.2.3])
+    PHP_NEW_EXTENSION(fileio, fileio.c $SOURCES, $ext_shared)
 
-  dnl Remove this code block if the library supports pkg-config.
-  dnl --with-fileio -> check with-path
-  dnl SEARCH_PATH="/usr/local /usr"     # you might want to change this
-  dnl SEARCH_FOR="/include/fileio.h"  # you most likely want to change this
-  dnl if test -r $PHP_FILEIO/$SEARCH_FOR; then # path given as parameter
-  dnl   FILEIO_DIR=$PHP_FILEIO
-  dnl else # search default path list
-  dnl   AC_MSG_CHECKING([for fileio files in default path])
-  dnl   for i in $SEARCH_PATH ; do
-  dnl     if test -r $i/$SEARCH_FOR; then
-  dnl       FILEIO_DIR=$i
-  dnl       AC_MSG_RESULT(found in $i)
-  dnl     fi
-  dnl   done
-  dnl fi
-  dnl
-  dnl if test -z "$FILEIO_DIR"; then
-  dnl   AC_MSG_RESULT([not found])
-  dnl   AC_MSG_ERROR([Please reinstall the fileio distribution])
-  dnl fi
+    PHP_ADD_EXTENSION_DEP(uv, sockets, true)
 
-  dnl Remove this code block if the library supports pkg-config.
-  dnl --with-fileio -> add include path
-  dnl PHP_ADD_INCLUDE($FILEIO_DIR/include)
+    AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
 
-  dnl Remove this code block if the library supports pkg-config.
-  dnl --with-fileio -> check for lib and symbol presence
-  dnl LIBNAME=FILEIO # you may want to change this
-  dnl LIBSYMBOL=FILEIO # you most likely want to change this
+    AC_MSG_CHECKING(for libuv)
 
-  dnl If you need to check for a particular library function (e.g. a conditional
-  dnl or version-dependent feature) and you are using pkg-config:
-  dnl PHP_CHECK_LIBRARY($LIBNAME, $LIBSYMBOL,
-  dnl [
-  dnl   AC_DEFINE(HAVE_FILEIO_FEATURE, 1, [ ])
-  dnl ],[
-  dnl   AC_MSG_ERROR([FEATURE not supported by your fileio library.])
-  dnl ], [
-  dnl   $LIBFOO_LIBS
-  dnl ])
+    if test $PHP_UV == "yes" && test -x "$PKG_CONFIG" && $PKG_CONFIG --exists libuv; then
+      if $PKG_CONFIG libuv --atleast-version 1.0.0; then
+        LIBUV_INCLINE=`$PKG_CONFIG libuv --cflags`
+        LIBUV_LIBLINE=`$PKG_CONFIG libuv --libs`
+        LIBUV_VERSION=`$PKG_CONFIG libuv --modversion`
+        AC_MSG_RESULT(from pkgconfig: found version $LIBUV_VERSION)
+        AC_DEFINE(HAVE_UVLIB,1,[ ])
+      else
+        AC_MSG_ERROR(system libuv must be upgraded to version >= 1.0.0)
+      fi
+      PHP_EVAL_LIBLINE($LIBUV_LIBLINE, UV_SHARED_LIBADD)
+      PHP_EVAL_INCLINE($LIBUV_INCLINE)
 
-  dnl If you need to check for a particular library function (e.g. a conditional
-  dnl or version-dependent feature) and you are not using pkg-config:
-  dnl PHP_CHECK_LIBRARY($LIBNAME, $LIBSYMBOL,
-  dnl [
-  dnl   PHP_ADD_LIBRARY_WITH_PATH($LIBNAME, $FILEIO_DIR/$PHP_LIBDIR, FILEIO_SHARED_LIBADD)
-  dnl   AC_DEFINE(HAVE_FILEIO_FEATURE, 1, [ ])
-  dnl ],[
-  dnl   AC_MSG_ERROR([FEATURE not supported by your fileio library.])
-  dnl ],[
-  dnl   -L$FILEIO_DIR/$PHP_LIBDIR -lm
-  dnl ])
-  dnl
-  dnl PHP_SUBST(FILEIO_SHARED_LIBADD)
+    else
+      SEARCH_PATH="/usr/local /usr"
+      SEARCH_FOR="/include/uv.h"
+      if test -r $PHP_UV/$SEARCH_FOR; then # path given as parameter
+         UV_DIR=$PHP_UV
+         AC_MSG_RESULT(from option: found in $UV_DIR)
+      else # search default path list
+         for i in $SEARCH_PATH ; do
+             if test -r $i/$SEARCH_FOR; then
+               UV_DIR=$i
+               AC_MSG_RESULT(from default path: found in $i)
+             fi
+         done
+      fi
+      PHP_ADD_INCLUDE($UV_DIR/include)
+      PHP_CHECK_LIBRARY(uv, uv_version,
+      [
+        PHP_ADD_LIBRARY_WITH_PATH(uv, $UV_DIR/$PHP_LIBDIR, UV_SHARED_LIBADD)
+        AC_DEFINE(HAVE_UVLIB,1,[ ])
+      ],[
+        AC_MSG_ERROR([wrong uv library version or library not found])
+      ],[
+        -L$UV_DIR/$PHP_LIBDIR -lm
+      ])
+      case $host in
+          *linux*)
+              CFLAGS="$CFLAGS -lrt"
+      esac
+    fi
 
-  dnl In case of no dependencies
-  AC_DEFINE(HAVE_FILEIO, 1, [ Have fileio support ])
-
-  PHP_NEW_EXTENSION(fileio, fileio.c, $ext_shared)
+	PHP_SUBST([CFLAGS])
+    PHP_SUBST(UV_SHARED_LIBADD)
 fi
