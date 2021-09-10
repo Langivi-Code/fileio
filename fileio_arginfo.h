@@ -18,12 +18,13 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_file_get_contents_async, 0, 2, _
 ZEND_END_ARG_INFO()
 
 
-ZEND_FUNCTION(test1);
+ZEND_FUNCTION(exp);
 ZEND_FUNCTION(test2);
+ZEND_FUNCTION(file_get_contents_async);
 
 
-static const zend_function_entry ext_functions[] = {
-	ZEND_FE(test1, arginfo_test1)
+static const zend_function_entry file_io_functions[] = {
+        ZEND_FE(exp, arginfo_test1)
 	ZEND_FE(test2, arginfo_test2)
 	ZEND_FE(file_get_contents_async, arginfo_file_get_contents_async)
 	ZEND_FE_END
