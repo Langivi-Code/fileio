@@ -85,12 +85,15 @@ if test $PHP_UV != "no"; then
       ],[
         -L$UV_DIR/$PHP_LIBDIR -lm
       ])
+
+    fi
       case $host in
           *linux*)
               CFLAGS="$CFLAGS -lrt"
+           ;;
+           *darwin*)
+              CFLAGS="$CFLAGS -luv"
       esac
-    fi
-
 	PHP_SUBST([CFLAGS])
     PHP_SUBST(UV_SHARED_LIBADD)
 fi
