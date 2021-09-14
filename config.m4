@@ -42,7 +42,7 @@ if test $PHP_UV != "no"; then
 
     PHP_NEW_EXTENSION(fileio, fileio.c $SOURCES, $ext_shared)
 
-    PHP_ADD_EXTENSION_DEP(uv, sockets, true)
+    PHP_ADD_EXTENSION_DEP(uv, fiber, true )
 
     AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
 
@@ -89,7 +89,7 @@ if test $PHP_UV != "no"; then
     fi
       case $host in
           *linux*)
-              CFLAGS="$CFLAGS -lrt"
+              CFLAGS="$CFLAGS -lrt -luv"
            ;;
            *darwin*)
               CFLAGS="$CFLAGS -luv"

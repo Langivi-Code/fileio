@@ -20,7 +20,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -ggdb -O0 -Wall -std=gnu11 -fvisibility=hidden")
 
 set(PHP_VERSION 8.0.1)
-get_filename_component(PHP_SRC_PATH "~/CLionProjects/php-src/" ABSOLUTE)
+get_filename_component(PHP_SRC_PATH "../../" ABSOLUTE)
 
 include_directories(
         "${PHP_SRC_PATH}"
@@ -32,17 +32,22 @@ include_directories(
         "/usr/local/Cellar/libuv/1.42.0/include/"
 
 )
-
+find_file(uvPath uv.h /)
+find_library(uvPath2 NAMES uv libuv)
+FIND_PATH(LIBUV_INCLUDE_DIR NAMES uv.h)
+message(${uvPath2} )
+message(${LIBUV_INCLUDE_DIR} )
 FILE(GLOB KernelHeaders ./kernel/*.h)
 FILE(GLOB KernelSources ./kernel/*.c)
-FILE(GLOB uvHeaders /usr/local/Cellar/libuv/1.42.0/include/*.h)
+#FILE(GLOB uvHeaders /usr/local/Cellar/libuv/1.42.0/include/*.h)
 
 set(SOURCE_FILES
         fileio.c
         php_fileio.h
         ${KernelHeaders}
         ${KernelSources}
-        ${uvHeaders}
+        ${LIBUV_INCLUDE_DIR}
+        ${LIBUV_INCLUDE_DIR}
         )
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/config.h")
