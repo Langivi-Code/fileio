@@ -137,6 +137,7 @@ ZEND_FUNCTION(enable_event){
     printf("Active = %d\n", FILE_IO_GLOBAL(loop)->active_handles);
     printf("\nloop run %d\n", uv_run(FILE_IO_GLOBAL(loop), UV_RUN_DEFAULT));
     printf("\n after run loop %d, p:=%p\n", uv_loop_alive(FILE_IO_GLOBAL(loop)), FILE_IO_GLOBAL(loop));
+    uv_loop_close(FILE_IO_GLOBAL(loop));
 }
 
 

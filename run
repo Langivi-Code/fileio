@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+php  -dextension=fileio -m
+php  -dextension=fileio -f index.php
