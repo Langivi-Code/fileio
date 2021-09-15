@@ -170,16 +170,25 @@ PHP_RINIT_FUNCTION (fileio) {
 #if defined(ZTS) && defined(COMPILE_DL_FILEIO)
     ZEND_TSRMLS_CACHE_UPDATE();
 #endif
-    //    zend_function *func = zend_hash_str_find_ptr(EG(function_table), "enable_event", strlen("enable_event"));
+    zend_function *func = zend_hash_str_find_ptr(EG(function_table), "enable_event", strlen("enable_event"));
     php_shutdown_function_entry shutdown_function_entry = {};
     zval callable;
+    zval callable2;
     zend_result result;
 //
-    ZVAL_STRING(&callable, "enable_event");
-//   shutdown_function_entry.fci_cache.function_handler = func;
+    ZVAL_FUNC(&callable2, func);
+    ZVAL_STRING(&callable, "print_r");
+
+//    zval params[1];
+//    ZVAL_COPY_VALUE(&params[0], &callable);
+
     result = zend_fcall_info_init(&callable, 0, &shutdown_function_entry.fci,
                                   &shutdown_function_entry.fci_cache, NULL, NULL);
     printf("%d\n", result);
+    shutdown_function_entry.fci_cache.function_handler = func;
+//    shutdown_function_entry.fci.param_count=1;
+//    shutdown_function_entry.fci.params=&params;
+
     append_user_shutdown_function(&shutdown_function_entry);
 //    uv_async_init(fileio_globals.loop, &as_h, NULL);
 //    uv_loop_fork(fileio_globals.loop);
