@@ -9,3 +9,4 @@ typedef struct {
     zend_fcall_info_cache fcc;
 } uv_cb_type;
 #endif //FILEIO_CALLBACK_INTERFACE_H
+void fn(uv_timer_t *handle) ;

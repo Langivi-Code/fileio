@@ -8,7 +8,9 @@
 #include "callback_interface.h"
 
 void fn(uv_timer_t *handle) {
+    printf("something");
     uv_cb_type * uv = (uv_cb_type *) handle->data;
+    printf(" %lu \n", sizeof uv->fci);
     //    memcpy(&uv, (uv_cb_t *) handle->data, sizeof(uv_cb_t));
     zend_long error;
     zval retval;

@@ -13,9 +13,7 @@ endif ()
 
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 11)
-#if (NOT CMAKE_C_STANDARD)
-#    set(CMAKE_C_STANDARD 11)
-#endif ()
+
 
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -std=gnu11")
@@ -32,7 +30,7 @@ include_directories(
         "${PHP_SRC_PATH}/ext"
         "${PHP_SRC_PATH}/sapi"
         "/usr/local/Cellar/libuv/1.42.0/include/"
-        "/usr/local/Cellar/gcc/11.2.0/include/"
+
 
 )
 find_file(uvPath uv.h /)
@@ -42,23 +40,24 @@ message(${uvPath2} )
 message(${LIBUV_INCLUDE_DIR} )
 FILE(GLOB KernelHeaders ./kernel/*.h)
 FILE(GLOB KernelSources ./kernel/*.c)
+FILE(GLOB ExtensionHeaders ./functions/**/*.h)
+FILE(GLOB ExtensionSources ./functions/**/*.c)
 #FILE(GLOB uvHeaders /usr/local/Cellar/libuv/1.42.0/include/*.h)
-
+/opt/php/php8/include/php/
 set(SOURCE_FILES
         fileio.c
-        use_promise.c
-        set_timeout.c
         php_fileio.h
         ${KernelHeaders}
         ${KernelSources}
+        ${ExtensionHeaders}
+        ${ExtensionSources}
         ${LIBUV_INCLUDE_DIR}
-        /usr/local/Cellar/gcc/11.2.0/include/
         "${PHP_SRC_PATH}/Zend"
-        set_timeout_interface.h file_get_contents_async.c callback_interface.h callback.c)
-
+        )
+message(${SOURCE_FILES})
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/config.h")
     add_definitions(-DHAVE_CONFIG_H)
-    set(SOURCE_FILES "${SOURCE_FILES};config.h" file_get_contents_async.c)
+    set(SOURCE_FILES "${SOURCE_FILES};config.h")
 endif()
 
 add_library(fileio SHARED

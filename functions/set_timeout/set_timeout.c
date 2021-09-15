@@ -1,16 +1,20 @@
 #include <php.h>
-#include <zend_interfaces.h>
 #include <zend_API.h>
+#include <uv.h>
+#include "../common/callback_interface.h"
+#include "../../php_fileio.h"
 //#include <threads.h>
-#include "ext/standard/info.h"
-#include "ext/standard/file.h"
-#include "fileio_arginfo.h"
+#include "../../fileio_arginfo.h"
 #include "set_timeout_interface.h"
-#include "php_ini.h"
 
-int v = __STDC_VERSION__;
 static timerData timerData1 = {};
+extern void fill_handle_with_data(
+        uv_timer_t *handle,
+        zend_fcall_info *fci,
+        zend_fcall_info_cache *fcc
+);
 
+static uv_timer_t timerHandle;
 
 PHP_FUNCTION (setTimeout) {
     zend_long var;
@@ -26,10 +30,17 @@ PHP_FUNCTION (setTimeout) {
     fci.retval = &return_val;
     fci.param_count = 0;
     timerData1.time = var;
-    memcpy(&timerData1.fci, &fci, sizeof(zend_fcall_info));
-    memcpy(&timerData1.fcc, &fcc, sizeof(zend_fcall_info_cache));
 
-    printf("time is in main prc %lu  %p\n", timerData1.time, &timerData1.time);
+
+
+    uv_timer_init(FILE_IO_GLOBAL(loop), &timerHandle);
+    fill_handle_with_data(&timerHandle, &fci, &fcc);
+    printf("time is in thrd prc %lu  %p\n", var, &var);
+    uv_timer_start(&timerHandle, fn, var, 0);
+//    memcpy(&timerData1.fci, &fci, sizeof(zend_fcall_info));
+//    memcpy(&timerData1.fcc, &fcc, sizeof(zend_fcall_info_cache));
+
+//    printf("time is in main prc %lu  %p\n", timerData1.time, &timerData1.time);
     //    zend_call_known_instance_method_with_1_params(Z_OBJCE(fiber)->constructor, Z_OBJ(fiber), NULL, callable);
     //    zend_call_method_with_0_params(Z_OBJ(fiber), Z_OBJCE(fiber), NULL, "start", NULL);
 //    thrd_create(&thrd, thr, &timerData1);

@@ -22,11 +22,12 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "uv.h"
-#include "set_timeout_interface.h"
-#include "callback_interface.h"
-//#include <threads.h>
+#include "functions/set_timeout/set_timeout_interface.h"
+#include "functions/common/callback_interface.h"
+#include <ext/standard/basic_functions.h>
+#include <threads.h>
 
-extern void fn(uv_timer_t *handle);
+
 //extern PHP_FIBER_API zend_class_entry *zend_ce_fiber;
 /* For compatibility with older PHP versions */
 #ifndef ZEND_PARSE_PARAMETERS_NONE
@@ -43,6 +44,8 @@ extern void fn(uv_timer_t *handle);
 //thrd_t thrd;
 uv_async_t as_h;
 
+thrd_t thrd;
+uv_async_t async;
 
 void fill_handle_with_data(
         uv_timer_t *handle,
@@ -67,11 +70,39 @@ handle->data = (uv_cb_type *) emalloc(sizeof(uv_cb_type));
 }
 
 zval fiber;
+void print(uv_async_t *handle)
 
+{
+
+    printf(" print thread id: %ld, value is %ld\n", uv_thread_self(), (long)handle->data);
+
+}
+void after(uv_work_t *req, int status)
+
+{
+    printf("done, thread id: %ld\n", uv_thread_self());
+
+}
+
+void run(uv_work_t *req)
+
+{
+    long count = (long)req->data;
+
+    for (int index = 0; index < count; index++)
+    {
+        printf("run thread id: %ld, index: %d\n", uv_thread_self(), index);
+        async.data = (void *)(long)index;
+//        uv_async_send(&async);
+        sleep(1);
+
+    }
+
+}
 _Noreturn int thr(void *loop) {
     printf("thred started\n");
     uv_timer_t timerHandle;
-    uv_timer_init(FILE_IO_GLOBAL(loop), &timerHandle);
+
     timerData * td= (timerData *)loop;
 
     fill_handle_with_data(&timerHandle, &td->fci, &td->fcc);
@@ -100,7 +131,13 @@ _Noreturn int thr(void *loop) {
 
 /* {{{ string test2( [ string $var ] ) */
 
-
+ZEND_FUNCTION(enable_event){
+    printf("I am alive");
+    printf("\nloop %d, p:=%p\n", uv_loop_alive(FILE_IO_GLOBAL(loop)), FILE_IO_GLOBAL(loop));
+    printf("Active = %d\n", FILE_IO_GLOBAL(loop)->active_handles);
+    printf("\nloop run %d\n", uv_run(FILE_IO_GLOBAL(loop), UV_RUN_DEFAULT));
+    printf("\n after run loop %d, p:=%p\n", uv_loop_alive(FILE_IO_GLOBAL(loop)), FILE_IO_GLOBAL(loop));
+}
 
 
 
@@ -109,11 +146,15 @@ PHP_INI_BEGIN()
 PHP_INI_END()
 
 
+//typedef struct _php_shutdown_function_entry {
+//    zend_fcall_info fci;
+//    zend_fcall_info_cache fci_cache;
+//} php_shutdown_function_entry;
+
 /* {{{ PHP_MINIT_FUNCTION */
 PHP_MINIT_FUNCTION (fileio) {
     fileio_globals.loop = uv_default_loop();
-//    uv_async_init(fileio_globals.loop, &as_h, NULL);
-//    uv_loop_fork(fileio_globals.loop);
+
 
     REGISTER_INI_ENTRIES();
 #if defined(ZTS) && defined(COMPILE_DL_FILEIO)
@@ -129,6 +170,19 @@ PHP_RINIT_FUNCTION (fileio) {
 #if defined(ZTS) && defined(COMPILE_DL_FILEIO)
     ZEND_TSRMLS_CACHE_UPDATE();
 #endif
+    //    zend_function *func = zend_hash_str_find_ptr(EG(function_table), "enable_event", strlen("enable_event"));
+    php_shutdown_function_entry shutdown_function_entry = {};
+    zval callable;
+    zend_result result;
+//
+    ZVAL_STRING(&callable, "enable_event");
+//   shutdown_function_entry.fci_cache.function_handler = func;
+    result = zend_fcall_info_init(&callable, 0, &shutdown_function_entry.fci,
+                                  &shutdown_function_entry.fci_cache, NULL, NULL);
+    printf("%d\n", result);
+    append_user_shutdown_function(&shutdown_function_entry);
+//    uv_async_init(fileio_globals.loop, &as_h, NULL);
+//    uv_loop_fork(fileio_globals.loop);
     return SUCCESS;
 }
 /* }}} */
