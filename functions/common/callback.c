@@ -26,4 +26,5 @@ void fn(uv_timer_t *handle) {
     } else {
         error = -2;
     }
+    free(handle);
 }
