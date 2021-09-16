@@ -7,7 +7,6 @@
 #include "../../fileio_arginfo.h"
 #include "idle_interface.h"
 
-static idleData idleData1 = {};
 
 extern void fill_handle_with_data(
         uv_idle_t *handle,
