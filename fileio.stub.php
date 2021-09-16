@@ -2,8 +2,8 @@
 
 /** @generate-function-entries */
 
-function test1(): void {}
+function use_promise(): bool {}
 
-function test2(string $str = ""): string {}
+function setTimeout(callable $function): void {}
 
 function file_get_contents_async(string $filename, callable $cb, bool $use_include_path = false, $zcontext = null, int $offset = 0, int $maxlen = null): bool

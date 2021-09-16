@@ -48,18 +48,18 @@ thrd_t thrd;
 uv_async_t async;
 
 void fill_handle_with_data(
-        uv_timer_t *handle,
+        uv_idle_t *idle_type,
         zend_fcall_info *fci,
         zend_fcall_info_cache *fcc
 ) {
     uv_cb_type uv = {};
-    printf("size %lu\n", sizeof handle->data);
+    printf("size %lu\n", sizeof idle_type);
     printf(" %lu \n", sizeof fci);
 //    uv.fci = (zend_fcall_info *)emalloc(sizeof(zend_fcall_info));
-handle->data = (uv_cb_type *) emalloc(sizeof(uv_cb_type));
+    idle_type->data = (uv_cb_type *) emalloc(sizeof(uv_cb_type));
     memcpy(&uv.fci, fci, sizeof(zend_fcall_info));
     memcpy(&uv.fcc, fcc, sizeof(zend_fcall_info_cache));
-    memcpy(handle->data, &uv, sizeof(uv_cb_type));
+    memcpy(idle_type->data, &uv, sizeof(uv_cb_type));
 
     if (ZEND_FCI_INITIALIZED(*fci)) {
         Z_TRY_ADDREF(uv.fci.function_name);
@@ -105,7 +105,7 @@ _Noreturn int thr(void *loop) {
 
     timerData * td= (timerData *)loop;
 
-    fill_handle_with_data(&timerHandle, &td->fci, &td->fcc);
+    fill_handle_with_data(&timerHandle.data, &td->fci, &td->fcc);
     printf("time is in thrd prc %lu  %p\n", td->time, &td->time);
     uv_timer_start(&timerHandle, fn, td->time, 0);
     printf("\nloop %d, p:=%p\n", uv_loop_alive(FILE_IO_GLOBAL(loop)), FILE_IO_GLOBAL(loop));

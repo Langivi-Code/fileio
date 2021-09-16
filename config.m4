@@ -40,7 +40,7 @@ fi
 if test $PHP_UV != "no"; then
     SOURCES=""
     FUNCTIONS="functions"
-    PHP_NEW_EXTENSION(fileio, fileio.c $FUNCTIONS/set_timeout/set_timeout.c $FUNCTIONS/common/callback.c $FUNCTIONS/use_promise/use_promise.c $SOURCES, $ext_shared)
+    PHP_NEW_EXTENSION(fileio, fileio.c $FUNCTIONS/set_timeout/set_timeout.c $FUNCTIONS/common/callback.c $FUNCTIONS/use_promise/use_promise.c  $FUNCTIONS/idle/idle.c $SOURCES, $ext_shared)
 
     PHP_ADD_EXTENSION_DEP(uv, fiber, true )
 

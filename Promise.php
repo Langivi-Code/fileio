@@ -13,6 +13,7 @@ class Promise
      */
     public function __construct(private \Closure $closure)
     {
+
         $this->internalFiber = new Fiber([$this, 'handle']);
         $this->status = $this->internalFiber->start();
     }
@@ -31,30 +32,34 @@ class Promise
         });
     }
 
-    public function then(callable $handle)
+    private function _then(callable $handle)
     {
-    if ($this->status == PromiseStatus::Resolved && !$this->promiseFinalised) {
-        $this->internalFiber->resume();
-        $retval = $handle($this->dataStore);
-        $this->dataStore = null;
-        return $retval instanceof Promise? $retval: $this;
+        if ($this->status == PromiseStatus::Resolved && !$this->promiseFinalised) {
+            $this->internalFiber->resume();
+            $retval = $handle($this->dataStore);
+            $this->dataStore = null;
+            return $retval instanceof Promise ? $retval : $this;
         }
+    }
+    public function then(callable $handler) {
+        $then = $this->toCallback('_then');
+        idle(fn ()=>$then($handler));
     }
 
     public function catch(callable $handler)
     {
         if ($this->status == PromiseStatus::Rejected && !$this->promiseFinalised) {
             $this->internalFiber->resume();
-           $handler($this->dataStore);
+            $handler($this->dataStore);
         }
 
     }
 
     public function finally(callable $handler)
     {
-        if($this->status != PromiseStatus::Pending && !$this->promiseFinalised){
-        $handler();
-        $this->promiseFinalised = true;
+        if ($this->status != PromiseStatus::Pending && !$this->promiseFinalised) {
+            $handler();
+            $this->promiseFinalised = true;
         }
     }
 
@@ -81,8 +86,8 @@ class Promise
     private function handle()
     {
         try {
-           $closure = $this->closure;
-           $closure($this->toCallback('_resolve'), $this->toCallback('_reject'));
+            $closure = $this->closure;
+            $closure($this->toCallback('_resolve'), $this->toCallback('_reject'));
 
         } catch (\Exception $exception) {
             $this->reject($exception);
