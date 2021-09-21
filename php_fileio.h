@@ -30,7 +30,7 @@ extern zend_module_entry fileio_module_entry;
 #else
 #define FILE_IO_GLOBAL(v) fileio_globals.v
 #endif
-typedef void  (*cbf)(void *, char *);
+
 
 
 
