@@ -27,7 +27,7 @@
 #include "functions/set_timeout/set_timeout_interface.h"
 #include "functions/common/callback_interface.h"
 #include <ext/standard/basic_functions.h>
-
+ZEND_DECLARE_MODULE_GLOBALS(fileio);
 
 
 //extern PHP_FIBER_API zend_class_entry *zend_ce_fiber;

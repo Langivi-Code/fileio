@@ -16,7 +16,9 @@
  ZEND_END_MODULE_GLOBALS(fileio)
 
 //zend_fileio_globals fileio_globals = {NULL};
- ZEND_DECLARE_MODULE_GLOBALS(fileio);
+//extern zend_fileio_globals v8js_globals;
+
+ZEND_EXTERN_MODULE_GLOBALS(fileio)
 
 extern zend_module_entry fileio_module_entry;
 #define phpext_fileio_ptr &fileio_module_entry
@@ -30,7 +32,7 @@ extern zend_module_entry fileio_module_entry;
 #endif
 typedef void  (*cbf)(void *, char *);
 
-void async_read(char *, cbf);
+
 
 # if defined(ZTS) && defined(COMPILE_DL_FILEIO)
 ZEND_TSRMLS_CACHE_EXTERN()
