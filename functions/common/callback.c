@@ -18,7 +18,7 @@ void fn(uv_timer_t *handle) {
     ZVAL_STRING(&dstr,"callback fn");
     //    zend_call_method_with_1_params(NULL, NULL, NULL, "print_r", &retval, &dstr);
     if (ZEND_FCI_INITIALIZED(uv->fci)) {
-        printf("Call back is called");
+        printf("Timeout call back is called\n");
         if (zend_call_function(&uv->fci, &uv->fcc) != SUCCESS) {
             error = -1;
         }
@@ -26,7 +26,7 @@ void fn(uv_timer_t *handle) {
     } else {
         error = -2;
     }
-    free(handle);
+    efree(handle);
 }
 
 void fn_idle(uv_idle_t *handle) {
@@ -40,7 +40,7 @@ void fn_idle(uv_idle_t *handle) {
     ZVAL_STRING(&dstr,"callback fn");
     //    zend_call_method_with_1_params(NULL, NULL, NULL, "print_r", &retval, &dstr);
     if (ZEND_FCI_INITIALIZED(uv->fci)) {
-        printf(" idle call back is called");
+        printf("Idle call back is called");
         if (zend_call_function(&uv->fci, &uv->fcc) != SUCCESS) {
             error = -1;
         }
@@ -49,6 +49,6 @@ void fn_idle(uv_idle_t *handle) {
         error = -2;
     }
     uv_idle_stop(handle);
-    free(handle);
+    efree(handle);
     sleep(10);
 }

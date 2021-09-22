@@ -48,53 +48,53 @@ void print(uv_async_t *handle) {
 
 }
 
-void after(uv_work_t *req, int status) {
-    printf("done, thread id: %ld\n", uv_thread_self());
-
-}
-
-void run(uv_work_t *req) {
-    long count = (long) req->data;
-
-    for (int index = 0; index < count; index++) {
-        printf("run thread id: %ld, index: %d\n", uv_thread_self(), index);
-        async.data = (void *) (long) index;
-//        uv_async_send(&async);
-        sleep(1);
-
-    }
-
-}
-
-_Noreturn int thr(void *loop) {
-    printf("thred started\n");
-    uv_timer_t timerHandle;
-
-    timerData *td = (timerData *) loop;
-
-    fill_timeout_handle_with_data(&timerHandle.data, &td->fci, &td->fcc);
-    printf("time is in thrd prc %lu  %p\n", td->time, &td->time);
-    uv_timer_start(&timerHandle, fn, td->time, 0);
-    printf("\nloop %d, p:=%p\n", uv_loop_alive(FILE_IO_GLOBAL(loop)), FILE_IO_GLOBAL(loop));
-    printf("Active = %d\n", FILE_IO_GLOBAL(loop)->active_handles);
-    printf("\nloop run %d\n", uv_run(FILE_IO_GLOBAL(loop), UV_RUN_DEFAULT));
-    printf("\n after run loop %d, p:=%p\n", uv_loop_alive(FILE_IO_GLOBAL(loop)), FILE_IO_GLOBAL(loop));
-    while (true);
-//     uv_async_send(&as_h);
-//     while (true){
-//         printf("\nloop %d, p:=%p\n", uv_loop_alive((uv_loop_t*)loop), loop);
-//         printf("Active = %d\n", ((uv_loop_t*)loop)->active_handles);
+//void after(uv_work_t *req, int status) {
+//    printf("done, thread id: %ld\n", uv_thread_self());
 //
-//         printf("\nloop run %d\n", uv_run((uv_loop_t *) (loop), UV_RUN_DEFAULT));
+//}
+//
+//void run(uv_work_t *req) {
+//    long count = (long) req->data;
+//
+//    for (int index = 0; index < count; index++) {
+//        printf("run thread id: %ld, index: %d\n", uv_thread_self(), index);
+//        async.data = (void *) (long) index;
+////        uv_async_send(&async);
+//        sleep(1);
+//
+//    }
+//
+//}
+
+//_Noreturn int thr(void *loop) {
+//    printf("thred started\n");
+//    uv_timer_t timerHandle;
+//
+//    timerData *td = (timerData *) loop;
+//
+//    fill_timeout_handle_with_data(&timerHandle.data, &td->fci, &td->fcc);
+//    printf("time is in thrd prc %lu  %p\n", td->time, &td->time);
+//    uv_timer_start(&timerHandle, fn, td->time, 0);
+//    printf("\nloop %d, p:=%p\n", uv_loop_alive(FILE_IO_GLOBAL(loop)), FILE_IO_GLOBAL(loop));
+//    printf("Active = %d\n", FILE_IO_GLOBAL(loop)->active_handles);
+//    printf("\nloop run %d\n", uv_run(FILE_IO_GLOBAL(loop), UV_RUN_DEFAULT));
+//    printf("\n after run loop %d, p:=%p\n", uv_loop_alive(FILE_IO_GLOBAL(loop)), FILE_IO_GLOBAL(loop));
+//    while (true);
+////     uv_async_send(&as_h);
+////     while (true){
+////         printf("\nloop %d, p:=%p\n", uv_loop_alive((uv_loop_t*)loop), loop);
+////         printf("Active = %d\n", ((uv_loop_t*)loop)->active_handles);
 ////
-////         uv_run((uv_loop_t*)loop, UV_RUN_DEFAULT);
-//         printf("thred finshed");
-//         usleep(20);
-//     }
-
-
-
-}
+////         printf("\nloop run %d\n", uv_run((uv_loop_t *) (loop), UV_RUN_DEFAULT));
+//////
+//////         uv_run((uv_loop_t*)loop, UV_RUN_DEFAULT);
+////         printf("thred finshed");
+////         usleep(20);
+////     }
+//
+//
+//
+//}
 
 /* {{{ string test2( [ string $var ] ) */
 
@@ -134,6 +134,7 @@ PHP_MINIT_FUNCTION (fileio) {
 
 /* {{{ PHP_RINIT_FUNCTION */
 PHP_RINIT_FUNCTION (fileio) {
+    &EG(included_files);
 #if defined(ZTS) && defined(COMPILE_DL_FILEIO)
     ZEND_TSRMLS_CACHE_UPDATE();
 #endif
@@ -173,7 +174,7 @@ PHP_RSHUTDOWN_FUNCTION (fileio) {
 /* {{{ PHP_MSHUTDOWN_FUNCTION */
 PHP_MSHUTDOWN_FUNCTION (fileio) {
     UNREGISTER_INI_ENTRIES();
-    free(FILE_IO_GLOBAL(loop));
+//    free(FILE_IO_GLOBAL(loop));
 }
 
 /* }}} */

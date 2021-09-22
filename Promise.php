@@ -13,9 +13,9 @@ class Promise
      */
     public function __construct(private \Closure $closure)
     {
-
-        $this->internalFiber = new Fiber([$this, 'handle']);
-        $this->status = $this->internalFiber->start();
+ $this->handle();
+//        $this->internalFiber = new Fiber([$this, 'handle']);
+//        $this->status = $this->internalFiber->start();
     }
 
     public static function resolve($data)
@@ -35,10 +35,13 @@ class Promise
     private function _then(callable $handle)
     {
         if ($this->status == PromiseStatus::Resolved && !$this->promiseFinalised) {
-            $this->internalFiber->resume();
+//            $this->internalFiber->resume();
             $retval = $handle($this->dataStore);
             $this->dataStore = null;
             return $retval instanceof Promise ? $retval : $this;
+        }
+        else{
+            $this->then($handle);
         }
     }
     public function then(callable $handler) {
@@ -49,7 +52,7 @@ class Promise
     public function catch(callable $handler)
     {
         if ($this->status == PromiseStatus::Rejected && !$this->promiseFinalised) {
-            $this->internalFiber->resume();
+//            $this->internalFiber->resume();
             $handler($this->dataStore);
         }
 
@@ -65,14 +68,15 @@ class Promise
 
     private function _resolve($data)
     {
-        Fiber::suspend(PromiseStatus::Resolved);
+//        Fiber::suspend(PromiseStatus::Resolved);
+        $this->status=PromiseStatus::Resolved;
         $this->dataStore = $data;
 
     }
 
     private function _reject($data)
     {
-        Fiber::suspend(PromiseStatus::Rejected);
+//        Fiber::suspend(PromiseStatus::Rejected);
         $this->dataStore = $data;
     }
 
@@ -91,7 +95,7 @@ class Promise
 
         } catch (\Exception $exception) {
             $this->reject($exception);
-            $resumedHandler = Fiber::suspend();
+//            $resumedHandler = Fiber::suspend();
         }
 
     }

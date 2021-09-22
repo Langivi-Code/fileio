@@ -29,11 +29,13 @@ PHP_FUNCTION (idle) {
             Z_PARAM_FUNC(fci, fcc)ZEND_PARSE_PARAMETERS_END();
     fci.retval = &return_val;
     fci.param_count = 0;
-    uv_idle_t *idleHandle = malloc(sizeof(uv_idle_t));
+    uv_idle_t *idleHandle = emalloc(sizeof(uv_idle_t));
+
     uv_idle_init(FILE_IO_GLOBAL(loop), idleHandle);
     fill_idle_handle_with_data(idleHandle, &fci, &fcc);
     printf("Setting idle ...\n");
     uv_idle_start(idleHandle, fn_idle);
+
     RETURN_NULL();
 }
 /* }}}*/

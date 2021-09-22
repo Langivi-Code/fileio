@@ -4,6 +4,7 @@
 
 #ifndef FILEIO_CALLBACK_INTERFACE_H
 #define FILEIO_CALLBACK_INTERFACE_H
+#include <uv.h>
 typedef struct {
     zend_fcall_info fci;
     zend_fcall_info_cache fcc;

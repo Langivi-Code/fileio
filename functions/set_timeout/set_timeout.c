@@ -4,7 +4,6 @@
 #include "../common/callback_interface.h"
 #include "../common/fill_event_handle.h"
 #include "../../php_fileio.h"
-//#include <threads.h>
 #include "../../fileio_arginfo.h"
 #include "set_timeout_interface.h"
 
@@ -34,7 +33,7 @@ PHP_FUNCTION (setTimeout) {
     Z_PARAM_LONG(var)ZEND_PARSE_PARAMETERS_END();
     fci.retval = &return_val;
     fci.param_count = 0;
-    uv_timer_t *  timerHandle = malloc(sizeof(uv_timer_t));
+    uv_timer_t *  timerHandle = emalloc(sizeof(uv_timer_t));
 
     printf("Main thread id: %p\n", uv_thread_self());
     uv_timer_init(FILE_IO_GLOBAL(loop), timerHandle);

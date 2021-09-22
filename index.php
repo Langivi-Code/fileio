@@ -13,23 +13,33 @@ ini_set('memory_limit', '1024M');
 //        }
 //    }, 0);
 //
+
 $promise = new Promise(function ($resolve, $reject) {
-    setTimeout(function () use ($resolve) {
-        sleep(1);
-        echo "bye";
-        foreach ([1, 2, 3, 4, 5] as $key => $value) {
-            var_dump($key, $value);
-        }
-        $resolve("promise finshed");
-    }, 1);
+    setTimeout(fn()=>$resolve("promise finshed"), 3000);
+
 });
+
+setTimeout(fn()=>var_dump("setTimeout finshed"), 2000);
+
+$promise->then(
+    fn(...$args) => var_dump($args)
+);
+
+//$promise = new Promise(function ($resolve, $reject) {
+//    setTimeout(function () use ($resolve) {
+//        sleep(1);
+//        echo "bye";
+//        foreach ([1, 2, 3, 4, 5] as $key => $value) {
+//            var_dump($key, $value);
+//        }
+//        $resolve("promise finshed");
+//    }, 1);
+//});
 //$promise = Promise::resolve("error");
 //$promise->catch(
 //    fn(...$args) => var_dump($args)
 //);
-$promise->then(
-    fn(...$args) => var_dump($args)
-);
+
 //$promise->finally(
 //    fn() => var_dump("args")
 //);
