@@ -14,16 +14,16 @@ ini_set('memory_limit', '1024M');
 //    }, 0);
 //
 
-$promise = new Promise(function ($resolve, $reject) {
-    setTimeout(fn()=>$resolve("promise finshed"), 3000);
-
-});
+// $promise = new Promise(function ($resolve, $reject) {
+//     setTimeout(fn()=>$resolve("promise finshed"), 3000);
+//
+// });
 
 setTimeout(fn()=>var_dump("setTimeout finshed"), 2000);
 
-$promise->then(
-    fn(...$args) => var_dump($args)
-);
+// $promise->then(
+//     fn(...$args) => var_dump($args)
+// );
 
 //$promise = new Promise(function ($resolve, $reject) {
 //    setTimeout(function () use ($resolve) {

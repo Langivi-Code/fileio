@@ -53,7 +53,7 @@ set(SOURCE_FILES
         ${ExtensionSources}
         ${LIBUV_INCLUDE_DIR}
         "${PHP_SRC_PATH}/Zend"
-        functions/common/fill_event_handle.c functions/common/fill_event_handle.h)
+        functions/common/fill_event_handle.c functions/common/fill_event_handle.h constants.h)
 message(${SOURCE_FILES})
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/config.h")
     add_definitions(-DHAVE_CONFIG_H)
