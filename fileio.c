@@ -134,7 +134,7 @@ PHP_MINIT_FUNCTION (fileio) {
 
 /* {{{ PHP_RINIT_FUNCTION */
 PHP_RINIT_FUNCTION (fileio) {
-    &EG(included_files);
+    PG(auto_prepend_file)="Promise.php";
 #if defined(ZTS) && defined(COMPILE_DL_FILEIO)
     ZEND_TSRMLS_CACHE_UPDATE();
 #endif

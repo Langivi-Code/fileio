@@ -1,7 +1,7 @@
 <?php
 //echo var_dump(use_promise());
-require_once "Promise.php";
-require_once "PromiseStatus.php";
+//require_once "Promise.php";
+
 ini_set('memory_limit', '1024M');
 
 
