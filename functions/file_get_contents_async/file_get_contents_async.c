@@ -4,86 +4,86 @@
 
 #include <uv.h>
 #include <assert.h>
+#include <php.h>
+#include <zend_API.h>
+#include "../../php_fileio.h"
 
 void on_read(uv_fs_t *req);
+
 void on_write(uv_fs_t *req);
+
 uv_buf_t iov;
 uv_fs_t open_req;
 uv_fs_t read_req;
 uv_fs_t write_req;
-char buffer[1024];
+uv_fs_t status_req;
+char *buffer;
+uint64_t st_size;
+
+void on_status(uv_fs_t *req) {
+    if (req->result > 0) {
+        st_size = req->statbuf.st_size;
+    }
+}
 
 void on_open(uv_fs_t *req) {
     // The request passed to the callback is the same as the one the call setup
     // function was passed.
+    uv_fs_fstat(FILE_IO_GLOBAL(loop), &status_req, req->result, on_status);
     assert(req == &open_req);
     if (req->result >= 0) {
-        iov = uv_buf_init(buffer, sizeof(buffer));
-        uv_fs_read(uv_default_loop(), &read_req, req->result,
+        iov = uv_buf_init(buffer, sizeof(char) * st_size);
+        uv_fs_read(FILE_IO_GLOBAL(loop), &read_req, req->result,
                    &iov, 1, -1, on_read);
-    }
-    else {
-        fprintf(stderr, "error opening file: %s\n", uv_strerror((int)req->result));
+    } else {
+        fprintf(stderr, "error opening file: %s\n", uv_strerror((int) req->result));
     }
 }
 
 void on_read(uv_fs_t *req) {
     if (req->result < 0) {
         fprintf(stderr, "Read error: %s\n", uv_strerror(req->result));
-    }
-    else if (req->result == 0) {
+    } else if (req->result == 0) {
         uv_fs_t close_req;
         // synchronous
         uv_fs_close(uv_default_loop(), &close_req, open_req.result, NULL);
-    }
-    else if (req->result > 0) {
+    } else if (req->result > 0) {
         iov.len = req->result;
         uv_fs_write(uv_default_loop(), &write_req, 1, &iov, 1, -1, on_write);
     }
 }
+
 void on_write(uv_fs_t *req) {
     if (req->result < 0) {
-        fprintf(stderr, "Write error: %s\n", uv_strerror((int)req->result));
-    }
-    else {
+        fprintf(stderr, "Write error: %s\n", uv_strerror((int) req->result));
+    } else {
         uv_fs_read(uv_default_loop(), &read_req, open_req.result, &iov, 1, -1, on_read);
     }
 }
-int main(int argc, char **argv) {
-    uv_fs_open(uv_default_loop(), &open_req, argv[1], O_RDONLY, 0, on_open);
-    uv_run(uv_default_loop(), UV_RUN_DEFAULT);
 
+/* {{{ void file_get_contents_async() */
+PHP_FUNCTION (file_get_contents_async) {
+    char *filename;
+    size_t filename_len;
+    zend_fcall_info fci;
+    zend_fcall_info_cache fcc;
+    zend_long offset = 0;
+
+//    zend_string * contents;
+    zval retval;            /* Function return value */
+//    zval arg;                /* Argument to pass to function */
+//    /* Parse arguments */
+    ZEND_PARSE_PARAMETERS_START(1, 3)
+            Z_PARAM_PATH(filename, filename_len)
+            Z_PARAM_FUNC(fci, fcc)
+            Z_PARAM_OPTIONAL
+            Z_PARAM_LONG(offset)ZEND_PARSE_PARAMETERS_END();
+
+    uv_fs_open(uv_default_loop(), &open_req, filename, O_RDONLY, 0, on_open);
     uv_fs_req_cleanup(&open_req);
     uv_fs_req_cleanup(&read_req);
     uv_fs_req_cleanup(&write_req);
-    return 0;
-}
-/* {{{ void file_get_contents_async() */
-//PHP_FUNCTION (file_get_contents_async) {
-//    char *filename;
-//    size_t filename_len;
-//    zend_bool use_include_path = 0;
-//    php_stream *stream;
-//    zend_long offset = 0;
-//    zend_long maxlen;
-//    zend_bool maxlen_is_null = 1;
-//    zval * zcontext = NULL;
-//    php_stream_context *context = NULL;
-//    zend_string * contents;
-//    zend_fcall_info fci;
-//    zend_fcall_info_cache fcc;
-//    zval retval;            /* Function return value */
-//    zval arg;                /* Argument to pass to function */
-//    /* Parse arguments */
-//    ZEND_PARSE_PARAMETERS_START(1, 6)
-//            Z_PARAM_PATH(filename, filename_len)
-//            Z_PARAM_FUNC(fci, fcc)
-//            Z_PARAM_OPTIONAL
-//            Z_PARAM_BOOL(use_include_path)
-//            Z_PARAM_RESOURCE_OR_NULL(zcontext)
-//            Z_PARAM_LONG(offset)
-//            Z_PARAM_LONG_OR_NULL(maxlen, maxlen_is_null)ZEND_PARSE_PARAMETERS_END();
-//
+    RETURN_BOOL(1);
 //    if (maxlen_is_null) {
 //        maxlen = (ssize_t) PHP_STREAM_COPY_ALL;
 //    } else if (maxlen < 0) {
@@ -147,4 +147,4 @@ int main(int argc, char **argv) {
 //
 //        php_printf("The extension %s is loaded and working!\r\n", "fileio");
 //    }
-//}
+}

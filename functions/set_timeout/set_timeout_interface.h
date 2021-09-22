@@ -17,7 +17,7 @@ typedef struct {
 } timerData;
 
 typedef struct {
-    unsigned long handle_id;
+    unsigned long long handle_id;
     void * handle
 } handle_id_item_t;
 extern handle_id_item_t handle_map[HANDLE_MAP_SIZE];
