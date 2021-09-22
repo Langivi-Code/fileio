@@ -26,7 +26,8 @@ handle_id_item_t handle_map[HANDLE_MAP_SIZE];
 unsigned long count_handles(){
     int i = 0;
     for (; i < HANDLE_MAP_SIZE; i++) {
-        if (handle_map[i].handle_id != 0){
+        printf(" i %d handle_Id  %lu\n",i, handle_map[i].handle_id);
+        if (handle_map[i].handle_id == 0){
             break;
         }
     }
