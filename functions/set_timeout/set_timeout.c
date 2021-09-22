@@ -20,17 +20,13 @@ void fill_timeout_handle_with_data(
     fill_event_handle(handle, fci, fcc, &uv);
 }
 
-typedef struct {
-   unsigned long handle_id;
-    void * handle
-} handle_id_item_t;
-static handle_id_item_t handle_map[HANDLE_MAP_SIZE];
+
+handle_id_item_t handle_map[HANDLE_MAP_SIZE];
 
 unsigned long count_handles(){
-    memset(handle_map,0, HANDLE_MAP_SIZE * sizeof(handle_id_item_t));
     int i = 0;
     for (; i < HANDLE_MAP_SIZE; i++) {
-        if (handle_map[i] == 0){
+        if (handle_map[i].handle_id != 0){
             break;
         }
     }

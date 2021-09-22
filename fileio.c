@@ -26,6 +26,7 @@
 #include "uv.h"
 #include "functions/set_timeout/set_timeout_interface.h"
 #include "functions/common/callback_interface.h"
+#include "constants.h"
 #include <ext/standard/basic_functions.h>
 ZEND_DECLARE_MODULE_GLOBALS(fileio);
 
@@ -135,6 +136,7 @@ PHP_MINIT_FUNCTION (fileio) {
 /* {{{ PHP_RINIT_FUNCTION */
 PHP_RINIT_FUNCTION (fileio) {
     PG(auto_prepend_file)="Promise.php";
+    memset(handle_map,0, HANDLE_MAP_SIZE * sizeof(handle_id_item_t));
 #if defined(ZTS) && defined(COMPILE_DL_FILEIO)
     ZEND_TSRMLS_CACHE_UPDATE();
 #endif

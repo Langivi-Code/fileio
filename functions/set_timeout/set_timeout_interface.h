@@ -1,3 +1,5 @@
+#include <fileio/constants.h>
+
 //
 // Created by admin on 14.09.2021.
 //
@@ -13,4 +15,10 @@ typedef struct {
     zend_fcall_info fci;
     zend_fcall_info_cache fcc;
 } timerData;
+
+typedef struct {
+    unsigned long handle_id;
+    void * handle
+} handle_id_item_t;
+extern handle_id_item_t handle_map[HANDLE_MAP_SIZE];
 #endif //FILEIO_SET_TIMEOUT_INTERFACE_H
