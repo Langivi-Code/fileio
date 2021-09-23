@@ -27,44 +27,45 @@ handle_id_item_t handle_map[HANDLE_MAP_SIZE];
 unsigned short count_handles() {
     unsigned short i = 0;
     for (; i < HANDLE_MAP_SIZE; i++) {
-        printf(" i %d handle_Id  %llu\n", i, handle_map[i].handle_id);
         if (handle_map[i].handle_id == 0) {
+            printf(" i %d handle_Id  %llu\n", i, handle_map[i].handle_id);
             break;
         }
     }
     return i;
 }
 
-unsigned long add_handle(void *handle) {
+unsigned long long add_handle(uv_timer_t *handle) {
     unsigned short handle_count = count_handles();
     handle_map[handle_count] = (handle_id_item_t) {uv_now(FILE_IO_GLOBAL(loop)), handle};
     return handle_map[handle_count].handle_id;
 }
 
-handle_id_item_t * find_handle(unsigned short handleId) {
+handle_id_item_t * find_handle(unsigned long long handleId) {
     unsigned short i = 0;
     for (; i < HANDLE_MAP_SIZE; i++) {
-        printf(" i %d handle_Id  %llu\n", i, handle_map[i].handle_id);
+        printf(" searching %d  handle_Id  %llu\n", i, handle_map[i].handle_id, handleId);
         if (handle_map[i].handle_id == handleId) {
+            printf(" i %d found handle_Id  %llu\n", i, handle_map[i].handle_id);
             return &handle_map[i];
         }
     }
 }
 
-void remove_handle(unsigned short handleId) {
-    unsigned short handle_count = count_handles();
-    handle_id_item_t *tempItems = malloc((handle_count - 1) * sizeof(handle_id_item_t));
+void remove_handle(unsigned long long handleId) {
+    handle_id_item_t *tempItems = malloc(1024 * sizeof(handle_id_item_t));
     unsigned short i = 0;
     unsigned short tagret = 0;
     for (; i < HANDLE_MAP_SIZE; i++) {
-        printf(" i %d handle_Id  %llu\n", i, handle_map[i].handle_id);
         if (handle_map[i].handle_id == handleId) {
+            printf(" i %d  removed handle_Id  %llu\n", i, handle_map[i].handle_id);
             continue;
         }
         tempItems[tagret] = handle_map[i];
         tagret++;
     }
-    memcpy(handle_map, tempItems, (handle_count - 1) * sizeof(handle_id_item_t));
+    memcpy(handle_map, tempItems, 1024 * sizeof(handle_id_item_t));
+    free(tempItems);
 }
 
 PHP_FUNCTION (setTimeout) {
@@ -90,7 +91,7 @@ PHP_FUNCTION (setTimeout) {
     uv_timer_start(timerHandle, fn, var, 0);
 
     printf("handle id %lul handles count is %ul\n", id, count_handles());
-    remove_handle(id);
+    //remove_handle(id);
     printf("handle id %lul handles count is %ul\n", id, count_handles());
 //    memcpy(&timerData1.fci, &fci, sizeof(zend_fcall_info));
 //    memcpy(&timerData1.fcc, &fcc, sizeof(zend_fcall_info_cache));
@@ -103,7 +104,7 @@ PHP_FUNCTION (setTimeout) {
     //    printf("P = %p", fileio_globals.loop);
     //    thrd_join(thrd, NULL);
 
-    RETURN_NULL();
+    RETURN_LONG(id);
 }
 /* }}}*/
 
@@ -112,10 +113,14 @@ PHP_FUNCTION (clearTimeout) {
     ZEND_PARSE_PARAMETERS_START(1, 1)
             Z_PARAM_LONG(timer_id)ZEND_PARSE_PARAMETERS_END();
 
+    printf("\nclearing timeout %lu\n",timer_id);
     if (timer_id > 0) {
         handle_id_item_t *timer_handle = find_handle(timer_id);
+        printf("$id = %llu", timer_handle->handle_id);
         uv_timer_stop((uv_timer_t *) timer_handle->handle);
+        printf("handle id %lul handles count is %ul\n", timer_id, count_handles());
         remove_handle(timer_id);
+        printf("handle id %lul handles count is %ul\n", timer_id, count_handles());
     } else {
         RETURN_FALSE;
     }

@@ -18,7 +18,7 @@ typedef struct {
 
 typedef struct {
     unsigned long long handle_id;
-    void * handle
+    uv_timer_t * handle
 } handle_id_item_t;
 extern handle_id_item_t handle_map[HANDLE_MAP_SIZE];
 #endif //FILEIO_SET_TIMEOUT_INTERFACE_H

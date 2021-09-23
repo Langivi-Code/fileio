@@ -19,7 +19,10 @@ ini_set('memory_limit', '1024M');
 //
 // });
 
-setTimeout(fn()=>var_dump("setTimeout finshed"), 2000);
+echo $timer = setTimeout(fn()=>var_dump("setTimeout finshed"), 4000);
+echo "<br>$timer</br>";
+
+setTimeout(fn()=>var_dump(clearTimeout($timer)), 1000);
 
 // $promise->then(
 //     fn(...$args) => var_dump($args)
