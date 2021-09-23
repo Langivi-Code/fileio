@@ -54,7 +54,7 @@ set(SOURCE_FILES
         ${LIBUV_INCLUDE_DIR}
         "${PHP_SRC_PATH}/Zend"
          constants.h)
-message(${SOURCE_FILES})
+message(${ExtensionSources})
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/config.h")
     add_definitions(-DHAVE_CONFIG_H)
     set(SOURCE_FILES "${SOURCE_FILES};config.h")

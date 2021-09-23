@@ -9,7 +9,7 @@
 #include "php.h"
 #include "php_ini.h"
 #include "ext/standard/info.h"
-#include "ext/standard/file.h"
+
 #include "php_fileio.h"
 #include "zend_API.h"
 
@@ -17,14 +17,12 @@
 #include "zend_interfaces.h"
 #include "fileio_arginfo.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
 #include <wchar.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "uv.h"
-#include "functions/set_timeout/set_timeout_interface.h"
+#include "functions/timers/timers_interface.h"
 #include "functions/common/callback_interface.h"
 #include "constants.h"
 #include <ext/standard/basic_functions.h>
@@ -136,7 +134,8 @@ PHP_MINIT_FUNCTION (fileio) {
 /* {{{ PHP_RINIT_FUNCTION */
 PHP_RINIT_FUNCTION (fileio) {
     PG(auto_prepend_file)="Promise.php";
-    memset(handle_map,0, HANDLE_MAP_SIZE * sizeof(handle_id_item_t));
+    memset(timeout_handle_map,0, HANDLE_MAP_SIZE * sizeof(handle_id_item_t));
+    memset(interval_handle_map,0, HANDLE_MAP_SIZE * sizeof(handle_id_item_t));
 #if defined(ZTS) && defined(COMPILE_DL_FILEIO)
     ZEND_TSRMLS_CACHE_UPDATE();
 #endif

@@ -12,3 +12,4 @@ typedef struct {
 #endif //FILEIO_CALLBACK_INTERFACE_H
 void fn(uv_timer_t *handle);
 void fn_idle(uv_idle_t *handle);
+void fn_interval(uv_timer_t *handle);

@@ -2,73 +2,62 @@
 #include <zend_API.h>
 #include <uv.h>
 #include "../../constants.h"
-#include "../common/callback_interface.h"
-#include "../common/fill_event_handle.h"
+#include "../../functions/common/callback_interface.h"
 #include "../../php_fileio.h"
 #include "../../fileio_arginfo.h"
-#include "set_timeout_interface.h"
+#include "timers_interface.h"
 #include <string.h>
-#include <limits.h>
-
-void fill_timeout_handle_with_data(
-        uv_timer_t *handle,
-        zend_fcall_info *fci,
-        zend_fcall_info_cache *fcc
-) {
-    uv_cb_type uv = {};
-    printf("size of timeout handler %lu, fci  %lu \n\n", sizeof *handle, sizeof *fci);
-    handle->data = (uv_cb_type *) emalloc(sizeof(uv_cb_type));
-    fill_event_handle(handle, fci, fcc, &uv);
-}
 
 
-handle_id_item_t handle_map[HANDLE_MAP_SIZE];
 
-unsigned short count_handles() {
+
+handle_id_item_t interval_handle_map[HANDLE_MAP_SIZE];
+
+static unsigned short count_handles() {
     unsigned short i = 0;
     for (; i < HANDLE_MAP_SIZE; i++) {
-        if (handle_map[i].handle_id == 0) {
-            printf(" i %d handle_Id  %llu\n", i, handle_map[i].handle_id);
+        if (interval_handle_map[i].handle_id == 0) {
+            printf(" i %d handle_Id  %llu\n", i, interval_handle_map[i].handle_id);
             break;
         }
     }
     return i;
 }
 
-unsigned long long add_handle(uv_timer_t *handle) {
+static unsigned long long add_handle(uv_timer_t *handle) {
     unsigned short handle_count = count_handles();
-    handle_map[handle_count] = (handle_id_item_t) {uv_now(FILE_IO_GLOBAL(loop)), handle};
-    return handle_map[handle_count].handle_id;
+    interval_handle_map[handle_count] = (handle_id_item_t) {uv_now(FILE_IO_GLOBAL(loop)), handle};
+    return interval_handle_map[handle_count].handle_id;
 }
 
-handle_id_item_t * find_handle(unsigned long long handleId) {
+static handle_id_item_t * find_handle(unsigned long long handleId) {
     unsigned short i = 0;
     for (; i < HANDLE_MAP_SIZE; i++) {
-        printf(" searching %d  handle_Id  %llu\n", i, handle_map[i].handle_id, handleId);
-        if (handle_map[i].handle_id == handleId) {
-            printf(" i %d found handle_Id  %llu\n", i, handle_map[i].handle_id);
-            return &handle_map[i];
+        printf(" searching %d  handle_Id  %llu\n", i, interval_handle_map[i].handle_id, handleId);
+        if (interval_handle_map[i].handle_id == handleId) {
+            printf(" i %d found handle_Id  %llu\n", i, interval_handle_map[i].handle_id);
+            return &interval_handle_map[i];
         }
     }
 }
 
-void remove_handle(unsigned long long handleId) {
+static void remove_handle(unsigned long long handleId) {
     handle_id_item_t *tempItems = malloc(1024 * sizeof(handle_id_item_t));
     unsigned short i = 0;
     unsigned short tagret = 0;
     for (; i < HANDLE_MAP_SIZE; i++) {
-        if (handle_map[i].handle_id == handleId) {
-            printf(" i %d  removed handle_Id  %llu\n", i, handle_map[i].handle_id);
+        if (interval_handle_map[i].handle_id == handleId) {
+            printf(" i %d  removed handle_Id  %llu\n", i, interval_handle_map[i].handle_id);
             continue;
         }
-        tempItems[tagret] = handle_map[i];
+        tempItems[tagret] = interval_handle_map[i];
         tagret++;
     }
-    memcpy(handle_map, tempItems, 1024 * sizeof(handle_id_item_t));
+    memcpy(interval_handle_map, tempItems, 1024 * sizeof(handle_id_item_t));
     free(tempItems);
 }
 
-PHP_FUNCTION (setTimeout) {
+PHP_FUNCTION (setInterval) {
     zend_long var;
     zend_fcall_info fci;
     zend_fcall_info_cache fcc;
@@ -85,10 +74,10 @@ PHP_FUNCTION (setTimeout) {
 
     printf("Main thread id: %p\n", uv_thread_self());
     uv_timer_init(FILE_IO_GLOBAL(loop), timerHandle);
-    fill_timeout_handle_with_data(timerHandle, &fci, &fcc);
+    fill_timer_handle_with_data(timerHandle, &fci, &fcc);
     printf("time is in thrd prc %lld  %p\n", var, &var);
     unsigned long id = add_handle(timerHandle);
-    uv_timer_start(timerHandle, fn, var, 0);
+    uv_timer_start(timerHandle, fn_interval, var, var);
 
     printf("handle id %lul handles count is %ul\n", id, count_handles());
     //remove_handle(id);
@@ -108,7 +97,7 @@ PHP_FUNCTION (setTimeout) {
 }
 /* }}}*/
 
-PHP_FUNCTION (clearTimeout) {
+PHP_FUNCTION (clearInterval) {
     zend_long timer_id;
     ZEND_PARSE_PARAMETERS_START(1, 1)
             Z_PARAM_LONG(timer_id)ZEND_PARSE_PARAMETERS_END();
@@ -118,6 +107,7 @@ PHP_FUNCTION (clearTimeout) {
         handle_id_item_t *timer_handle = find_handle(timer_id);
         printf("$id = %llu", timer_handle->handle_id);
         uv_timer_stop((uv_timer_t *) timer_handle->handle);
+        efree(timer_handle->handle);
         printf("handle id %lul handles count is %ul\n", timer_id, count_handles());
         remove_handle(timer_id);
         printf("handle id %lul handles count is %ul\n", timer_id, count_handles());
