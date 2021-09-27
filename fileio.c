@@ -146,7 +146,8 @@ PHP_RINIT_FUNCTION (fileio) {
     zend_result result;
 //
     ZVAL_FUNC(&callable2, func);
-    ZVAL_STRING(&callable, "print_r");
+    ZVAL_STRING(&callable2,"var_dump");
+    ZVAL_STRINGL(&callable, "print_r", strlen("print_r"));
 
 //    zval params[1];
 //    ZVAL_COPY_VALUE(&params[0], &callable);
