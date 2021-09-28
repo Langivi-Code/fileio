@@ -48,18 +48,19 @@ void on_read(uv_fs_t *req) {
         // synchronous
         uv_fs_close(uv_default_loop(), &close_req, open_req.result, NULL);
     } else if (req->result > 0) {
+        printf("%s", iov.base);
         iov.len = req->result;
-        uv_fs_write(uv_default_loop(), &write_req, 1, &iov, 1, -1, on_write);
+//        uv_fs_write(uv_default_loop(), &write_req, 1, &iov, 1, -1, on_write);
     }
 }
-
-void on_write(uv_fs_t *req) {
-    if (req->result < 0) {
-        fprintf(stderr, "Write error: %s\n", uv_strerror((int) req->result));
-    } else {
-        uv_fs_read(uv_default_loop(), &read_req, open_req.result, &iov, 1, -1, on_read);
-    }
-}
+//
+//void on_write(uv_fs_t *req) {
+//    if (req->result < 0) {
+//        fprintf(stderr, "Write error: %s\n", uv_strerror((int) req->result));
+//    } else {
+//        uv_fs_read(uv_default_loop(), &read_req, open_req.result, &iov, 1, -1, on_read);
+//    }
+//}
 
 /* {{{ void file_get_contents_async() */
 PHP_FUNCTION (file_get_contents_async) {
