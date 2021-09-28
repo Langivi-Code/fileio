@@ -17,36 +17,36 @@ uv_fs_t open_req;
 uv_fs_t read_req;
 uv_fs_t write_req;
 uv_fs_t status_req;
-char *buffer;
+char buffer;
 uint64_t st_size;
+uv_file file;
 
 void on_status(uv_fs_t *req) {
-    printf("on_status id is %zd", req->statbuf.st_size);
     if (req->result == 0) {
         st_size = req->statbuf.st_size;
-        printf("file size is %lu", st_size);
+        printf("file size is %lu\n", st_size);
+        printf("starting reading ... %d\n", file);
+        iov = uv_buf_init(malloc(sizeof(char) * st_size), st_size);
+        uv_fs_read(FILE_IO_GLOBAL(loop), &read_req, file,
+                   &iov, 1, -1, on_read);
     }
 }
 
 void on_open(uv_fs_t *req) {
     // The request passed to the callback is the same as the one the call setup
     // function was passed.
-    printf("file id is %zd", req->result);
-    uv_fs_fstat(FILE_IO_GLOBAL(loop), &status_req,req->result, on_status);
-    printf(" on_open file size is %lu on_open", st_size);
+    printf("file id is %zd\n", req->result);
+
     assert(req == &open_req);
     if (req->result >= 0) {
-        iov = uv_buf_init(buffer, sizeof(char) * st_size);
-        uv_fs_read(FILE_IO_GLOBAL(loop), &read_req, req->result,
-                   &iov, st_size, -1, on_read);
+        file = req->result;
+        uv_fs_fstat(FILE_IO_GLOBAL(loop), &status_req, req->result, on_status);
     } else {
         fprintf(stderr, "error opening file: %s\n", uv_strerror((int) req->result));
     }
 }
 
 void on_read(uv_fs_t *req) {
-    printf("on_read id is %zd", req->result);
-    printf("%s", iov.base);
     if (req->result < 0) {
         fprintf(stderr, "Read error: %s\n", uv_strerror(req->result));
     } else if (req->result == 0) {
@@ -54,8 +54,11 @@ void on_read(uv_fs_t *req) {
         // synchronous
         uv_fs_close(uv_default_loop(), &close_req, open_req.result, NULL);
     } else if (req->result > 0) {
-//        printf("%s", iov.base);
+
         iov.len = req->result;
+        char *dest = malloc(sizeof(char) * st_size);
+        strncpy(dest, iov.base, iov.len);
+        printf("%s",dest);
 //        uv_fs_write(uv_default_loop(), &write_req, 1, &iov, 1, -1, on_write);
     }
 }
@@ -84,7 +87,8 @@ PHP_FUNCTION (file_get_contents_async) {
             Z_PARAM_PATH(filename, filename_len)
             Z_PARAM_FUNC(fci, fcc)
             Z_PARAM_OPTIONAL
-            Z_PARAM_LONG(offset)ZEND_PARSE_PARAMETERS_END();
+            Z_PARAM_LONG(offset)
+    ZEND_PARSE_PARAMETERS_END();
     printf("%s", filename);
     int r = uv_fs_open(uv_default_loop(), &open_req, filename, O_RDONLY, 0, on_open);
     if (r) {
