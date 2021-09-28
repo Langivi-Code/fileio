@@ -21,26 +21,32 @@ char *buffer;
 uint64_t st_size;
 
 void on_status(uv_fs_t *req) {
-    if (req->result > 0) {
+    printf("on_status id is %zd", req->statbuf.st_size);
+    if (req->result == 0) {
         st_size = req->statbuf.st_size;
+        printf("file size is %lu", st_size);
     }
 }
 
 void on_open(uv_fs_t *req) {
     // The request passed to the callback is the same as the one the call setup
     // function was passed.
-    uv_fs_fstat(FILE_IO_GLOBAL(loop), &status_req, req->result, on_status);
+    printf("file id is %zd", req->result);
+    uv_fs_fstat(FILE_IO_GLOBAL(loop), &status_req,req->result, on_status);
+    printf(" on_open file size is %lu on_open", st_size);
     assert(req == &open_req);
     if (req->result >= 0) {
         iov = uv_buf_init(buffer, sizeof(char) * st_size);
         uv_fs_read(FILE_IO_GLOBAL(loop), &read_req, req->result,
-                   &iov, 1, -1, on_read);
+                   &iov, st_size, -1, on_read);
     } else {
         fprintf(stderr, "error opening file: %s\n", uv_strerror((int) req->result));
     }
 }
 
 void on_read(uv_fs_t *req) {
+    printf("on_read id is %zd", req->result);
+    printf("%s", iov.base);
     if (req->result < 0) {
         fprintf(stderr, "Read error: %s\n", uv_strerror(req->result));
     } else if (req->result == 0) {
@@ -48,7 +54,7 @@ void on_read(uv_fs_t *req) {
         // synchronous
         uv_fs_close(uv_default_loop(), &close_req, open_req.result, NULL);
     } else if (req->result > 0) {
-        printf("%s", iov.base);
+//        printf("%s", iov.base);
         iov.len = req->result;
 //        uv_fs_write(uv_default_loop(), &write_req, 1, &iov, 1, -1, on_write);
     }
@@ -74,16 +80,21 @@ PHP_FUNCTION (file_get_contents_async) {
     zval retval;            /* Function return value */
 //    zval arg;                /* Argument to pass to function */
 //    /* Parse arguments */
-    ZEND_PARSE_PARAMETERS_START(1, 3)
+    ZEND_PARSE_PARAMETERS_START(2, 3)
             Z_PARAM_PATH(filename, filename_len)
             Z_PARAM_FUNC(fci, fcc)
             Z_PARAM_OPTIONAL
             Z_PARAM_LONG(offset)ZEND_PARSE_PARAMETERS_END();
+    printf("%s", filename);
+    int r = uv_fs_open(uv_default_loop(), &open_req, filename, O_RDONLY, 0, on_open);
+    if (r) {
+        fprintf(stderr, "Error at opening file: %s.\n",
+                uv_strerror(uv_last_error(uv_default_loop())));
+    }
 
-    uv_fs_open(uv_default_loop(), &open_req, filename, O_RDONLY, 0, on_open);
-    uv_fs_req_cleanup(&open_req);
-    uv_fs_req_cleanup(&read_req);
-    uv_fs_req_cleanup(&write_req);
+//    uv_fs_req_cleanup(&open_req);
+//    uv_fs_req_cleanup(&read_req);
+//    uv_fs_req_cleanup(&write_req);
     RETURN_BOOL(1);
 //    if (maxlen_is_null) {
 //        maxlen = (ssize_t) PHP_STREAM_COPY_ALL;
