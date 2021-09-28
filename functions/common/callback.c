@@ -68,7 +68,32 @@ void fn_interval(uv_timer_t *handle) {
         if (zend_call_function(&uv->fci, &uv->fcc) != SUCCESS) {
             error = -1;
         }
+    } else {
+        error = -2;
+    }
+}
 
+
+void fn_fs(uv_fs_t *handle, const char * dest) {
+    printf("something");
+    uv_cb_type * uv = (uv_cb_type *) handle->data;
+    printf(" %lu \n", sizeof uv->fci);
+    //    memcpy(&uv, (uv_cb_t *) handle->data, sizeof(uv_cb_t));
+    zend_long error;
+    zval retval;
+    zval dstr[1];
+    ZVAL_STRING(&dstr[0],dest);
+    //    zval params[1];
+//    ZVAL_COPY_VALUE(&params[0], &callable);
+    uv->fci.retval = &retval;
+    uv->fci.param_count = 1;
+    uv->fci.params = dstr;
+    //    zend_call_method_with_1_params(NULL, NULL, NULL, "print_r", &retval, &dstr);
+    if (ZEND_FCI_INITIALIZED(uv->fci)) {
+        printf("Timeout call back is called\n");
+        if (zend_call_function(&uv->fci, &uv->fcc) != SUCCESS) {
+            error = -1;
+        }
     } else {
         error = -2;
     }

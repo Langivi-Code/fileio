@@ -21,7 +21,7 @@ ini_set('memory_limit', '1024M');
 
 // echo $timer = setInterval(fn()=>var_dump("setTimeout finished"), 200);
 // echo "<br>$timer</br>";
-file_get_contents_async("config.h", fn()=>"123");
+file_get_contents_async("config.h", fn($arg)=>print_r($arg));
 
 // setTimeout(fn()=>exit(), 5000);
 

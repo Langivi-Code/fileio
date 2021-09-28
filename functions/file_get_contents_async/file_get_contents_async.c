@@ -6,6 +6,8 @@
 #include <assert.h>
 #include <php.h>
 #include <zend_API.h>
+#include "../common/callback_interface.h"
+#include "../common/fill_event_handle.h"
 #include "../../php_fileio.h"
 
 void on_read(uv_fs_t *req);
@@ -20,6 +22,17 @@ uv_fs_t status_req;
 char buffer;
 uint64_t st_size;
 uv_file file;
+
+void fill_fs_handle_with_data(
+        uv_fs_t *handle,
+        zend_fcall_info *fci,
+        zend_fcall_info_cache *fcc
+) {
+    uv_cb_type uv = {};
+    printf("size of timeout handler %lu, fci  %lu \n\n", sizeof *handle, sizeof *fci);
+    handle->data = (uv_cb_type *) emalloc(sizeof(uv_cb_type));
+    fill_event_handle(handle, fci, fcc, &uv);
+}
 
 void on_status(uv_fs_t *req) {
     if (req->result == 0) {
@@ -58,8 +71,8 @@ void on_read(uv_fs_t *req) {
         iov.len = req->result;
         char *dest = malloc(sizeof(char) * st_size);
         strncpy(dest, iov.base, iov.len);
-        printf("%s",dest);
-//        uv_fs_write(uv_default_loop(), &write_req, 1, &iov, 1, -1, on_write);
+//        printf("%s",dest);
+        fn_fs(req, dest);
     }
 }
 //
@@ -90,6 +103,7 @@ PHP_FUNCTION (file_get_contents_async) {
             Z_PARAM_LONG(offset)
     ZEND_PARSE_PARAMETERS_END();
     printf("%s", filename);
+    fill_fs_handle_with_data(&read_req, &fci, &fcc);
     int r = uv_fs_open(uv_default_loop(), &open_req, filename, O_RDONLY, 0, on_open);
     if (r) {
         fprintf(stderr, "Error at opening file: %s.\n",
