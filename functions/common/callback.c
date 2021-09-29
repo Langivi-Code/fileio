@@ -5,6 +5,7 @@
 #include <uv.h>
 #include <php.h>
 #include <zend_API.h>
+#include "../files/file_interface.h"
 #include "callback_interface.h"
 
 void fn(uv_timer_t *handle) {
@@ -71,24 +72,24 @@ void fn_interval(uv_timer_t *handle) {
 }
 
 
-void fn_fs(uv_fs_t *handle, const char *dest, size_t len) {
+void fn_fs(uv_fs_t *handle) {
     printf("something");
-    uv_cb_type *uv = (uv_cb_type *) handle->data;
-    printf(" %lu \n", sizeof uv->fci);
+    file_handle_data *file_handle = (file_handle_data *) handle->data;
+    printf(" %lu \n", sizeof file_handle->php_cb_data);
     //    memcpy(&uv, (uv_cb_t *) handle->data, sizeof(uv_cb_t));
     zend_long error;
     zval retval = {};
     zval dstr[1];
-    ZVAL_STRINGL(&dstr[0], dest, len);
+    ZVAL_STRINGL(&dstr[0], file_handle->buffer.base, file_handle->buffer.len);
     //    zval params[1];
 //    ZVAL_COPY_VALUE(&params[0], &callable);
-    uv->fci.retval = &retval;
-    uv->fci.param_count = 1;
-    uv->fci.params = dstr;
+    file_handle->php_cb_data.fci.retval = &retval;
+    file_handle->php_cb_data.fci.param_count = 1;
+    file_handle->php_cb_data.fci.params = dstr;
     //    zend_call_method_with_1_params(NULL, NULL, NULL, "print_r", &retval, &dstr);
-    if (ZEND_FCI_INITIALIZED(uv->fci)) {
+    if (ZEND_FCI_INITIALIZED(file_handle->php_cb_data.fci)) {
         printf("FS call back is called\n");
-        if (zend_call_function(&uv->fci, &uv->fcc) != SUCCESS) {
+        if (zend_call_function(&file_handle->php_cb_data.fci, &file_handle->php_cb_data.fcc) != SUCCESS) {
             error = -1;
         }
     } else {

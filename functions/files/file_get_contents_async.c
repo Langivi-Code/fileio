@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <php.h>
 #include <zend_API.h>
+#include "../../constants.h"
 #include "../common/callback_interface.h"
 #include "../../php_fileio.h"
 #include "file_interface.h"
@@ -13,22 +14,64 @@
 
 void on_read(uv_fs_t *req);
 
-static uv_buf_t iov;
-static uv_fs_t open_req;
-static uv_fs_t read_req;
-static uv_fs_t status_req;
-static uint64_t st_size;
-static uv_file file;
+fs_handles_id_item_t timeout_handle_map[HANDLE_MAP_SIZE];
+
+unsigned short count_fs_handles() {
+    unsigned short i = 0;
+    for (; i < HANDLE_MAP_SIZE; i++) {
+        if (timeout_handle_map[i].handle_id == 0) {
+            printf(" i %d handle_Id  %llu\n", i, timeout_handle_map[i].handle_id);
+            break;
+        }
+    }
+    return i;
+}
+
+unsigned long long add_fs_handle(uv_fs_t *handle) {
+    unsigned short handle_count = count_fs_handles();
+    timeout_handle_map[handle_count] = (fs_handles_id_item_t) {uv_now(FILE_IO_GLOBAL(loop)), handle};
+    return timeout_handle_map[handle_count].handle_id;
+}
+
+fs_handles_id_item_t *find_fs_handle(unsigned long long handleId) {
+    unsigned short i = 0;
+    for (; i < HANDLE_MAP_SIZE; i++) {
+        printf(" searching %d  handle_Id  %llu\n", i, timeout_handle_map[i].handle_id, handleId);
+        if (timeout_handle_map[i].handle_id == handleId) {
+            printf(" i %d found handle_Id  %llu\n", i, timeout_handle_map[i].handle_id);
+            return &timeout_handle_map[i];
+        }
+    }
+}
+
+void remove_fs_handle(unsigned long long handleId) {
+    fs_handles_id_item_t *tempItems = malloc(1024 * sizeof(fs_handles_id_item_t));
+    unsigned short i = 0;
+    unsigned short tagret = 0;
+    for (; i < HANDLE_MAP_SIZE; i++) {
+        if (timeout_handle_map[i].handle_id == handleId) {
+            printf(" i %d  removed handle_Id  %llu\n", i, timeout_handle_map[i].handle_id);
+            continue;
+        }
+        tempItems[tagret] = timeout_handle_map[i];
+        tagret++;
+    }
+    memcpy(timeout_handle_map, tempItems, 1024 * sizeof(fs_handles_id_item_t));
+    free(tempItems);
+}
 
 
 void on_status(uv_fs_t *req) {
     if (req->result == 0) {
-        st_size = req->statbuf.st_size;
-        printf("file size is %lu\n", st_size);
-        printf("starting reading ... %d\n", file);
-        iov = uv_buf_init(malloc(sizeof(char) * st_size), st_size);
-        uv_fs_read(FILE_IO_GLOBAL(loop), &read_req, file,
-                   &iov, 1, -1, on_read);
+        uv_fs_t * read_req = find_fs_handle((unsigned long long) req->data)->open_req;
+        file_handle_data *handle = (file_handle_data *) read_req->data;
+        handle->file_size = req->statbuf.st_size;
+        printf("file size is %lu\n", handle->file_size);
+
+        printf("starting reading ... %d\n", handle->file);
+        handle->buffer = uv_buf_init(malloc(sizeof(char) * handle->file_size), handle->file_size);
+        uv_fs_read(FILE_IO_GLOBAL(loop), read_req, handle->file,
+                   &handle->buffer, 1, -1, on_read);
     }
 }
 
@@ -37,9 +80,13 @@ void on_open(uv_fs_t *req) {
     // function was passed.
     printf("file id is %zd\n", req->result);
 
+    uv_fs_t status_req;
     assert(req == &open_req);
     if (req->result >= 0) {
-        file = req->result;
+        uv_fs_t * read_req = find_fs_handle((unsigned long long) req->data)->open_req;
+        file_handle_data *handle = (file_handle_data *) read_req->data;
+        handle->file = req->result;
+        status_req.data = req->data;
         uv_fs_fstat(FILE_IO_GLOBAL(loop), &status_req, req->result, on_status);
     } else {
         fprintf(stderr, "error opening file: %s\n", uv_strerror((int) req->result));
@@ -47,22 +94,29 @@ void on_open(uv_fs_t *req) {
 }
 
 void on_read(uv_fs_t *req) {
+    file_handle_data *handle = (file_handle_data *) req->data;
+
     uv_fs_t close_req;
     if (req->result < 0) {
         fprintf(stderr, "Read error: %s\n", uv_strerror(req->result));
     } else if (req->result == 0) {
-
         // synchronous
-        uv_fs_close(uv_default_loop(), &close_req, open_req.result, NULL);
+        uv_fs_close(uv_default_loop(), &close_req, handle->file, NULL);
     } else if (req->result > 0) {
-
-        iov.len = req->result;
-        fn_fs(req, iov.base,  iov.len);
+        fn_fs(req);
 //        uv_fs_close(uv_default_loop(), &close_req, open_req.result, NULL);
 //        printf("%s",dest);
     }
 }
 
+void fill_file_handle(file_handle_data *handleData, char *filename,
+                      zend_fcall_info *fci,
+                      zend_fcall_info_cache *fcc) {
+    handleData->filename = filename;
+    memcpy(&handleData->php_cb_data.fci, fci, sizeof(zend_fcall_info));
+    memcpy(&handleData->php_cb_data.fcc, fcc, sizeof(zend_fcall_info_cache));
+
+}
 
 /* {{{ void file() */
 PHP_FUNCTION (file_get_contents_async) {
@@ -73,7 +127,7 @@ PHP_FUNCTION (file_get_contents_async) {
     zend_long offset = 0;
 
 //    zend_string * contents;
-          /* Function return value */
+    /* Function return value */
 //    zval arg;                /* Argument to pass to function */
 //    /* Parse arguments */
     ZEND_PARSE_PARAMETERS_START(2, 3)
@@ -82,19 +136,25 @@ PHP_FUNCTION (file_get_contents_async) {
             Z_PARAM_OPTIONAL
             Z_PARAM_LONG(offset)
     ZEND_PARSE_PARAMETERS_END();
+    uv_fs_t *open_req = emalloc(sizeof(uv_fs_t));
+    uv_fs_t *read_req = emalloc(sizeof(uv_fs_t));
     printf("%s", filename);
-    file_handle_data * handleData = emalloc(sizeof(file_handle_data));
-    handleData->filename = filename;
-    fill_fs_handle_with_data(&read_req, &fci, &fcc);
-    int r = uv_fs_open(uv_default_loop(), &open_req, filename, O_RDONLY, 0, on_open);
+    file_handle_data *handleData = emalloc(sizeof(file_handle_data));
+    fill_file_handle(handleData, filename, &fci, &fcc);
+    fill_fs_handle_with_data(read_req, handleData);
+    unsigned long id = add_fs_handle(read_req);
+    open_req->data = (void *) id;
+    int r = uv_fs_open(uv_default_loop(), open_req, filename, O_RDONLY, 0, on_open);
+
+
     if (r) {
 //        fprintf(stderr, "Error at opening file: %s.\n",
 //                uv_strerror(uv_last_error(uv_default_loop())));
     }
 
-    uv_fs_req_cleanup(&open_req);
-    uv_fs_req_cleanup(&read_req);
-    uv_fs_req_cleanup(&status_req);
+//    uv_fs_req_cleanup(&open_req);
+//    uv_fs_req_cleanup(&read_req);
+//    uv_fs_req_cleanup(&status_req);
 //    uv_fs_req_cleanup(&write_req);
     RETURN_BOOL(1);
 //    if (maxlen_is_null) {

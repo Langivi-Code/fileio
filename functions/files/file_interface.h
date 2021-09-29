@@ -8,16 +8,21 @@
 #endif //FILEIO_FILE_INTERFACE_H
 #include <uv.h>
 #include <zend_API.h>
+#include "../common/callback_interface.h"
+
 typedef struct  {
     uv_cb_type php_cb_data;
     uv_file file;
     char * filename;
-    size_t file_size;
+    uint64_t file_size;
     uv_buf_t buffer;
 } file_handle_data;
 
-void fill_fs_handle_with_data(file_handle_data * handleData,
+typedef struct {
+    unsigned long long handle_id;
+    uv_fs_t * open_req;
+} fs_handles_id_item_t;
+void fill_fs_handle_with_data(
         uv_fs_t *handle,
-        zend_fcall_info *fci,
-        zend_fcall_info_cache *fcc
+        file_handle_data * handleData
 );

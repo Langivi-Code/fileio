@@ -6,13 +6,11 @@
 #include <php.h>
 #include <zend_API.h>
 
-void fill_fs_handle_with_data(file_handle_data * handleData
+void fill_fs_handle_with_data(
         uv_fs_t *handle,
-        zend_fcall_info *fci,
-        zend_fcall_info_cache *fcc
+        file_handle_data * handleData
 ) {
     uv_cb_type uv = {};
-    printf("size of timeout handler %lu, fci  %lu \n\n", sizeof *handle, sizeof *fci);
-    handle->data = (uv_cb_type *) emalloc(sizeof(uv_cb_type));
-    fill_event_handle(handle, fci, fcc, &uv);
+    printf("size of timeout handler %lu, fci  %lu \n\n", sizeof *handle, sizeof *handleData);
+    handle->data = handleData;
 }
