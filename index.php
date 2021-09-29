@@ -21,9 +21,11 @@ ini_set('memory_limit', '1024M');
 
 // echo $timer = setInterval(fn()=>var_dump("setTimeout finished"), 200);
 // echo "<br>$timer</br>";
-// setTimeout(fn()=>var_dump(124), 10000);
-file_get_contents_async("/home/user/projects/php-src/ext/fileio/compile", fn($arg)=>file_put_contents("dtad334", $arg));
-// file_get_contents_async("/home/user/projects/php-src/ext/fileio/index.php", fn($arg)=>file_put_contents("dtad335", $arg));
+file_get_contents_async("compile", fn($arg)=>file_put_contents("dtad334", $arg));
+sleep(3);
+file_get_contents_async("compile", fn($arg)=>file_put_contents("dtad336", $arg));
+
+// file_get_contents_async("/home/user/projects/php-src/ext/fileio/index.php", fn($arg)=>file_put_contents("dtad336", $arg));
 // idle(fn()=>var_dump(123));
 // file_get_contents_async("configure", fn($arg)=>file_put_contents("dtad2", $arg));
 

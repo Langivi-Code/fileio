@@ -14,13 +14,13 @@
 
 void on_read(uv_fs_t *req);
 
-fs_handles_id_item_t timeout_handle_map[HANDLE_MAP_SIZE];
+fs_handles_id_item_t fstimeout_handle_map[HANDLE_MAP_SIZE];
 
 unsigned short count_fs_handles() {
     unsigned short i = 0;
     for (; i < HANDLE_MAP_SIZE; i++) {
-        if (timeout_handle_map[i].handle_id == 0) {
-            printf(" i %d handle_Id  %llu\n", i, timeout_handle_map[i].handle_id);
+        if (fstimeout_handle_map[i].handle_id == 0) {
+            printf(" i %d handle_Id  %llu\n", i, fstimeout_handle_map[i].handle_id);
             break;
         }
     }
@@ -29,17 +29,18 @@ unsigned short count_fs_handles() {
 
 unsigned long long add_fs_handle(uv_fs_t *handle) {
     unsigned short handle_count = count_fs_handles();
-    timeout_handle_map[handle_count] = (fs_handles_id_item_t) {uv_now(FILE_IO_GLOBAL(loop)), handle};
-    return timeout_handle_map[handle_count].handle_id;
+    fstimeout_handle_map[handle_count] = (fs_handles_id_item_t) {uv_hrtime(), handle};
+
+    return fstimeout_handle_map[handle_count].handle_id;
 }
 
 fs_handles_id_item_t *find_fs_handle(unsigned long long handleId) {
     unsigned short i = 0;
     for (; i < HANDLE_MAP_SIZE; i++) {
-        printf(" searching %d  handle_Id  %llu\n", i, timeout_handle_map[i].handle_id, handleId);
-        if (timeout_handle_map[i].handle_id == handleId) {
-            printf(" i %d found handle_Id  %llu\n", i, timeout_handle_map[i].handle_id);
-            return &timeout_handle_map[i];
+        printf(" searching %d  handle_Id  %llu\n", i, fstimeout_handle_map[i].handle_id, handleId);
+        if (fstimeout_handle_map[i].handle_id == handleId) {
+            printf(" i %d found handle_Id  %llu\n", i, fstimeout_handle_map[i].handle_id);
+            return &fstimeout_handle_map[i];
         }
     }
 }
@@ -49,24 +50,24 @@ void remove_fs_handle(unsigned long long handleId) {
     unsigned short i = 0;
     unsigned short tagret = 0;
     for (; i < HANDLE_MAP_SIZE; i++) {
-        if (timeout_handle_map[i].handle_id == handleId) {
-            printf(" i %d  removed handle_Id  %llu\n", i, timeout_handle_map[i].handle_id);
+        if (fstimeout_handle_map[i].handle_id == handleId) {
+            printf(" i %d  removed handle_Id  %llu\n", i, fstimeout_handle_map[i].handle_id);
             continue;
         }
-        tempItems[tagret] = timeout_handle_map[i];
+        tempItems[tagret] = fstimeout_handle_map[i];
         tagret++;
     }
-    memcpy(timeout_handle_map, tempItems, 1024 * sizeof(fs_handles_id_item_t));
+    memcpy(fstimeout_handle_map, tempItems, 1024 * sizeof(fs_handles_id_item_t));
     free(tempItems);
 }
 
 
 void on_status(uv_fs_t *req) {
     if (req->result == 0) {
-        uv_fs_t * read_req = find_fs_handle((unsigned long long) req->data)->open_req;
+        uv_fs_t *read_req = find_fs_handle((unsigned long long) req->data)->open_req;
         file_handle_data *handle = (file_handle_data *) read_req->data;
         handle->file_size = req->statbuf.st_size;
-        printf("file size is %lu\n", handle->file_size);
+        printf("file size is %lu %lu\n", handle->file_size, req->statbuf.st_size);
 
         printf("starting reading ... %d\n", handle->file);
         handle->buffer = uv_buf_init(malloc(sizeof(char) * handle->file_size), handle->file_size);
@@ -80,14 +81,15 @@ void on_open(uv_fs_t *req) {
     // function was passed.
     printf("file id is %zd\n", req->result);
 
-    uv_fs_t status_req;
+    uv_fs_t *status_req = emalloc(sizeof(uv_fs_t));
     assert(req == &open_req);
     if (req->result >= 0) {
-        uv_fs_t * read_req = find_fs_handle((unsigned long long) req->data)->open_req;
+        uv_fs_t *read_req = find_fs_handle((unsigned long long) req->data)->open_req;
         file_handle_data *handle = (file_handle_data *) read_req->data;
         handle->file = req->result;
-        status_req.data = req->data;
-        uv_fs_fstat(FILE_IO_GLOBAL(loop), &status_req, req->result, on_status);
+        handle->handle_id = (unsigned long long) req->data;
+        status_req->data = req->data;
+        uv_fs_fstat(FILE_IO_GLOBAL(loop), status_req, req->result, on_status);
     } else {
         fprintf(stderr, "error opening file: %s\n", uv_strerror((int) req->result));
     }
@@ -143,13 +145,14 @@ PHP_FUNCTION (file_get_contents_async) {
     fill_file_handle(handleData, filename, &fci, &fcc);
     fill_fs_handle_with_data(read_req, handleData);
     unsigned long id = add_fs_handle(read_req);
+    printf("%lu\n", id);
     open_req->data = (void *) id;
     int r = uv_fs_open(uv_default_loop(), open_req, filename, O_RDONLY, 0, on_open);
 
 
     if (r) {
-//        fprintf(stderr, "Error at opening file: %s.\n",
-//                uv_strerror(uv_last_error(uv_default_loop())));
+        fprintf(stderr, "Error at opening file: %s.\n",
+                uv_strerror(uv_last_error(uv_default_loop())));
     }
 
 //    uv_fs_req_cleanup(&open_req);

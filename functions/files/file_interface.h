@@ -16,6 +16,7 @@ typedef struct  {
     char * filename;
     uint64_t file_size;
     uv_buf_t buffer;
+    unsigned long long handle_id
 } file_handle_data;
 
 typedef struct {

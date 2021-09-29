@@ -7,7 +7,7 @@
 #include <zend_API.h>
 #include "../files/file_interface.h"
 #include "callback_interface.h"
-
+extern void remove_fs_handle(unsigned long long handleId);
 void fn(uv_timer_t *handle) {
     printf("something");
     uv_cb_type *uv = (uv_cb_type *) handle->data;
@@ -79,8 +79,10 @@ void fn_fs(uv_fs_t *handle) {
     //    memcpy(&uv, (uv_cb_t *) handle->data, sizeof(uv_cb_t));
     zend_long error;
     zval retval = {};
+    zval dest = {};
     zval dstr[1];
-    ZVAL_STRINGL(&dstr[0], file_handle->buffer.base, file_handle->buffer.len);
+    ZVAL_STRINGL(&dest, file_handle->buffer.base, file_handle->buffer.len);
+    ZVAL_COPY(&dstr[0],&dest);
     //    zval params[1];
 //    ZVAL_COPY_VALUE(&params[0], &callable);
     file_handle->php_cb_data.fci.retval = &retval;
@@ -92,7 +94,11 @@ void fn_fs(uv_fs_t *handle) {
         if (zend_call_function(&file_handle->php_cb_data.fci, &file_handle->php_cb_data.fcc) != SUCCESS) {
             error = -1;
         }
+        sleep(3);
     } else {
         error = -2;
     }
+//    remove_fs_handle(file_handle->handle_id);
+//    efree(file_handle);
+    puts("I have ended******************************************************");
 }
