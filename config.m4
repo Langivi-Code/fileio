@@ -42,7 +42,8 @@ if test $PHP_UV != "no"; then
     FUNCTIONS="functions"
     TIMERS="$FUNCTIONS/timers"
     COMMON="$FUNCTIONS/common"
-    PHP_NEW_EXTENSION(fileio, fileio.c $COMMON/fill_event_handle.c $COMMON/callback.c $TIMERS/fill_timer_handle_with_data.c $TIMERS/set_timeout.c $TIMERS/set_interval.c $FUNCTIONS/file_get_contents_async/file_get_contents_async.c $FUNCTIONS/use_promise/use_promise.c $FUNCTIONS/idle/idle.c $SOURCES, $ext_shared)
+    FILES="$FUNCTIONS/files"
+    PHP_NEW_EXTENSION(fileio, fileio.c $COMMON/fill_event_handle.c $COMMON/callback.c $TIMERS/fill_timer_handle_with_data.c $TIMERS/set_timeout.c $TIMERS/set_interval.c $FILES/fill_fs_handle_with_data.c $FILES/file_get_contents_async.c $FILES/file_put_contents_async.c $FUNCTIONS/use_promise/use_promise.c $FUNCTIONS/idle/idle.c $SOURCES, $ext_shared)
 
     PHP_ADD_EXTENSION_DEP(uv, fiber, true )
 

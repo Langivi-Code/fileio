@@ -7,32 +7,19 @@
 #include <php.h>
 #include <zend_API.h>
 #include "../common/callback_interface.h"
-#include "../common/fill_event_handle.h"
 #include "../../php_fileio.h"
+#include "file_interface.h"
+
 
 void on_read(uv_fs_t *req);
 
-void on_write(uv_fs_t *req);
+static uv_buf_t iov;
+static uv_fs_t open_req;
+static uv_fs_t read_req;
+static uv_fs_t status_req;
+static uint64_t st_size;
+static uv_file file;
 
-uv_buf_t iov;
-uv_fs_t open_req;
-uv_fs_t read_req;
-uv_fs_t write_req;
-uv_fs_t status_req;
-char buffer;
-uint64_t st_size;
-uv_file file;
-
-void fill_fs_handle_with_data(
-        uv_fs_t *handle,
-        zend_fcall_info *fci,
-        zend_fcall_info_cache *fcc
-) {
-    uv_cb_type uv = {};
-    printf("size of timeout handler %lu, fci  %lu \n\n", sizeof *handle, sizeof *fci);
-    handle->data = (uv_cb_type *) emalloc(sizeof(uv_cb_type));
-    fill_event_handle(handle, fci, fcc, &uv);
-}
 
 void on_status(uv_fs_t *req) {
     if (req->result == 0) {
@@ -60,31 +47,24 @@ void on_open(uv_fs_t *req) {
 }
 
 void on_read(uv_fs_t *req) {
+    uv_fs_t close_req;
     if (req->result < 0) {
         fprintf(stderr, "Read error: %s\n", uv_strerror(req->result));
     } else if (req->result == 0) {
-        uv_fs_t close_req;
+
         // synchronous
         uv_fs_close(uv_default_loop(), &close_req, open_req.result, NULL);
     } else if (req->result > 0) {
 
         iov.len = req->result;
-        char *dest = malloc(sizeof(char) * st_size);
-        strncpy(dest, iov.base, iov.len);
+        fn_fs(req, iov.base,  iov.len);
+//        uv_fs_close(uv_default_loop(), &close_req, open_req.result, NULL);
 //        printf("%s",dest);
-        fn_fs(req, dest);
     }
 }
-//
-//void on_write(uv_fs_t *req) {
-//    if (req->result < 0) {
-//        fprintf(stderr, "Write error: %s\n", uv_strerror((int) req->result));
-//    } else {
-//        uv_fs_read(uv_default_loop(), &read_req, open_req.result, &iov, 1, -1, on_read);
-//    }
-//}
 
-/* {{{ void file_get_contents_async() */
+
+/* {{{ void file() */
 PHP_FUNCTION (file_get_contents_async) {
     char *filename;
     size_t filename_len;
@@ -93,7 +73,7 @@ PHP_FUNCTION (file_get_contents_async) {
     zend_long offset = 0;
 
 //    zend_string * contents;
-    zval retval;            /* Function return value */
+          /* Function return value */
 //    zval arg;                /* Argument to pass to function */
 //    /* Parse arguments */
     ZEND_PARSE_PARAMETERS_START(2, 3)
@@ -103,15 +83,18 @@ PHP_FUNCTION (file_get_contents_async) {
             Z_PARAM_LONG(offset)
     ZEND_PARSE_PARAMETERS_END();
     printf("%s", filename);
+    file_handle_data * handleData = emalloc(sizeof(file_handle_data));
+    handleData->filename = filename;
     fill_fs_handle_with_data(&read_req, &fci, &fcc);
     int r = uv_fs_open(uv_default_loop(), &open_req, filename, O_RDONLY, 0, on_open);
     if (r) {
-        fprintf(stderr, "Error at opening file: %s.\n",
-                uv_strerror(uv_last_error(uv_default_loop())));
+//        fprintf(stderr, "Error at opening file: %s.\n",
+//                uv_strerror(uv_last_error(uv_default_loop())));
     }
 
-//    uv_fs_req_cleanup(&open_req);
-//    uv_fs_req_cleanup(&read_req);
+    uv_fs_req_cleanup(&open_req);
+    uv_fs_req_cleanup(&read_req);
+    uv_fs_req_cleanup(&status_req);
 //    uv_fs_req_cleanup(&write_req);
     RETURN_BOOL(1);
 //    if (maxlen_is_null) {

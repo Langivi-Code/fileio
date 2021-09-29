@@ -9,13 +9,13 @@
 
 void fn(uv_timer_t *handle) {
     printf("something");
-    uv_cb_type * uv = (uv_cb_type *) handle->data;
+    uv_cb_type *uv = (uv_cb_type *) handle->data;
     printf(" %lu \n", sizeof uv->fci);
     //    memcpy(&uv, (uv_cb_t *) handle->data, sizeof(uv_cb_t));
     zend_long error;
     zval retval;
     zval dstr;
-    ZVAL_STRING(&dstr,"callback fn");
+    ZVAL_STRING(&dstr, "callback fn");
     //    zend_call_method_with_1_params(NULL, NULL, NULL, "print_r", &retval, &dstr);
     if (ZEND_FCI_INITIALIZED(uv->fci)) {
         printf("Timeout call back is called\n");
@@ -30,14 +30,13 @@ void fn(uv_timer_t *handle) {
 }
 
 void fn_idle(uv_idle_t *handle) {
-    printf("something");
-    uv_cb_type * uv = (uv_cb_type *) handle->data;
+    uv_cb_type *uv = (uv_cb_type *) handle->data;
     printf(" %lu \n", sizeof uv->fci);
     //    memcpy(&uv, (uv_cb_t *) handle->data, sizeof(uv_cb_t));
     zend_long error;
     zval retval;
     zval dstr;
-    ZVAL_STRING(&dstr,"callback fn");
+    ZVAL_STRING(&dstr, "callback fn");
     //    zend_call_method_with_1_params(NULL, NULL, NULL, "print_r", &retval, &dstr);
     if (ZEND_FCI_INITIALIZED(uv->fci)) {
         printf("Idle call back is called");
@@ -50,18 +49,16 @@ void fn_idle(uv_idle_t *handle) {
     }
     uv_idle_stop(handle);
     efree(handle);
-    sleep(10);
 }
 
 void fn_interval(uv_timer_t *handle) {
-    printf("something");
-    uv_cb_type * uv = (uv_cb_type *) handle->data;
+    uv_cb_type *uv = (uv_cb_type *) handle->data;
     printf(" %lu \n", sizeof uv->fci);
     //    memcpy(&uv, (uv_cb_t *) handle->data, sizeof(uv_cb_t));
     zend_long error;
     zval retval;
     zval dstr;
-    ZVAL_STRING(&dstr,"callback fn");
+    ZVAL_STRING(&dstr, "callback fn");
     //    zend_call_method_with_1_params(NULL, NULL, NULL, "print_r", &retval, &dstr);
     if (ZEND_FCI_INITIALIZED(uv->fci)) {
         printf("Timeout call back is called\n");
@@ -74,15 +71,15 @@ void fn_interval(uv_timer_t *handle) {
 }
 
 
-void fn_fs(uv_fs_t *handle, const char * dest) {
+void fn_fs(uv_fs_t *handle, const char *dest, size_t len) {
     printf("something");
-    uv_cb_type * uv = (uv_cb_type *) handle->data;
+    uv_cb_type *uv = (uv_cb_type *) handle->data;
     printf(" %lu \n", sizeof uv->fci);
     //    memcpy(&uv, (uv_cb_t *) handle->data, sizeof(uv_cb_t));
     zend_long error;
-    zval retval;
+    zval retval = {};
     zval dstr[1];
-    ZVAL_STRING(&dstr[0],dest);
+    ZVAL_STRINGL(&dstr[0], dest, len);
     //    zval params[1];
 //    ZVAL_COPY_VALUE(&params[0], &callable);
     uv->fci.retval = &retval;
@@ -90,7 +87,7 @@ void fn_fs(uv_fs_t *handle, const char * dest) {
     uv->fci.params = dstr;
     //    zend_call_method_with_1_params(NULL, NULL, NULL, "print_r", &retval, &dstr);
     if (ZEND_FCI_INITIALIZED(uv->fci)) {
-        printf("Timeout call back is called\n");
+        printf("FS call back is called\n");
         if (zend_call_function(&uv->fci, &uv->fcc) != SUCCESS) {
             error = -1;
         }

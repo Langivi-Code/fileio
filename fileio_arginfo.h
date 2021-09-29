@@ -39,6 +39,7 @@ ZEND_FUNCTION(clearTimeout);
 ZEND_FUNCTION(clearInterval);
 ZEND_FUNCTION(idle);
 ZEND_FUNCTION(file_get_contents_async);
+ZEND_FUNCTION(file_put_contents_async);
 
 
 static const zend_function_entry file_io_functions[] = {
