@@ -40,7 +40,6 @@ ZEND_DECLARE_MODULE_GLOBALS(fileio);
 
 /* }}} */
 
-zval fiber;
 
 void print(uv_async_t *handle) {
     printf(" print thread id: %ld, value is %ld\n", uv_thread_self(), (long) handle->data);
