@@ -17,7 +17,7 @@ typedef struct  {
     uint64_t file_size;
     uv_buf_t buffer;
     uv_fs_t * open_req;
-    unsigned long long handle_id
+    unsigned long long handle_id;
 } file_handle_data;
 
 typedef struct {
@@ -31,7 +31,7 @@ typedef struct {
     uv_fs_t * write_req;
 } fs_close_reqs_t;
 
-fs_handles_id_item_t fstimeout_handle_map[HANDLE_MAP_SIZE];
+extern fs_handles_id_item_t fstimeout_handle_map[HANDLE_MAP_SIZE];
 
 void fill_fs_handle_with_data(
         uv_fs_t *handle,
