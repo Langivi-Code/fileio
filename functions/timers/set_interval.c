@@ -57,7 +57,7 @@ static void remove_handle(unsigned long long handleId) {
     free(tempItems);
 }
 
-PHP_FUNCTION (setInterval) {
+PHP_FUNCTION (set_interval) {
     zend_long var;
     zend_fcall_info fci;
     zend_fcall_info_cache fcc;
@@ -97,7 +97,7 @@ PHP_FUNCTION (setInterval) {
 }
 /* }}}*/
 
-PHP_FUNCTION (clearInterval) {
+PHP_FUNCTION (clear_interval) {
     zend_long timer_id;
     ZEND_PARSE_PARAMETERS_START(1, 1)
             Z_PARAM_LONG(timer_id)ZEND_PARSE_PARAMETERS_END();
