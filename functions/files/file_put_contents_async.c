@@ -9,7 +9,7 @@
 #include "../../php_fileio.h"
 #include "file_interface.h"
 
-
+#define LOG_TAG "file_put_contents_async * "
 void on_write(uv_fs_t *req);
 
 void on_wr_open(uv_fs_t *req);
@@ -39,7 +39,7 @@ PHP_FUNCTION (file_put_contents_async) {
     fill_file_handle(handleData, filename, &fci, &fcc);
     if (Z_TYPE_P(data) == IS_STRING) {
         size_t data_size = Z_STRLEN_P(data);
-        handleData->buffer = uv_buf_init(malloc(sizeof(char) * data_size), data_size);
+        handleData->buffer = uv_buf_init(malloc(sizeof(char) * (data_size+1)), data_size+1);
         memset(handleData->buffer.base, '\0', data_size + 1);
         strncpy(handleData->buffer.base, ZSTR_VAL(Z_STR_P(data)), data_size);
         handleData->file_size = data_size;
@@ -47,6 +47,7 @@ PHP_FUNCTION (file_put_contents_async) {
         zend_argument_value_error(2, "must be a string");
         RETURN_THROWS();
     }
+    handleData->read = false;
 
     fill_fs_handle_with_data(write_req, handleData);
     unsigned long id = add_fs_handle(write_req);
@@ -155,6 +156,9 @@ void on_write(uv_fs_t *req) {
     if (req->result < 0) {
         fprintf(stderr, "Write error: %s\n", uv_strerror((int) req->result));
     } else {
+        if (req->result > 0) {
+            LOG(" Call back result %llu", fn_fs(req));
+        }
         uv_fs_close(FILE_IO_GLOBAL(loop), &close_req, handle->file, close_cb);
     }
 }

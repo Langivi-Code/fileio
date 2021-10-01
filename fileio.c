@@ -97,11 +97,12 @@ void print(uv_async_t *handle) {
 /* {{{ string test2( [ string $var ] ) */
 
 ZEND_FUNCTION(enable_event) {
-    printf("event loop is alive\n");
-    printf("size of ev-queue %d(Active = %d), p:=%p\n", uv_loop_alive(FILE_IO_GLOBAL(loop)),
-           FILE_IO_GLOBAL(loop)->active_handles, FILE_IO_GLOBAL(loop));
-    printf("loop run status: %d\n", uv_run(FILE_IO_GLOBAL(loop), UV_RUN_DEFAULT));
-    printf("after run loop %d, p:=%p\n", uv_loop_alive(FILE_IO_GLOBAL(loop)), FILE_IO_GLOBAL(loop));
+#define LOG_TAG "enable_event"
+    LOG("starting event loop");
+    uv_loop_t * loop = FILE_IO_GLOBAL(loop);
+    LOG("size of ev-queue %d(Active = %d), loop address:=%p", uv_loop_alive(loop), loop->active_handles, loop);
+    printf("loop run status: %d\n", uv_run(loop, UV_RUN_DEFAULT));
+    LOG("size of ev-queue after run %d (Active = %d), loop address:=%p", uv_loop_alive(loop), loop->active_handles, loop);
     uv_loop_close(FILE_IO_GLOBAL(loop));
 //    uv_async_init(fileio_globals.loop, &as_h, NULL);
 //    uv_loop_fork(fileio_globals.loop);
@@ -133,8 +134,7 @@ PHP_MINIT_FUNCTION (fileio) {
 /* {{{ PHP_RINIT_FUNCTION */
 PHP_RINIT_FUNCTION (fileio) {
     PG(auto_prepend_file)="Promise.php";
-    memset(timeout_handle_map,0, HANDLE_MAP_SIZE * sizeof(handle_id_item_t));
-    memset(interval_handle_map,0, HANDLE_MAP_SIZE * sizeof(handle_id_item_t));
+    memset(timer_handle_map,0, HANDLE_MAP_SIZE * sizeof(handle_id_item_t));
 #if defined(ZTS) && defined(COMPILE_DL_FILEIO)
     ZEND_TSRMLS_CACHE_UPDATE();
 #endif

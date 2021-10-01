@@ -5,14 +5,14 @@
 #include "file_interface.h"
 #include "../../constants.h"
 #include <uv.h>
-
-fs_handles_id_item_t fstimeout_handle_map[HANDLE_MAP_SIZE];
+#define LOG_TAG "file_handles"
+__attribute__((unused)) fs_handles_id_item_t fstimeout_handle_map[HANDLE_MAP_SIZE];
 
 unsigned short count_fs_handles() {
     unsigned short i = 0;
     for (; i < HANDLE_MAP_SIZE; i++) {
         if (fstimeout_handle_map[i].handle_id == 0) {
-            printf(" i %d handle_Id  %llu\n", i, fstimeout_handle_map[i].handle_id);
+            LOG("Handles count - %d, last handle_id is %llu", i, fstimeout_handle_map[i].handle_id);
             break;
         }
     }
@@ -29,9 +29,8 @@ unsigned long long add_fs_handle(uv_fs_t *handle) {
 fs_handles_id_item_t *find_fs_handle(unsigned long long handleId) {
     unsigned short i = 0;
     for (; i < HANDLE_MAP_SIZE; i++) {
-        printf(" searching %d  handle_Id  %llu\n", i, fstimeout_handle_map[i].handle_id, handleId);
         if (fstimeout_handle_map[i].handle_id == handleId) {
-            printf(" i %d found handle_Id  %llu\n", i, fstimeout_handle_map[i].handle_id);
+            LOG("Searching element #%d with handle_id=%llu", i, fstimeout_handle_map[i].handle_id);
             return &fstimeout_handle_map[i];
         }
     }
@@ -43,7 +42,7 @@ void remove_fs_handle(unsigned long long handleId) {
     unsigned short tagret = 0;
     for (; i < HANDLE_MAP_SIZE; i++) {
         if (fstimeout_handle_map[i].handle_id == handleId) {
-            printf(" i %d  removed handle_Id  %llu\n", i, fstimeout_handle_map[i].handle_id);
+            LOG(" element #%d with handle_id=%llu was removed", i, fstimeout_handle_map[i].handle_id);
             continue;
         }
         tempItems[tagret] = fstimeout_handle_map[i];
@@ -82,7 +81,7 @@ void close_cb(uv_fs_t* req) {
         uv_fs_req_cleanup(handle->read_req);
         efree(handle->read_req);
     }
-    printf("Successfuly closed file.\n");
+    printf("Close CB: Successfuly closed file.\n");
 }
 
 void fill_file_handle(file_handle_data *handleData, char *filename,

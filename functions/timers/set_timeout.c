@@ -9,53 +9,6 @@
 #include <string.h>
 
 
-
-handle_id_item_t timeout_handle_map[HANDLE_MAP_SIZE];
-
-unsigned short count_handles() {
-    unsigned short i = 0;
-    for (; i < HANDLE_MAP_SIZE; i++) {
-        if (timeout_handle_map[i].handle_id == 0) {
-            printf(" i %d handle_Id  %llu\n", i, timeout_handle_map[i].handle_id);
-            break;
-        }
-    }
-    return i;
-}
-
-unsigned long long add_handle(uv_timer_t *handle) {
-    unsigned short handle_count = count_handles();
-    timeout_handle_map[handle_count] = (handle_id_item_t) {uv_now(FILE_IO_GLOBAL(loop)), handle};
-    return timeout_handle_map[handle_count].handle_id;
-}
-
-handle_id_item_t * find_handle(unsigned long long handleId) {
-    unsigned short i = 0;
-    for (; i < HANDLE_MAP_SIZE; i++) {
-        printf(" searching %d  handle_Id  %llu\n", i, timeout_handle_map[i].handle_id, handleId);
-        if (timeout_handle_map[i].handle_id == handleId) {
-            printf(" i %d found handle_Id  %llu\n", i, timeout_handle_map[i].handle_id);
-            return &timeout_handle_map[i];
-        }
-    }
-}
-
-void remove_handle(unsigned long long handleId) {
-    handle_id_item_t *tempItems = malloc(1024 * sizeof(handle_id_item_t));
-    unsigned short i = 0;
-    unsigned short tagret = 0;
-    for (; i < HANDLE_MAP_SIZE; i++) {
-        if (timeout_handle_map[i].handle_id == handleId) {
-            printf(" i %d  removed handle_Id  %llu\n", i, timeout_handle_map[i].handle_id);
-            continue;
-        }
-        tempItems[tagret] = timeout_handle_map[i];
-        tagret++;
-    }
-    memcpy(timeout_handle_map, tempItems, 1024 * sizeof(handle_id_item_t));
-    free(tempItems);
-}
-
 PHP_FUNCTION (setTimeout) {
     zend_long var;
     zend_fcall_info fci;
@@ -71,16 +24,17 @@ PHP_FUNCTION (setTimeout) {
     fci.param_count = 0;
     uv_timer_t *timerHandle = emalloc(sizeof(uv_timer_t));
 
-    printf("Main thread id: %p\n", uv_thread_self());
+//    printf("Main thread id: %p\n", uv_thread_self());
     uv_timer_init(FILE_IO_GLOBAL(loop), timerHandle);
     fill_timer_handle_with_data(timerHandle, &fci, &fcc);
-    printf("time is in thrd prc %lld  %p\n", var, &var);
+    uv_unref((uv_handle_t *) timerHandle);
+//    printf("time is in thrd prc %lld  %p\n", var, &var);
     unsigned long id = add_handle(timerHandle);
     uv_timer_start(timerHandle, fn, var, 0);
 
-    printf("handle id %lul handles count is %ul\n", id, count_handles());
+//    printf("handle id %lul handles count is %ul\n", id, count_handles());
     //remove_handle(id);
-    printf("handle id %lul handles count is %ul\n", id, count_handles());
+//    printf("handle id %lul handles count is %ul\n", id, count_handles());
 //    memcpy(&timerData1.fci, &fci, sizeof(zend_fcall_info));
 //    memcpy(&timerData1.fcc, &fcc, sizeof(zend_fcall_info_cache));
 

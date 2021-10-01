@@ -4,7 +4,9 @@
 // Created by admin on 14.09.2021.
 //
 #include <uv.h>
+#include <php.h>
 #include <zend_API.h>
+#include "../../php_fileio.h"
 #ifndef FILEIO_SET_TIMEOUT_INTERFACE_H
 #define FILEIO_SET_TIMEOUT_INTERFACE_H
 typedef struct {
@@ -22,6 +24,10 @@ void fill_timer_handle_with_data(
         zend_fcall_info *fci,
         zend_fcall_info_cache *fcc
 );
-extern handle_id_item_t timeout_handle_map[HANDLE_MAP_SIZE];
-extern handle_id_item_t interval_handle_map[HANDLE_MAP_SIZE];
+extern handle_id_item_t timer_handle_map[HANDLE_MAP_SIZE];
+unsigned short count_handles();
+unsigned long long add_handle(uv_timer_t *handle);
+handle_id_item_t * find_handle(unsigned long long handleId);
+void remove_handle(unsigned long long handleId);
+
 #endif //FILEIO_SET_TIMEOUT_INTERFACE_H

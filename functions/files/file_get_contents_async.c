@@ -12,8 +12,10 @@
 #include "../../php_fileio.h"
 #include "file_interface.h"
 
+#define LOG_TAG "file_get_contents_async"
 
 void on_read(uv_fs_t *req);
+
 void on_open(uv_fs_t *req);
 
 /* {{{ void file() */
@@ -35,12 +37,11 @@ PHP_FUNCTION (file_get_contents_async) {
             Z_PARAM_FUNC(fci, fcc)
             Z_PARAM_OPTIONAL
             Z_PARAM_LONG(offset)
-            Z_PARAM_LONG_OR_NULL(maxlen, maxlen_is_null)
-    ZEND_PARSE_PARAMETERS_END();
+            Z_PARAM_LONG_OR_NULL(maxlen, maxlen_is_null)ZEND_PARSE_PARAMETERS_END();
     uv_fs_t *open_req = emalloc(sizeof(uv_fs_t));
     uv_fs_t *read_req = emalloc(sizeof(uv_fs_t));
-    printf("File name to read: %s\n", filename);
-    file_handle_data *handleData = emalloc(sizeof(file_handle_data));
+    LOG("File name to read: %s", filename);
+    file_handle_data * handleData = emalloc(sizeof(file_handle_data));
     fill_file_handle(handleData, filename, &fci, &fcc);
     fill_fs_handle_with_data(read_req, handleData);
     if (!maxlen_is_null) {
@@ -48,10 +49,11 @@ PHP_FUNCTION (file_get_contents_async) {
     } else {
         handleData->file_size = 0;
     }
+    handleData->read = true;
     unsigned long id = add_fs_handle(read_req);
     printf("%lu\n", id);
     open_req->data = (void *) id;
-    int r = uv_fs_open(FILE_IO_GLOBAL(loop), open_req, filename, O_RDONLY, S_IRUSR, on_open);
+    int r = uv_fs_open(FILE_IO_GLOBAL(loop), open_req, filename, O_RDONLY, 0, on_open);
     if (r) {
         fprintf(stderr, "Error at opening file: %s.\n",
                 uv_strerror(r));
@@ -127,13 +129,14 @@ void on_status(uv_fs_t *req) {
     if (req->result == 0) {
         uv_fs_t *read_req = find_fs_handle((unsigned long long) req->data)->open_req;
         file_handle_data *handle = (file_handle_data *) read_req->data;
-        if (handle->file_size == 0){
+        if (handle->file_size == 0) {
             handle->file_size = req->statbuf.st_size;
         }
         printf("file size is %lu %lu\n", handle->file_size, req->statbuf.st_size);
 
         printf("starting reading ... %d\n", handle->file);
-        handle->buffer = uv_buf_init(malloc(sizeof(char) * handle->file_size), handle->file_size);
+        handle->buffer = uv_buf_init(malloc(sizeof(char) * (handle->file_size+1)), handle->file_size+1);
+        memset(handle->buffer.base, '\0', handle->file_size + 1);
         uv_fs_read(FILE_IO_GLOBAL(loop), read_req, handle->file,
                    &handle->buffer, 1, -1, on_read);
     }
@@ -142,7 +145,7 @@ void on_status(uv_fs_t *req) {
 void on_open(uv_fs_t *req) {
     // The request passed to the callback is the same as the one the call setup
     // function was passed.
-    printf("file id is %zd\n", req->result);
+    LOG("file id is %zd\n", req->result);
 
     uv_fs_t *status_req = emalloc(sizeof(uv_fs_t));
     assert(req == &open_req);
@@ -152,11 +155,11 @@ void on_open(uv_fs_t *req) {
         handle->file = req->result;
         handle->handle_id = (unsigned long long) req->data;
         status_req->data = req->data;
+        handle->open_req = req;
         uv_fs_fstat(FILE_IO_GLOBAL(loop), status_req, req->result, on_status);
     } else {
         fprintf(stderr, "error opening file: %s\n", uv_strerror((int) req->result));
     }
-    uv_fs_req_cleanup(req);
 }
 
 void on_read(uv_fs_t *req) {
@@ -170,11 +173,10 @@ void on_read(uv_fs_t *req) {
     } else if (req->result > 0) {
         fn_fs(req);
     }
-    fs_close_reqs_t * requests = emalloc(sizeof(fs_close_reqs_t));
+    fs_close_reqs_t *requests = emalloc(sizeof(fs_close_reqs_t));
     requests->write_req = NULL;
     requests->open_req = handle->open_req;
     requests->read_req = req;
     close_req.data = (void *) requests;
     uv_fs_close(FILE_IO_GLOBAL(loop), &close_req, handle->file, close_cb);
-    uv_fs_req_cleanup(req);
 }
