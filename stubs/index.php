@@ -2,7 +2,6 @@
 //echo var_dump(use_promise());
 //require_once "Promise.php";
 
-ini_set('memory_limit', '1024M');
 
 
 //setTimeout(function ()  {
@@ -27,13 +26,13 @@ ini_set('memory_limit', '1024M');
 //sleep(3);
 //file_get_contents_async("compile", fn($arg)=>file_put_contents("dtad336", $arg));
 
-file_get_contents_async("fileio.lo", function($arg){
-var_dump("******************************", $arg);
-}, maxlen:160);
-
-file_get_contents_async("fileio.la", function($arg){
-var_dump("******************************", $arg);
-}, maxlen:160);
+// file_get_contents_async("fileio.lo", function($arg){
+// var_dump("******************************", $arg);
+// }, maxlen:160);
+//
+// file_get_contents_async("fileio.la", function($arg){
+// var_dump("******************************", $arg);
+// }, maxlen:160);
 // idle(fn()=>var_dump(123));
 // file_put_contents_async("configure1", "fn(arg)=>file_put_contents(dtad2, arg)", fn()=>var_dump("dtad337"));
 
@@ -66,21 +65,25 @@ var_dump("******************************", $arg);
 //);
 
 
-// setTimeout(function(){
-// echo "timeout1";
-// }, 0);
-// idle(function(){
-//      echo "idle1";
-//      });
-//      idle(function(){
-//           echo "idle2";
-//           setTimeout(function(){
-//           echo "timeout3";
-//           }, 0);
-//           });
-// setTimeout(function(){
-// echo "timeout2";
-// }, 0);
+setTimeout(function () {
+    echo "timeout1";
+}, 100);
+
+
+//idle(function () {
+//    echo "idle111";
+//});
+//
+//idle(function () {
+//    echo setTimeout(function () {
+//            echo "timeout3";
+//        }, 1) . "timer id\n";
+//    echo "idle2***********";
+//});
+//
+//setTimeout(function () {
+//    echo "timeout2";
+//}, 0);
 
 echo "sync exec ended.\n";
 
