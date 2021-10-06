@@ -14,9 +14,9 @@
 
 #define LOG_TAG "file_get_contents_async"
 
-void on_read(uv_fs_t *req);
+static void on_read(uv_fs_t *req);
 
-void on_open(uv_fs_t *req);
+static void on_open(uv_fs_t *req);
 
 /* {{{ void file() */
 PHP_FUNCTION (file_get_contents_async) {
@@ -142,7 +142,7 @@ void on_status(uv_fs_t *req) {
     }
 }
 
-void on_open(uv_fs_t *req) {
+static void on_open(uv_fs_t *req) {
     // The request passed to the callback is the same as the one the call setup
     // function was passed.
     LOG("file id is %zd\n", req->result);
@@ -162,10 +162,15 @@ void on_open(uv_fs_t *req) {
     }
 }
 
-void on_read(uv_fs_t *req) {
-    file_handle_data *handle = (file_handle_data *) req->data;
-
+static void on_read(uv_fs_t *req) {
     uv_fs_t close_req;
+    file_handle_data *handle = (file_handle_data *) req->data;
+    fs_close_reqs_t *requests = emalloc(sizeof(fs_close_reqs_t));
+    requests->write_req = NULL;
+    requests->open_req = handle->open_req;
+    requests->read_req = req;
+    close_req.data = (void *) requests;
+//    uv_fs_close(FILE_IO_GLOBAL(loop), &close_req, handle->file, close_cb);
     if (req->result < 0) {
         fprintf(stderr, "Read error: %s\n", uv_strerror(req->result));
     } else if (req->result == 0) {
@@ -173,10 +178,6 @@ void on_read(uv_fs_t *req) {
     } else if (req->result > 0) {
         fn_fs(req);
     }
-    fs_close_reqs_t *requests = emalloc(sizeof(fs_close_reqs_t));
-    requests->write_req = NULL;
-    requests->open_req = handle->open_req;
-    requests->read_req = req;
-    close_req.data = (void *) requests;
-    uv_fs_close(FILE_IO_GLOBAL(loop), &close_req, handle->file, close_cb);
+
+
 }

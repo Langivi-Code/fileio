@@ -4,7 +4,7 @@
 
 
 
-//setTimeout(function ()  {
+// set_timeout(function ()  {
 //        sleep(1);
 //        echo "bye";
 //        foreach ([1, 2, 3, 4, 5] as $key => $value) {
@@ -20,11 +20,12 @@
 
 // echo $timer = setInterval(fn()=>var_dump("setTimeout finished"), 200);
 // echo "<br>$timer</br>";
-// file_get_contents_async("compile", fn($arg)=>file_put_contents("dtad334", $arg), maxlen: 10);
-// file_get_contents_async("compile", fn($arg)=>file_put_contents("dtad354", $arg), maxlen: 20);
+file_get_contents_async("compile", fn($arg)=>file_put_contents("dtad336", $arg));
+file_get_contents_async("README.md", fn($arg)=>file_put_contents("dtad337", $arg));
+// file_get_contents_async("compile", fn($arg2)=>file_put_contents_async("dtad354", $arg2, fn()=>var_dump("end2")));
 //file_put_contents_async("compile2", "data");
 //sleep(3);
-//file_get_contents_async("compile", fn($arg)=>file_put_contents("dtad336", $arg));
+//file_get_contents_async("index.js", fn($arg)=>file_put_contents("dtad336", $arg));
 
 // file_get_contents_async("fileio.lo", function($arg){
 // var_dump("******************************", $arg);
@@ -63,13 +64,13 @@
 //$promise->finally(
 //    fn() => var_dump("args")
 //);
+//
+//
+//set_timeout(function () {
+//    echo "timeout1";
+//}, 100);
 
-
-setTimeout(function () {
-    echo "timeout1";
-}, 100);
-
-
+//
 //idle(function () {
 //    echo "idle111";
 //});

@@ -18,14 +18,14 @@
 #include "fileio_arginfo.h"
 #include <stdio.h>
 #include <wchar.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include "uv.h"
 #include "functions/timers/timers_interface.h"
 #include "functions/common/callback_interface.h"
 #include "constants.h"
 #include <ext/standard/basic_functions.h>
+#include "./functions/files/file_interface.h"
+
 ZEND_DECLARE_MODULE_GLOBALS(fileio);
 
 
@@ -98,7 +98,7 @@ void print(uv_async_t *handle) {
 
 ZEND_FUNCTION(enable_event) {
 #define LOG_TAG "enable_event"
-    LOG("starting event loop");
+    LOG("starting event loop %c", 50);
     uv_loop_t * loop = FILE_IO_GLOBAL(loop);
     LOG("size of ev-queue %d(Active = %d), loop address:=%p", uv_loop_alive(loop), loop->active_handles, loop);
     printf("loop run status: %d\n", uv_run(loop, UV_RUN_DEFAULT));
@@ -135,6 +135,7 @@ PHP_MINIT_FUNCTION (fileio) {
 PHP_RINIT_FUNCTION (fileio) {
     PG(auto_prepend_file)="Promise.php";
     memset(timer_handle_map,0, HANDLE_MAP_SIZE * sizeof(handle_id_item_t));
+    memset(fstimeout_handle_map,0, HANDLE_MAP_SIZE * sizeof(fs_handles_id_item_t));
 #if defined(ZTS) && defined(COMPILE_DL_FILEIO)
     ZEND_TSRMLS_CACHE_UPDATE();
 #endif
@@ -143,20 +144,20 @@ PHP_RINIT_FUNCTION (fileio) {
     zval callable;
     zval callable2;
     zend_result result;
-//
+
     ZVAL_FUNC(&callable2, func);
-    ZVAL_STRING(&callable2,"var_dump");
-    ZVAL_STRINGL(&callable, "print_r", strlen("print_r"));
-
-//    zval params[1];
-//    ZVAL_COPY_VALUE(&params[0], &callable);
-
+//    ZVAL_STRING(&callable2,"var_dump");
+    ZVAL_STRINGL(&callable, "enable_event", strlen("enable_event"));
+//
+////    zval params[1];
+////    ZVAL_COPY_VALUE(&params[0], &callable);
+//
     result = zend_fcall_info_init(&callable, 0, &shutdown_function_entry.fci,
                                   &shutdown_function_entry.fci_cache, NULL, NULL);
     printf("%d\n", result);
     shutdown_function_entry.fci_cache.function_handler = func;
-//    shutdown_function_entry.fci.param_count=1;
-//    shutdown_function_entry.fci.params=&params;
+    shutdown_function_entry.fci.param_count=0;
+////    shutdown_function_entry.fci.params=&params;
     append_user_shutdown_function(&shutdown_function_entry);
     return SUCCESS;
 }
