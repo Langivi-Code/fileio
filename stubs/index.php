@@ -20,8 +20,7 @@
 
 // echo $timer = setInterval(fn()=>var_dump("setTimeout finished"), 200);
 // echo "<br>$timer</br>";
-file_get_contents_async("compile", fn($arg)=>file_put_contents("dtad336", $arg));
-file_get_contents_async("README.md", fn($arg)=>file_put_contents("dtad337", $arg));
+
 // file_get_contents_async("compile", fn($arg2)=>file_put_contents_async("dtad354", $arg2, fn()=>var_dump("end2")));
 //file_put_contents_async("compile2", "data");
 //sleep(3);
@@ -85,6 +84,15 @@ file_get_contents_async("README.md", fn($arg)=>file_put_contents("dtad337", $arg
 //setTimeout(function () {
 //    echo "timeout2";
 //}, 0);
+file_get_contents_async(
+    "compile",
+    fn($arg)=>print_r("dtad336")
+ );
+
+file_get_contents_async(
+    "README.md",
+    fn($arg)=>var_dump($arg,123, "second cb")//file_put_contents("dtad337", $arg)
+ );
 
 echo "sync exec ended.\n";
 

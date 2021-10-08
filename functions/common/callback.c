@@ -78,20 +78,26 @@ zend_long fn_fs(uv_fs_t *handle) {
     #define LOG_TAG "fn_fs"
     file_handle_data *file_handle = (file_handle_data *) handle->data;
     LOG("size of php_cb_data: %lu", sizeof file_handle->php_cb_data);
+    static short counter = 0;
     zend_long error = 0;
     zval retval = {};
     zval dest = {};
     zval dstr[1];
-//    if (file_handle->read == true){
-        ZVAL_STRINGL(&dest, file_handle->buffer.base, file_handle->buffer.len);
+    counter++;
+    char data[50];
+    sprintf(data,"hello %d %p", counter, &file_handle->php_cb_data.fci);
+    if (file_handle->read == true){
+        ZVAL_STRING(&dest, data);
+//        ZVAL_STRINGL(&dest, file_handle->buffer.base, file_handle->buffer.len);
         ZVAL_COPY(&dstr[0],&dest);
-//    }
-    printf("%s",file_handle->buffer.base);
+    }
+//    printf("%s",file_handle->buffer.base);
     file_handle->php_cb_data.fci.retval = &retval;
     file_handle->php_cb_data.fci.param_count = 1;
     file_handle->php_cb_data.fci.params = dstr;
     //    zend_call_method_with_1_params(NULL, NULL, NULL, "print_r", &retval, &dstr);
     if (ZEND_FCI_INITIALIZED(file_handle->php_cb_data.fci)) {
+
         LOG("FS call back is initalized");
         if (zend_call_function(&file_handle->php_cb_data.fci, &file_handle->php_cb_data.fcc) != SUCCESS) {
             error = -1;
