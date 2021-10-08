@@ -50,19 +50,53 @@ zend_class_entry *create_PromiseStatus_enum(void) {
 //static zend_class_entry *promise_class_entry = NULL;
 //
 PHP_METHOD (Promise, __construct) {
-
+//  $this->handle();
+// //        $this->internalFiber = new Fiber([$this, 'handle']);
+// //        $this->status = $this->internalFiber->start();
+//
 }
 
 
 PHP_METHOD (Promise, resolve) {
-
+//         return new Promise(function ($res, $rej) use ($data) {
+//             $res($data);
+//         });
 }
+
+PHP_METHOD (Promise, reject) {
+//    return new Promise(function ($res, $rej) use ($data) {
+//             $rej($data);
+//         });
+}
+
+PHP_METHOD (Promise, then) {
+//    return new Promise(function ($res, $rej) use ($data) {
+//             $rej($data);
+//         });
+}
+
+PHP_METHOD (Promise, catch) {
+//    return new Promise(function ($res, $rej) use ($data) {
+//             $rej($data);
+//         });
+}
+
+PHP_METHOD (Promise, finally) {
+//    return new Promise(function ($res, $rej) use ($data) {
+//             $rej($data);
+//         });
+}
+
+
 //
 ZEND_BEGIN_ARG_INFO(arginfo_promise_construct, 0)
                 ZEND_ARG_TYPE_INFO(0, closure, IS_CALLABLE, 0)
 ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO(arginfo_promise_resolve, 0)
-                ZEND_ARG_TYPE_INFO(0, closure, IS_CALLABLE, 0)
+                ZEND_ARG_TYPE_INFO(0, data, IS_MIXED, 0)
+ZEND_END_ARG_INFO()
+ZEND_BEGIN_ARG_INFO(arginfo_promise_reject, 0)
+                ZEND_ARG_TYPE_INFO(0, reason, IS_MIXED, 0)
 ZEND_END_ARG_INFO()
 //
 //ZEND_BEGIN_ARG_INFO(arginfo_scaler_scale, 0)
@@ -72,7 +106,11 @@ ZEND_END_ARG_INFO()
 //
 static const zend_function_entry class_Promise_methods[] = {
         ZEND_ME(Promise, __construct, arginfo_promise_construct, ZEND_ACC_PUBLIC)
-        ZEND_ME(Promise, resolve, arginfo_promise_resolve, ZEND_ACC_PUBLIC)
+        ZEND_ME(Promise, resolve, arginfo_promise_resolve, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+        ZEND_ME(Promise, reject, arginfo_promise_reject, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+        ZEND_ME(Promise, then, arginfo_promise_construct, ZEND_ACC_PUBLIC)
+        ZEND_ME(Promise, catch, arginfo_promise_construct, ZEND_ACC_PUBLIC)
+        ZEND_ME(Promise, finally, arginfo_promise_construct, ZEND_ACC_PUBLIC)
         PHP_FE_END
 };
 
@@ -96,14 +134,22 @@ zend_class_entry *register_class_Promise(void) {
                                                                           1);
     zval property___status_default_value;
     ZVAL_NULL(&property___status_default_value);
-    zend_enum_new(&property___status_default_value, promise_enum,
-                  zend_string_init("Pending", sizeof("Pending") - 1, 1), NULL);
+//    zend_enum_new(&property___status_default_value, promise_enum,
+//                  zend_string_init("Pending", sizeof("Pending") - 1, 1), NULL);
     zend_string * property___status = zend_string_init("status", sizeof("status") - 1, 1);
-//    zend_declare_typed_property(class_entry, property___status, &property___status_default_value,
-//                                ZEND_ACC_PRIVATE, NULL,
-//                                (zend_type) ZEND_TYPE_INIT_CLASS(property__status_class_PromiseStatus, 0, MAY_BE_NULL));
+    zend_declare_typed_property(class_entry, property___status, &property___status_default_value,
+                                ZEND_ACC_PRIVATE, NULL,
+                                (zend_type) ZEND_TYPE_INIT_CLASS(property__status_class_PromiseStatus, 0, MAY_BE_NULL));
+    zend_declare_typed_property(class_entry, property___status, &property___status_default_value,
+                                ZEND_ACC_PRIVATE, NULL,
+                                (zend_type) ZEND_TYPE_INIT_CLASS(property__status_class_PromiseStatus, 0, MAY_BE_NULL));
     zend_declare_property_long(class_entry,
-                               "status", sizeof("status")-1, 0, ZEND_ACC_PRIVATE);
+                               "status", sizeof("status") - 1, 0, ZEND_ACC_PRIVATE);
+    zend_declare_property_bool(class_entry, "promiseFinalised", sizeof("promiseFinalised") - 1, 0, ZEND_ACC_PRIVATE);
+    zval property___dataStore_default_value;
+    ZVAL_NULL(&property___dataStore_default_value);
+    zend_declare_property(class_entry, "dataStore", sizeof("dataStore") - 1, &property___dataStore_default_value,
+                          ZEND_ACC_PRIVATE);
     zend_string_release(property___status);
 
     return class_entry;

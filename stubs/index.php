@@ -3,7 +3,10 @@ function test(PromiseStatus $status)
 {
     var_dump($status, $status == PromiseStatus::Pending);
 }
-var_dump(new Promise(fn()=>123), use_promise());
+class pp{
+    private ?string $ll=null;
+}
+var_dump(new Promise(fn()=>123));
 // set_timeout(function ()  {
 //        sleep(1);
 //        echo "bye";
@@ -21,15 +24,15 @@ test(PromiseStatus::Pending);
 // echo $timer = setInterval(fn()=>var_dump("setTimeout finished"), 200);
 // echo "<br>$timer</br>";
 //
-//file_get_contents_async("compile",
-//    fn($arg2) => file_put_contents("dtad34", $arg2)&&var_dump("first callback"));
-////file_put_contents_async("compile2", "data");
+file_get_contents_async("compile",
+    fn($arg2) => file_put_contents("dtad34", $arg2)&&var_dump("first callback"));
+//file_put_contents_async("compile2", "data");
 ////sleep(3);
-//file_get_contents_async("Makefile", fn($arg) => file_put_contents("dtad35", $arg)&&var_dump("second callback"));
+file_get_contents_async("Makefile", fn($arg) => file_put_contents("dtad35", $arg)&&var_dump("second callback"));
 //
-//file_get_contents_async("fileio.lo", function($arg){
-//var_dump("******************************", $arg)&&var_dump("four callback");
-//}, maxlen:100);
+file_get_contents_async("fileio.lo", function($arg){
+var_dump("******************************", $arg)&&var_dump("four callback");
+}, maxlen:100);
 
 // file_get_contents_async("fileio.la", function($arg){
 // var_dump("******************************", $arg);
@@ -95,13 +98,13 @@ test(PromiseStatus::Pending);
 //     fn($arg)=>print_r("dtad336")
 //  );
 //
-// //  file_get_contents_async(
-// //     "compile",
-// //     fn($arg)=>print_r("dtad336")
-// //  );
-//  file_get_contents_async(
-//      "README.md",
-//      fn($arg)=>var_dump($arg,123, "second cb")//file_put_contents("dtad337", $arg)
-//   );
+   file_get_contents_async(
+      "compile",
+      fn($arg)=>print_r("dtad336")
+   );
+  file_get_contents_async(
+      "README.md",
+      fn($arg)=>var_dump($arg,123, "second cb")//file_put_contents("dtad337", $arg)
+   );
 echo "sync exec ended.\n\n";
 
