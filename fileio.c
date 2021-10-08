@@ -26,6 +26,10 @@
 #include <ext/standard/basic_functions.h>
 #include "./functions/files/file_interface.h"
 
+extern zend_class_entry *create_PromiseStatus_enum(void);
+
+extern zend_class_entry *register_class_Promise(void);
+
 ZEND_DECLARE_MODULE_GLOBALS(fileio);
 
 
@@ -104,6 +108,7 @@ ZEND_FUNCTION(enable_event) {
     printf("loop run status: %d\n", uv_run(loop, UV_RUN_DEFAULT));
     LOG("size of ev-queue after run %d (Active = %d), loop address:=%p", uv_loop_alive(loop), loop->active_handles, loop);
     uv_loop_close(FILE_IO_GLOBAL(loop));
+    sleep(10);
 //    uv_async_init(fileio_globals.loop, &as_h, NULL);
 //    uv_loop_fork(fileio_globals.loop);
 }
@@ -124,6 +129,8 @@ PHP_INI_END()
 /* {{{ PHP_MINIT_FUNCTION */
 PHP_MINIT_FUNCTION (fileio) {
     fileio_globals.loop = uv_default_loop();
+    create_PromiseStatus_enum();
+    register_class_Promise();
     REGISTER_INI_ENTRIES();
 #if defined(ZTS) && defined(COMPILE_DL_FILEIO)
     ZEND_TSRMLS_CACHE_UPDATE();

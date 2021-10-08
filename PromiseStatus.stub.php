@@ -3,6 +3,6 @@
 enum PromiseStatus
 {
     case Pending;
-  case Resolved;
+   case Resolved;
    case Rejected;
    }

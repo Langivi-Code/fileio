@@ -1,7 +1,8 @@
 <?php
-//echo var_dump(use_promise());
-//require_once "Promise.php";
-
+function test(PromiseStatus $status)
+{
+    var_dump($status, $status == PromiseStatus::Pending);
+}
 
 // set_timeout(function ()  {
 //        sleep(1);
@@ -11,7 +12,7 @@
 //        }
 //    }, 0);
 //
-
+test(PromiseStatus::Pending);
 // $promise = new Promise(function ($resolve, $reject) {
 //     setTimeout(fn()=>$resolve("promise finshed"), 3000);
 //
@@ -19,17 +20,17 @@
 
 // echo $timer = setInterval(fn()=>var_dump("setTimeout finished"), 200);
 // echo "<br>$timer</br>";
-
-file_get_contents_async("compile",
-    fn($arg2) => file_put_contents("dtad34", $arg2)&&var_dump("first callback"));
-//file_put_contents_async("compile2", "data");
-//sleep(3);
-file_get_contents_async("Makefile", fn($arg) => file_put_contents("dtad35", $arg)&&var_dump("second callback"));
-
-// file_get_contents_async("fileio.lo", function($arg){
-// var_dump("******************************", $arg);
-// }, maxlen:160);
 //
+//file_get_contents_async("compile",
+//    fn($arg2) => file_put_contents("dtad34", $arg2)&&var_dump("first callback"));
+////file_put_contents_async("compile2", "data");
+////sleep(3);
+//file_get_contents_async("Makefile", fn($arg) => file_put_contents("dtad35", $arg)&&var_dump("second callback"));
+//
+//file_get_contents_async("fileio.lo", function($arg){
+//var_dump("******************************", $arg)&&var_dump("four callback");
+//}, maxlen:100);
+
 // file_get_contents_async("fileio.la", function($arg){
 // var_dump("******************************", $arg);
 // }, maxlen:160);
@@ -84,10 +85,10 @@ file_get_contents_async("Makefile", fn($arg) => file_put_contents("dtad35", $arg
 //setTimeout(function () {
 //    echo "timeout2";
 //}, 0);
-file_get_contents_async(
-    "compile",
-    fn($arg) => var_dump("dtad336")&var_dump("third callback")
-);
+//file_get_contents_async(
+//    "compile",
+//    fn($arg) => var_dump("dtad336")&var_dump("third callback")
+//);
 
 // file_get_contents_async(
 //     "compile",
