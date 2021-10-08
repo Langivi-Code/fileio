@@ -3,7 +3,7 @@ function test(PromiseStatus $status)
 {
     var_dump($status, $status == PromiseStatus::Pending);
 }
-
+var_dump(new Promise(fn()=>123), use_promise());
 // set_timeout(function ()  {
 //        sleep(1);
 //        echo "bye";
