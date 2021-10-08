@@ -18,15 +18,19 @@ static void on_read(uv_fs_t *req);
 
 static void on_open(uv_fs_t *req);
 
+\
+
 /* {{{ void file() */
 PHP_FUNCTION (file_get_contents_async) {
     char *filename;
     size_t filename_len;
-    zend_fcall_info fci;
-    zend_fcall_info_cache fcc;
+    zend_fcall_info fci = empty_fcall_info;
+    zend_fcall_info_cache fcc = empty_fcall_info_cache;
     zend_long offset = 0;
     bool maxlen_is_null = 1;
     zend_long maxlen = 0;
+
+//TODO add check on file existance
 
 //    zend_string * contents;
     /* Function return value */
@@ -38,10 +42,11 @@ PHP_FUNCTION (file_get_contents_async) {
             Z_PARAM_OPTIONAL
             Z_PARAM_LONG(offset)
             Z_PARAM_LONG_OR_NULL(maxlen, maxlen_is_null)ZEND_PARSE_PARAMETERS_END();
+    file_handle_data *handleData = emalloc(sizeof(file_handle_data));
     uv_fs_t *open_req = emalloc(sizeof(uv_fs_t));
     uv_fs_t *read_req = emalloc(sizeof(uv_fs_t));
-    LOG("File name to read: %s", filename);
-    file_handle_data * handleData = emalloc(sizeof(file_handle_data));
+    LOG("File name to read: %s %p %p\n", filename, &fci, handleData);
+
     fill_file_handle(handleData, filename, &fci, &fcc);
     fill_fs_handle_with_data(read_req, handleData);
     if (!maxlen_is_null) {
@@ -50,8 +55,20 @@ PHP_FUNCTION (file_get_contents_async) {
         handleData->file_size = 0;
     }
     handleData->read = true;
+
+    unsigned short handle_count = count_fs_handles();
     unsigned long id = add_fs_handle(read_req);
-    printf("%lu\n", id);
+    if (handle_count > 0) {
+        LOG("ADD HANDLE %u\n", memcmp(&fstimeout_handle_map[handle_count - 1], &fstimeout_handle_map[handle_count],
+                                      sizeof(fs_handles_id_item_t)));
+        LOG("ADD FD HANDLE %u\n", memcmp(&
+                                                 (
+                                                         (file_handle_data *) fstimeout_handle_map[handle_count -
+                                                                                                   1].open_req->data
+                                                 )->php_cb_data.fci, &fci, sizeof(zend_fcall_info)));
+    }
+
+    LOG("Handle time id %lu\n", id);
     open_req->data = (void *) id;
     int r = uv_fs_open(FILE_IO_GLOBAL(loop), open_req, filename, O_RDONLY, 0, on_open);
     if (r) {
@@ -132,10 +149,10 @@ void on_status(uv_fs_t *req) {
         if (handle->file_size == 0) {
             handle->file_size = req->statbuf.st_size;
         }
-        printf("file size is %lu %lu\n", handle->file_size, req->statbuf.st_size);
+        LOG("file size is %lu %lu\n", handle->file_size, req->statbuf.st_size);
 
-        printf("starting reading ... %d\n", handle->file);
-        handle->buffer = uv_buf_init(malloc(sizeof(char) * (handle->file_size+1)), handle->file_size+1);
+        LOG("starting reading ... %d\n", handle->file);
+        handle->buffer = uv_buf_init(malloc(sizeof(char) * (handle->file_size + 1)), handle->file_size + 1);
         memset(handle->buffer.base, '\0', handle->file_size + 1);
         uv_fs_read(FILE_IO_GLOBAL(loop), read_req, handle->file,
                    &handle->buffer, 1, -1, on_read);

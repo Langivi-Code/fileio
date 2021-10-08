@@ -75,7 +75,7 @@ void fn_interval(uv_timer_t *handle) {
 
 
 zend_long fn_fs(uv_fs_t *handle) {
-    #define LOG_TAG "fn_fs"
+#define LOG_TAG "fn_fs"
     file_handle_data *file_handle = (file_handle_data *) handle->data;
     LOG("size of php_cb_data: %lu", sizeof file_handle->php_cb_data);
     static short counter = 0;
@@ -85,11 +85,15 @@ zend_long fn_fs(uv_fs_t *handle) {
     zval dstr[1];
     counter++;
     char data[50];
-    sprintf(data,"hello %d %p", counter, &file_handle->php_cb_data.fci);
-    if (file_handle->read == true){
-        ZVAL_STRING(&dest, data);
+
+    int length = sprintf(data, "Callback # %d  pointer %p", counter, &file_handle->php_cb_data.fci);
+    char dd[file_handle->buffer.len + length];
+    if (file_handle->read == true) {
+        strcat(dd, data);
+        strncat(dd, file_handle->buffer.base, file_handle->buffer.len);
+        ZVAL_STRING(&dstr[0], &dd);
 //        ZVAL_STRINGL(&dest, file_handle->buffer.base, file_handle->buffer.len);
-        ZVAL_COPY(&dstr[0],&dest);
+//        ZVAL_COPY(&dstr[0],&dest);
     }
 //    printf("%s",file_handle->buffer.base);
     file_handle->php_cb_data.fci.retval = &retval;

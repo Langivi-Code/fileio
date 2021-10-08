@@ -6,13 +6,13 @@
 #include "../../constants.h"
 #include <uv.h>
 #define LOG_TAG "file_handles"
-__attribute__((unused)) fs_handles_id_item_t fstimeout_handle_map[HANDLE_MAP_SIZE];
+ fs_handles_id_item_t fstimeout_handle_map[HANDLE_MAP_SIZE];
 
 unsigned short count_fs_handles() {
     unsigned short i = 0;
     for (; i < HANDLE_MAP_SIZE; i++) {
         if (fstimeout_handle_map[i].handle_id == 0) {
-            LOG("Handles count - %d, last handle_id is %llu", i, fstimeout_handle_map[i].handle_id);
+            LOG("Handles count - %d, last handle_id is %llu", i, fstimeout_handle_map[i - 1].handle_id);
             break;
         }
     }
@@ -23,6 +23,16 @@ unsigned long long add_fs_handle(uv_fs_t *handle) {
     unsigned short handle_count = count_fs_handles();
     fstimeout_handle_map[handle_count] = (fs_handles_id_item_t) {uv_hrtime(), handle};
 
+//    if(handle_count>0){
+//        printf("ADD HANDLE %u\n",  memcmp( &fstimeout_handle_map[handle_count-1], &fstimeout_handle_map[handle_count],sizeof (fs_handles_id_item_t)));
+//        printf("ADD FD HANDLE %u\n",  memcmp(&
+//        (
+//                (file_handle_data *)fstimeout_handle_map[handle_count-1].open_req->data
+//                )->php_cb_data.fci, &
+//        (
+//                (file_handle_data *)fstimeout_handle_map[handle_count].open_req->data
+//                )->php_cb_data.fci, sizeof (zend_fcall_info)));
+//    }
     return fstimeout_handle_map[handle_count].handle_id;
 }
 
@@ -31,6 +41,7 @@ fs_handles_id_item_t *find_fs_handle(unsigned long long handleId) {
     for (; i < HANDLE_MAP_SIZE; i++) {
         if (fstimeout_handle_map[i].handle_id == handleId) {
             LOG("Searching element #%d with handle_id=%llu", i, fstimeout_handle_map[i].handle_id);
+            LOG("handle pointers %p %p", &fstimeout_handle_map[i].open_req, &fstimeout_handle_map[i]);
             return &fstimeout_handle_map[i];
         }
     }
@@ -74,7 +85,7 @@ void close_cb(uv_fs_t* req) {
         efree(handle->open_req);
     }
 
-    if(handle->read_req != NULL){
+    if (handle->read_req != NULL) {
         file_handle_data *data_handle = (file_handle_data *) handle->read_req->data;
         remove_fs_handle(data_handle->handle_id);
         efree(data_handle);
@@ -83,12 +94,37 @@ void close_cb(uv_fs_t* req) {
     }
     printf("Close CB: Successfuly closed file.\n");
 }
+//pfci_dst = (zend_fcall_info *) safe_emalloc(1, sizeof(zend_fcall_info), 0);              \
+//        pfcc_dst = (zend_fcall_info_cache *) safe_emalloc(1, sizeof(zend_fcall_info_cache), 0);  \
+#define PHP_EVENT_FCI_ADDREF(pfci) Z_ADDREF_P(pfci_dst->function_name)
+#define PHP_EVENT_COPY_FCALL_INFO(pfci_dst, pfcc_dst, pfci, pfcc)                                \
+    if (ZEND_FCI_INITIALIZED(*pfci)) {                                                           \
+                                                                                                 \
+        memcpy(pfci_dst, pfci, sizeof(zend_fcall_info));                                         \
+        memcpy(pfcc_dst, pfcc, sizeof(zend_fcall_info_cache));                                   \
+                                                                                                 \
+        PHP_EVENT_FCI_ADDREF(pfci_dst);                                                          \
+    } else {                                                                                     \
+        pfci_dst = NULL;                                                                         \
+        pfcc_dst = NULL;                                                                         \
+    }
 
 void fill_file_handle(file_handle_data *handleData, char *filename,
                       zend_fcall_info *fci,
                       zend_fcall_info_cache *fcc) {
     handleData->filename = filename;
-    printf("hello %p %s",  &fci, filename);
-    memcpy(&handleData->php_cb_data.fci, fci, sizeof(zend_fcall_info));
-    memcpy(&handleData->php_cb_data.fcc, fcc, sizeof(zend_fcall_info_cache));
+    uv_cb_type tt = {};
+//    handleData->php_cb_data = {};//emalloc(sizeof(uv_cb_type));
+    LOG("fill_file_handle %p %p %s\n", &handleData->php_cb_data.fci, &fci, filename);
+    if (ZEND_FCI_INITIALIZED(*fci)) {
+        memcpy(&tt.fci, fci, sizeof(zend_fcall_info));
+        memcpy(&tt.fcc, fcc, sizeof(zend_fcall_info_cache));
+        Z_ADDREF_P(&tt.fci.function_name);
+        if (fci->object) {
+            GC_ADDREF(fci->object);
+        }
+    }
+
+    memcpy(&handleData->php_cb_data, &tt, sizeof(uv_cb_type));
+
 }

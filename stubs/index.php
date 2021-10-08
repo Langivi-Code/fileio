@@ -3,7 +3,6 @@
 //require_once "Promise.php";
 
 
-
 // set_timeout(function ()  {
 //        sleep(1);
 //        echo "bye";
@@ -21,10 +20,11 @@
 // echo $timer = setInterval(fn()=>var_dump("setTimeout finished"), 200);
 // echo "<br>$timer</br>";
 
-// file_get_contents_async("compile", fn($arg2)=>file_put_contents_async("dtad354", $arg2, fn()=>var_dump("end2")));
+file_get_contents_async("compile",
+    fn($arg2) => file_put_contents("dtad34", $arg2)&&var_dump("first callback"));
 //file_put_contents_async("compile2", "data");
 //sleep(3);
-//file_get_contents_async("index.js", fn($arg)=>file_put_contents("dtad336", $arg));
+file_get_contents_async("Makefile", fn($arg) => file_put_contents("dtad35", $arg)&&var_dump("second callback"));
 
 // file_get_contents_async("fileio.lo", function($arg){
 // var_dump("******************************", $arg);
@@ -86,13 +86,21 @@
 //}, 0);
 file_get_contents_async(
     "compile",
-    fn($arg)=>print_r("dtad336")
- );
+    fn($arg) => var_dump("dtad336")&var_dump("third callback")
+);
 
-file_get_contents_async(
-    "README.md",
-    fn($arg)=>var_dump($arg,123, "second cb")//file_put_contents("dtad337", $arg)
- );
-
-echo "sync exec ended.\n";
+// file_get_contents_async(
+//     "compile",
+//     fn($arg)=>print_r("dtad336")
+//  );
+//
+// //  file_get_contents_async(
+// //     "compile",
+// //     fn($arg)=>print_r("dtad336")
+// //  );
+//  file_get_contents_async(
+//      "README.md",
+//      fn($arg)=>var_dump($arg,123, "second cb")//file_put_contents("dtad337", $arg)
+//   );
+echo "sync exec ended.\n\n";
 

@@ -32,7 +32,7 @@ typedef struct {
     uv_fs_t * write_req;
 } fs_close_reqs_t;
 
-__attribute__((unused)) extern fs_handles_id_item_t fstimeout_handle_map[HANDLE_MAP_SIZE];
+extern fs_handles_id_item_t fstimeout_handle_map[HANDLE_MAP_SIZE];
 
 void fill_fs_handle_with_data(
         uv_fs_t *handle,
