@@ -11,7 +11,9 @@
 
 //typedef struct _zend_fileio_globals {
 ZEND_BEGIN_MODULE_GLOBALS(fileio)
-    uv_loop_t * loop;
+    uv_loop_t *loop;
+    zend_class_entry *promise_class;
+    zend_class_entry *promise__status_enum;
 //} zend_fileio_globals;
 ZEND_END_MODULE_GLOBALS(fileio)
 

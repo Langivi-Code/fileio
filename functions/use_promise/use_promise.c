@@ -5,7 +5,9 @@
 #include <php_ini.h>
 #include "zend.h"
 #include <zend_API.h>
+#include <fileio/php_fileio.h>
 #include "zend_enum.h"
+
 zend_class_entry *promise_enum;
 
 static const zend_function_entry enum_PromiseStatus_methods[] = {
@@ -37,19 +39,36 @@ PHP_FUNCTION (use_promise) {
 }
 
 
-
 zend_class_entry *create_PromiseStatus_enum(void) {
-    zend_class_entry * promise_enum = zend_register_internal_enum("PromiseStatus", IS_UNDEF,
-                                                                  enum_PromiseStatus_methods);
-    zend_enum_add_case_cstr(promise_enum, "Pending", NULL);
-    zend_enum_add_case_cstr(promise_enum, "Resolved", NULL);
-    zend_enum_add_case_cstr(promise_enum, "Rejected", NULL);
-    return promise_enum;
+    FILE_IO_GLOBAL(promise__status_enum) = zend_register_internal_enum("PromiseStatus", IS_UNDEF,
+                                                                       enum_PromiseStatus_methods);
+    zend_enum_add_case_cstr(FILE_IO_GLOBAL(promise__status_enum), "Pending", NULL);
+    zend_enum_add_case_cstr(FILE_IO_GLOBAL(promise__status_enum), "Resolved", NULL);
+    zend_enum_add_case_cstr(FILE_IO_GLOBAL(promise__status_enum), "Rejected", NULL);
+    return FILE_IO_GLOBAL(promise__status_enum);
 }
 //
 //static zend_class_entry *promise_class_entry = NULL;
 //
 PHP_METHOD (Promise, __construct) {
+    zval callback;
+    zend_fcall_info fci;
+    zend_fcall_info_cache fcc;
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+            Z_PARAM_ZVAL(callback)ZEND_PARSE_PARAMETERS_END();
+    zend_update_property(FILE_IO_GLOBAL(promise_class), getThis(), "closure", sizeof("closure"), &callback);
+    zend_fcall_info_init(&callback, 0, &fci, &fcc, NULL, NULL);
+    zval params[2];
+    //TODO fill params
+    fci.param_count = 2;
+    ZVAL_FUNC(params[0], "Promise_finally")
+    fci.params = params;
+    if (ZEND_FCI_INITIALIZED(fci)) {
+        if (zend_call_function(&fci, &fcc) != SUCCESS) {
+            //SET AS REJECTED error = -1;
+        }
+    }
+//    zend_update_property()
 //  $this->handle();
 // //        $this->internalFiber = new Fiber([$this, 'handle']);
 // //        $this->status = $this->internalFiber->start();
@@ -118,7 +137,8 @@ zend_class_entry *register_class_Promise(void) {
     zend_class_entry ce, *class_entry;
 
     INIT_CLASS_ENTRY(ce, "Promise", class_Promise_methods);
-    class_entry = zend_register_internal_class_ex(&ce, NULL);
+    class_entry = FILE_IO_GLOBAL(promise_class) = zend_register_internal_class_ex(&ce, NULL);
+
 
 //    zend_declare_class_constant_long(promise_class_entry,
 //                                     "DEFAULT_FACTOR", sizeof("DEFAULT_FACTOR")-1, DEFAULT_SCALE_FACTOR);
