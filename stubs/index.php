@@ -9,10 +9,10 @@ function test(PromiseStatus $status)
 // }
 
 $ret = new Promise(function ($resolve, $reject) {
-    $resolve("I am response prom promise\n");
-    $reject(123);
+    set_timeout(fn()=> $resolve("I am response prom promise\n"),3000); //SOMETHING WRONG IS HERE)
+//     $reject(123);
 });
-var_dump($ret);
+// var_dump($ret);
 // set_timeout(function ()  {
 //        sleep(1);
 //        echo "bye";

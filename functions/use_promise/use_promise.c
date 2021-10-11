@@ -6,7 +6,10 @@
 #include "zend.h"
 #include <zend_API.h>
 #include <zend_closures.h>
+#include "../common/callback_interface.h"
+#include "../../constants.h"
 #include "../../php_fileio.h"
+#include "../idle/idle_interface.h"
 #include "zend_enum.h"
 zend_function * promise_resolve;
 zend_function * promise_reject;
@@ -47,6 +50,7 @@ zend_class_entry *create_PromiseStatus_enum(void) {
     zend_enum_add_case_cstr(FILE_IO_GLOBAL(promise__status_enum), "Rejected", NULL);
     return FILE_IO_GLOBAL(promise__status_enum);
 }
+
 //
 //static zend_class_entry *promise_class_entry = NULL;
 //
@@ -59,7 +63,7 @@ PHP_METHOD (Promise, __construct) {
     zend_update_property(FILE_IO_GLOBAL(promise_class), Z_OBJ_P(ZEND_THIS), "closure", sizeof("closure")-1, callback);
     zend_fcall_info_init(callback, 0, &fci, &fcc, NULL, NULL);
 
-    zval params[2];
+    zval* params= emalloc(2* sizeof(zval));
     zval func;
     zval retavl;
     fci.retval = &retavl;
@@ -72,11 +76,17 @@ PHP_METHOD (Promise, __construct) {
     zend_create_fake_closure(&func, promise_reject, FILE_IO_GLOBAL(promise_class), FILE_IO_GLOBAL(promise_class), ZEND_THIS);
     ZVAL_COPY(&params[1], &func);
     fci.params = params;
-    if (ZEND_FCI_INITIALIZED(fci)) {
-        if (zend_call_function(&fci, &fcc) != SUCCESS) {
-            //SET AS REJECTED error = -1;
-        }
-    }
+    #define LOG_TAG "PROMISE"
+    uv_idle_t *idleHandle = emalloc(sizeof(uv_idle_t));
+
+    uv_idle_init(FILE_IO_GLOBAL(loop), idleHandle);
+    fill_idle_handle_with_data(idleHandle, &fci, &fcc);
+    LOG("Setting idle ...\n");
+    uv_idle_start(idleHandle, fn_idle);
+//    uv_cb_type * cbs = emalloc(sizeof(uv_cb_type));
+//    memcpy(&cbs->fci, &fci, sizeof(zend_fcall_info));
+//    memcpy(&cbs->fcc, &fcc, sizeof(zend_fcall_info_cache));
+
 //    printf("not found %d\n", NULL == promise_resolve);
 //    zval callable3;
 //    zval * callable4;

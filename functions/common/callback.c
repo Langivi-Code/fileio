@@ -36,10 +36,11 @@ void fn_idle(uv_idle_t *handle) {
     printf(" %lu \n", sizeof uv->fci);
     //    memcpy(&uv, (uv_cb_t *) handle->data, sizeof(uv_cb_t));
     zend_long error;
-    zval retval;
+
     zval dstr;
     ZVAL_STRING(&dstr, "callback fn");
     //    zend_call_method_with_1_params(NULL, NULL, NULL, "print_r", &retval, &dstr);
+
     if (ZEND_FCI_INITIALIZED(uv->fci)) {
         LOG("Idle call back is called");
         if (zend_call_function(&uv->fci, &uv->fcc) != SUCCESS) {
@@ -50,7 +51,7 @@ void fn_idle(uv_idle_t *handle) {
         error = -2;
     }
     uv_idle_stop(handle);
-    efree(handle);
+//    efree(handle);
 }
 
 void fn_interval(uv_timer_t *handle) {
