@@ -29,7 +29,8 @@
 extern zend_class_entry *create_PromiseStatus_enum(void);
 
 extern zend_class_entry *register_class_Promise(void);
-
+extern  zend_function * promise_resolve;
+extern  zend_function * promise_reject;
 ZEND_DECLARE_MODULE_GLOBALS(fileio);
 
 
@@ -132,6 +133,9 @@ PHP_MINIT_FUNCTION (fileio) {
     create_PromiseStatus_enum();
     register_class_Promise();
     REGISTER_INI_ENTRIES();
+    promise_resolve = zend_hash_str_find_ptr(&FILE_IO_GLOBAL(promise_class->function_table), "resolve", sizeof("resolve")-1);
+    promise_reject = zend_hash_str_find_ptr(&FILE_IO_GLOBAL(promise_class->function_table), "reject", sizeof("reject")-1);
+
 #if defined(ZTS) && defined(COMPILE_DL_FILEIO)
     ZEND_TSRMLS_CACHE_UPDATE();
 #endif
@@ -140,7 +144,7 @@ PHP_MINIT_FUNCTION (fileio) {
 
 /* {{{ PHP_RINIT_FUNCTION */
 PHP_RINIT_FUNCTION (fileio) {
-    PG(auto_prepend_file)="Promise.php";
+//    PG(auto_prepend_file)="Promise.php";
     memset(timer_handle_map,0, HANDLE_MAP_SIZE * sizeof(handle_id_item_t));
     memset(fstimeout_handle_map,0, HANDLE_MAP_SIZE * sizeof(fs_handles_id_item_t));
 #if defined(ZTS) && defined(COMPILE_DL_FILEIO)
