@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-make clean
 phpize
+make clean
 ./configure --with-uv  --enable-static=uv
 make && sudo make install

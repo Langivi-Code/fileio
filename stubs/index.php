@@ -8,10 +8,10 @@ function test(PromiseStatus $status)
 //     private ?string $ll=null;
 // }
 
-$ret = new Promise(function ($resolve, $reject) {
-    set_timeout(fn()=> $resolve("I am response prom promise\n"),3000); //SOMETHING WRONG IS HERE)
-//     $reject(123);
-});
+//$ret = new Promise(function ($resolve, $reject) {
+//   var_dump($reject("I am rejected prom promise\n") );
+////     $reject(123);
+//});
 // var_dump($ret);
 // set_timeout(function ()  {
 //        sleep(1);
@@ -21,7 +21,7 @@ $ret = new Promise(function ($resolve, $reject) {
 //        }
 //    }, 0);
 //
-test(PromiseStatus::Pending);
+// test(PromiseStatus::Pending);
 // $promise = new Promise(function ($resolve, $reject) {
 //     setTimeout(fn()=>$resolve("promise finshed"), 3000);
 //
@@ -44,7 +44,7 @@ test(PromiseStatus::Pending);
 // var_dump("******************************", $arg);
 // }, maxlen:160);
 // idle(fn()=>var_dump(123));
-// file_put_contents_async("configure1", "fn(arg)=>file_put_contents(dtad2, arg)", fn()=>var_dump("dtad337"));
+ file_put_contents_async("configure1", "fn(arg)=>file_put_contents(dtad2, arg)", fn()=>var_dump("dtad337"));
 
 // setTimeout(fn()=>exit(), 5000);
 
@@ -91,9 +91,42 @@ test(PromiseStatus::Pending);
 //    echo "idle2***********";
 //});
 //
-//setTimeout(function () {
-//    echo "timeout2";
+//$fb = new Fiber(function (){
+//    echo Fiber::suspend(123);
+//    echo  " after resume\n";
+//return "returned";
+//
+//});
+//
+//echo "in Fiber".$fb->start();
+//set_timeout(function () use ($fb){
+//    echo "timeout2 \n";
+//    echo $fb->resume(1234);
+//    echo "\ntimeout3 \n";
+//    echo $fb->getReturn();
 //}, 0);
+//$socket = socket_create(AF_INET, SOCK_STREAM, 0);
+//var_dump(stream_get_transports());
+/* Open a server socket to port 1234 on localhost */
+$server = stream_socket_server('tcp://127.0.0.1:1234');
+
+/* Accept a connection */
+$socket = stream_socket_accept($server);
+stream_set_blocking($server, false);
+/* Grab a packet (1500 is a typical MTU size) of OOB data */
+echo "Received Out-Of-Band: '" . stream_socket_recvfrom($socket, 1500, STREAM_OOB) . "'\n";
+
+/* Take a peek at the normal in-band data, but don't consume it. */
+echo "Data1: '" . stream_socket_recvfrom($socket, 1500, STREAM_PEEK) . "'\n";
+
+/* Get the exact same packet again, but remove it from the buffer this time. */
+echo "Data2: '" . stream_socket_recvfrom($socket, 1500) . "'\n";
+$serv= [$server];
+echo stream_select($serv);
+/* Close it up */
+fclose($socket);
+fclose($server);
+
 //file_get_contents_async(
 //    "compile",
 //    fn($arg) => var_dump("dtad336")&var_dump("third callback")

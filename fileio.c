@@ -109,7 +109,7 @@ ZEND_FUNCTION(enable_event) {
     printf("loop run status: %d\n", uv_run(loop, UV_RUN_DEFAULT));
     LOG("size of ev-queue after run %d (Active = %d), loop address:=%p", uv_loop_alive(loop), loop->active_handles, loop);
     uv_loop_close(FILE_IO_GLOBAL(loop));
-    sleep(10);
+//    sleep(10);
 //    uv_async_init(fileio_globals.loop, &as_h, NULL);
 //    uv_loop_fork(fileio_globals.loop);
 }
