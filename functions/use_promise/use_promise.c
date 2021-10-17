@@ -172,12 +172,10 @@ PHP_METHOD (Promise, then) {
             Z_PARAM_FUNC(fci, fcc)ZEND_PARSE_PARAMETERS_END();
     zval * data = emalloc(sizeof(zval));
     zval promiseFinalized;
-    zval retval;
+    zval  retval;
     zend_long error;
-    zend_read_property(FILE_IO_GLOBAL(promise_class), Z_OBJ_P(ZEND_THIS), promiseFinalized_f.name,
-                       promiseFinalized_f.length, 0, &promiseFinalized);
-    zend_read_property(FILE_IO_GLOBAL(promise_class), Z_OBJ_P(ZEND_THIS), dataStore_f.name, dataStore_f.length, 0,
-                       data);
+    zend_read_property(FILE_IO_GLOBAL(promise_class), Z_OBJ_P(ZEND_THIS), promiseFinalized_f.name, promiseFinalized_f.length, 0, &promiseFinalized);
+    zend_read_property(FILE_IO_GLOBAL(promise_class), Z_OBJ_P(ZEND_THIS), dataStore_f.name, dataStore_f.length, 0, data);
     fci.param_count = 1;
     fci.params = data;
     fci.retval = &retval;
