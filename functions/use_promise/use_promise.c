@@ -181,7 +181,7 @@ PHP_METHOD (Promise, then) {
     fci.retval = &retval;
     if (ZEND_FCI_INITIALIZED(fci)) {
         LOG("Then call back is called");
-        if (zend_call_function(fci, fcc) != SUCCESS) {
+        if (zend_call_function(&fci, &fcc) != SUCCESS) {
             error = -1;
         }
     } else {

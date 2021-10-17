@@ -46,7 +46,7 @@ if test $PHP_UV != "no"; then
     TIMERS="$FUNCTIONS/timers"
     COMMON="$FUNCTIONS/common"
     FILES="$FUNCTIONS/files"
-    PHP_NEW_EXTENSION(fileio, fileio.c $COMMON/fill_event_handle.c $COMMON/callback.c $TIMERS/fill_timer_handle_with_data.c $TIMERS/set_timeout.c $TIMERS/set_interval.c $FILES/fs_handle_map.c $FILES/fill_fs_handle_with_data.c $FILES/file_get_contents_async.c $FILES/file_put_contents_async.c $FUNCTIONS/use_promise/use_promise.c $FUNCTIONS/idle/idle.c $SOURCES, no)
+    PHP_NEW_EXTENSION(fileio, fileio.c $COMMON/fill_event_handle.c $COMMON/callback.c $TIMERS/fill_timer_handle_with_data.c $TIMERS/set_timeout.c $TIMERS/set_interval.c $FILES/fs_handle_map.c $FILES/fill_fs_handle_with_data.c $FILES/file_get_contents_async.c $FILES/file_put_contents_async.c $FUNCTIONS/use_promise/use_promise.c $FUNCTIONS/idle/idle.c $SOURCES, $ext_shared)
 
     PHP_ADD_EXTENSION_DEP(uv, fiber, true )
 
@@ -54,19 +54,19 @@ if test $PHP_UV != "no"; then
 
     AC_MSG_CHECKING(for libuv)
 
-    if test $PHP_UV == "yes" && test -x "$PKG_CONFIG" && $PKG_CONFIG --exists libuv1; then
-      # if $PKG_CONFIG libuv --atleast-version 1.0.0; then
-      #   LIBUV_INCLINE=`$PKG_CONFIG libuv --cflags`
-      #   LIBUV_LIBLINE=`$PKG_CONFIG libuv --libs`
-      #   LIBUV_VERSION=`$PKG_CONFIG libuv --modversion`
-      #   AC_MSG_RESULT(from pkgconfig: found version $LIBUV_VERSION)
-      #   AC_DEFINE(HAVE_UVLIB,1,[ ])
-      # else
-      #   AC_MSG_ERROR(system libuv must be upgraded to version >= 1.0.0)
-      # fi
-      # PHP_EVAL_LIBLINE($LIBUV_LIBLINE, UV_SHARED_LIBADD)
-      # PHP_EVAL_INCLINE($LIBUV_INCLINE)
-      echo cool
+    if test $PHP_UV == "yes" && test -x "$PKG_CONFIG" && $PKG_CONFIG --exists libuv; then
+      if $PKG_CONFIG libuv --atleast-version 1.0.0; then
+        LIBUV_INCLINE=`$PKG_CONFIG libuv --cflags`
+        LIBUV_LIBLINE=`$PKG_CONFIG libuv --libs`
+        LIBUV_VERSION=`$PKG_CONFIG libuv --modversion`
+        AC_MSG_RESULT(from pkgconfig: found version $LIBUV_VERSION)
+        AC_DEFINE(HAVE_UVLIB,1,[ ])
+      else
+        AC_MSG_ERROR(system libuv must be upgraded to version >= 1.0.0)
+      fi
+      PHP_EVAL_LIBLINE($LIBUV_LIBLINE, UV_SHARED_LIBADD)
+      PHP_EVAL_INCLINE($LIBUV_INCLINE)
+
     else
       SEARCH_PATH="/usr/local /usr"
       SEARCH_FOR="/include/uv.h"
@@ -87,15 +87,16 @@ if test $PHP_UV != "no"; then
         PHP_ADD_LIBRARY_WITH_PATH(uv, $UV_DIR/$PHP_LIBDIR, UV_SHARED_LIBADD)
         AC_DEFINE(HAVE_UVLIB,1,[ ])
       ],[
-        AC_MSG_ERROR([wrong uv library version or library not found])
+         [[ -d deps ]] || mkdir deps
+         cd deps && [[ -d libuv ]] || git clone https://github.com/libuv/libuv.git -b v1.42.0
+         cd libuv && sh autogen.sh && ./configure && make -j $(nproc)  && make install
+         cd ../..
+         ./configure
+          #AC_MSG_ERROR([wrong uv library version or library not found])
       ],[
         -L$UV_DIR/$PHP_LIBDIR -lm
       ])
-# \[ -d deps \] || mkdir deps
-# cd deps && \[ -d libuv \] || git clone https://github.com/libuv/libuv.git -b v1.42.0
-# cd libuv && sh autogen.sh && ./configure && make -j $(nproc)  && make install
 
-# cd ..
     fi
       case $host in
           *linux*)
