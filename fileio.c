@@ -129,7 +129,7 @@ PHP_INI_END()
 
 /* {{{ PHP_MINIT_FUNCTION */
 PHP_MINIT_FUNCTION (fileio) {
-    fileio_globals.loop = uv_default_loop();
+    FILE_IO_GLOBAL(loop) = uv_default_loop();
     create_PromiseStatus_enum();
     register_class_Promise();
     REGISTER_INI_ENTRIES();
