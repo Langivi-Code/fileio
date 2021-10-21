@@ -221,6 +221,6 @@ zend_module_entry fileio_module_entry = {
 # ifdef ZTS
 ZEND_TSRMLS_CACHE_DEFINE()
 # endif
-ZEND_GET_MODULE(fileio)
+ZEND_GET_MODULE(fileio);
 
 #endif

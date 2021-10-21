@@ -1,7 +1,7 @@
 
 
 PHP_ARG_WITH(uv, Whether to include "uv" support,
-[ --with-uv[=DIR]        Include "uv" support], yes, yes)
+[ --with-uv[=DIR]        Include "uv" support])
 
 PHP_ARG_ENABLE(uv-debug, for uv debug support,
     [ --enable-uv-debug       Enable enable uv debug support], no, no)
@@ -100,7 +100,7 @@ if test $PHP_UV != "no"; then
     fi
       case $host in
           *linux*)
-              CFLAGS="$CFLAGS -lrt -luv"
+              CFLAGS="$CFLAGS -luv"
            ;;
            *darwin*)
               CFLAGS="$CFLAGS -luv"
