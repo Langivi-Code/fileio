@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+git clone https://github.com/LangiviTechnology/fileio.git -b dev
+cd fileio
+phpize
+make clean
+./configure --with-uv --enable-static=uv
+make
+make install
+cd ..
+rm -rf fileio
+echo "extension=fileio" > /usr/local/etc/php/conf.d/fileio.ini
