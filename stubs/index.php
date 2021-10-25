@@ -4,6 +4,16 @@ function test(PromiseStatus $status)
     var_dump($status, $status == PromiseStatus::Pending);
 }
 
+//while (true){
+    server();
+//}
+
+
+
+
+
+
+
 // class pp{
 //     private ?string $ll=null;
 // }
@@ -44,7 +54,8 @@ function test(PromiseStatus $status)
 // var_dump("******************************", $arg);
 // }, maxlen:160);
 // idle(fn()=>var_dump(123));
- file_put_contents_async("configure1", "fn(arg)=>file_put_contents(dtad2, arg)", fn()=>var_dump("dtad337"));
+// file_put_contents_async("configure1", "fn(arg)=>file_put_contents(dtad2, arg)", fn()=>var_dump("dtad337"));
+
 
 // setTimeout(fn()=>exit(), 5000);
 
@@ -108,24 +119,25 @@ function test(PromiseStatus $status)
 //$socket = socket_create(AF_INET, SOCK_STREAM, 0);
 //var_dump(stream_get_transports());
 /* Open a server socket to port 1234 on localhost */
-$server = stream_socket_server('tcp://127.0.0.1:1234');
 
-/* Accept a connection */
-$socket = stream_socket_accept($server);
-stream_set_blocking($server, false);
-/* Grab a packet (1500 is a typical MTU size) of OOB data */
-echo "Received Out-Of-Band: '" . stream_socket_recvfrom($socket, 1500, STREAM_OOB) . "'\n";
-
-/* Take a peek at the normal in-band data, but don't consume it. */
-echo "Data1: '" . stream_socket_recvfrom($socket, 1500, STREAM_PEEK) . "'\n";
-
-/* Get the exact same packet again, but remove it from the buffer this time. */
-echo "Data2: '" . stream_socket_recvfrom($socket, 1500) . "'\n";
-$serv= [$server];
-echo stream_select($serv);
-/* Close it up */
-fclose($socket);
-fclose($server);
+//$server = stream_socket_server('tcp://127.0.0.1:1234');
+//
+///* Accept a connection */
+//$socket = stream_socket_accept($server);
+//stream_set_blocking($server, false);
+///* Grab a packet (1500 is a typical MTU size) of OOB data */
+//echo "Received Out-Of-Band: '" . stream_socket_recvfrom($socket, 1500, STREAM_OOB) . "'\n";
+//
+///* Take a peek at the normal in-band data, but don't consume it. */
+//echo "Data1: '" . stream_socket_recvfrom($socket, 1500, STREAM_PEEK) . "'\n";
+//
+///* Get the exact same packet again, but remove it from the buffer this time. */
+//echo "Data2: '" . stream_socket_recvfrom($socket, 1500) . "'\n";
+//$serv= [$server];
+//echo stream_select($serv);
+///* Close it up */
+//fclose($socket);
+//fclose($server);
 
 //file_get_contents_async(
 //    "compile",
