@@ -25,33 +25,46 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_idle, 0, 2, IS_NULL, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_file_get_contents_async, 0, 2, _IS_BOOL, 0)
-	ZEND_ARG_TYPE_INFO(0, filename, IS_STRING, 0)
-	ZEND_ARG_TYPE_INFO(0, callback, IS_CALLABLE, 0)
-	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, offset, IS_LONG, 0, "0")
-	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, maxlen, IS_LONG, 1, "null")
+                ZEND_ARG_TYPE_INFO(0, filename, IS_STRING, 0)
+                ZEND_ARG_TYPE_INFO(0, callback, IS_CALLABLE, 0)
+                ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, offset, IS_LONG, 0, "0")
+                ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, maxlen, IS_LONG, 1, "null")
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_file_put_contents_async, 0, 2, _IS_BOOL, 0)
-	ZEND_ARG_TYPE_INFO(0, filename, IS_STRING, 0)
-	ZEND_ARG_TYPE_INFO(0, data, IS_STRING, 0)
-	ZEND_ARG_TYPE_INFO(0, callback, IS_CALLABLE, 0)
-	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, flags, IS_LONG, 0, "0")
+                ZEND_ARG_TYPE_INFO(0, filename, IS_STRING, 0)
+                ZEND_ARG_TYPE_INFO(0, data, IS_STRING, 0)
+                ZEND_ARG_TYPE_INFO(0, callback, IS_CALLABLE, 0)
+                ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, flags, IS_LONG, 0, "0")
 ZEND_END_ARG_INFO()
 
 
-ZEND_BEGIN_ARG_INFO(arginfo_server,0)
+ZEND_BEGIN_ARG_INFO(arginfo_server, 0)
+                ZEND_ARG_TYPE_INFO(0, port, IS_LONG, 0)
+                ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, host, IS_STRING, 1, "null")
+                ZEND_ARG_TYPE_INFO(0, callback, IS_CALLABLE, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_FUNCTION(use_promise);
+
 ZEND_FUNCTION(enable_event);
+
 ZEND_FUNCTION(set_timeout);
+
 ZEND_FUNCTION(set_interval);
+
 ZEND_FUNCTION(clear_timeout);
+
 ZEND_FUNCTION(clear_interval);
+
 ZEND_FUNCTION(idle);
+
 ZEND_FUNCTION(file_get_contents_async);
+
 ZEND_FUNCTION(file_put_contents_async);
+
 PHP_FUNCTION (send_header);
+
 PHP_FUNCTION (server);
 
 static const zend_function_entry file_io_functions[] = {
@@ -63,7 +76,7 @@ static const zend_function_entry file_io_functions[] = {
         ZEND_FE(idle, arginfo_idle)
         ZEND_FE(server, arginfo_server)
         ZEND_FE(enable_event, arginfo_enable_event)
-	    ZEND_FE(file_get_contents_async, arginfo_file_get_contents_async)
-	    ZEND_FE(file_put_contents_async, arginfo_file_put_contents_async)
+        ZEND_FE(file_get_contents_async, arginfo_file_get_contents_async)
+        ZEND_FE(file_put_contents_async, arginfo_file_put_contents_async)
         ZEND_FE_END
 };

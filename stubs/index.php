@@ -4,8 +4,15 @@ function test(PromiseStatus $status)
     var_dump($status, $status == PromiseStatus::Pending);
 }
 
+server(8004,"192.168.250.132", fn()=>var_dump(123));
+//$str = stream_socket_server("tcp://192.168.250.132:8004");
+//$i =0;
 //while (true){
-    server();
+//    $con = stream_socket_accept($str);
+//    $i++;
+//    stream_socket_sendto($con,"HTTP/1.1 200 OK\n", STREAM_OOB);
+////    echo  $i."\n";
+//    fclose($con);
 //}
 
 
@@ -14,9 +21,7 @@ function test(PromiseStatus $status)
 
 
 
-// class pp{
-//     private ?string $ll=null;
-// }
+
 
 //$ret = new Promise(function ($resolve, $reject) {
 //   var_dump($reject("I am rejected prom promise\n") );
