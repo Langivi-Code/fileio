@@ -2,4 +2,4 @@
 phpize
  make clean
 ./configure --with-uv  --enable-static
- make && sudo make install
+ make -j$(nproc) && sudo make install
