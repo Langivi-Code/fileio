@@ -4,16 +4,17 @@ function test(PromiseStatus $status)
     var_dump($status, $status == PromiseStatus::Pending);
 }
 
-server(8004,"192.168.250.132", fn()=>var_dump(123));
-//$str = stream_socket_server("tcp://192.168.250.132:8004");
-//$i =0;
-//while (true){
+server(8004,"0.0.0.0", fn()=>var_dump(123));
+// $str = stream_socket_server("tcp://0.0.0.0:8004");
+// $i =0;
+// while (true){
 //    $con = stream_socket_accept($str);
 //    $i++;
+//    echo fread($con, 1024);
 //    stream_socket_sendto($con,"HTTP/1.1 200 OK\n", STREAM_OOB);
-////    echo  $i."\n";
+// //    echo  $i."\n";
 //    fclose($con);
-//}
+// }
 
 
 

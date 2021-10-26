@@ -57,45 +57,85 @@ void get_meta_data(php_stream * stream) {
     }
     zend_print_zval_r(return_value, 0);
 }
+
+
 unsigned long long timeout = 100000;
 struct timeval tv;
+php_stream *clistream = NULL;
+void poll_cb1(uv_poll_t *handle1, int status, int events) {
 
-void poll_cb(uv_poll_t *handle, int status, int events) {
-    php_stream *clistream = NULL;
+    zend_string * contents = NULL;
 
-    zend_long flags = 0;
+//    clistream=handle->data;
+    contents = php_stream_read_to_str(clistream, 1024);
+    int position = php_stream_tell(clistream);
+    printf("pos %d", position);
+    get_meta_data(clistream);
+//    if (!clistream) {
+//        php_error_docref(NULL, E_WARNING, "Accept failed: %s", errstr ? ZSTR_VAL(errstr) : "Unknown error");
+//    }
+    zend_long to_read = 0;
+    zend_string *read_buf;
+    printf(" hgbgdg %p gtsrgsrtg %s fvsr\n", contents, ZSTR_VAL(contents));
+    if (contents){
+        printf("4444  %s  5555", ZSTR_VAL(contents));
+    } else{
+        printf("no content");
+    }
+}
+
+
+void poll_cb(uv_poll_t *handle1, int status, int events) {
+
+
+    zend_long flags = STREAM_PEEK;
     zend_string *errstr = NULL;
     php_stream_xport_accept(server_stream, &clistream, NULL, NULL, NULL, &tv, &errstr);
 //    get_meta_data(server_stream);
-    if (!clistream) {
-        php_error_docref(NULL, E_WARNING, "Accept failed: %s", errstr ? ZSTR_VAL(errstr) : "Unknown error");
-    }
-//    int ret = clistream->ops->set_option(server_stream, PHP_STREAM_OPTION_BLOCKING,0 , NULL);
+    int ret = clistream->ops->set_option(clistream, PHP_STREAM_OPTION_BLOCKING,0 , NULL);
+
+//    int recvd;
+    uv_poll_t *handle = emalloc(sizeof(uv_poll_t));
+int this_fd;
+    int cast_result = _php_stream_cast(clistream, PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL,
+                                       (void *) &this_fd, 1);
+    uv_poll_init_socket(FILE_IO_GLOBAL(loop), handle, this_fd);
+    handle->data=clistream;
+    uv_poll_start(handle, UV_READABLE, poll_cb1);
+
+//char  cc[1024];
+//    recvd = php_stream_xport_recvfrom(server_stream, cc, 1024, (int)flags, NULL, NULL,
+//                                      NULL
+//    );
+
+
+
 //    printf("accented %d\n", ret);
     uv_cb_type *uv = (uv_cb_type *) handle->data;
-    printf(" %lu \n", sizeof uv->fci);
+//    printf(" %lu \n", sizeof uv->fci);
     //    memcpy(&uv, (uv_cb_t *) handle->data, sizeof(uv_cb_t));
     zend_long error;
     zval retval;
-    zval dstr;
-    ZVAL_STRING(&dstr, "callback fn");
+    uv->fci.retval=&retval;
+//    zval dstr;
+//    ZVAL_STRING(&dstr, "callback fn");
     //    zend_call_method_with_1_params(NULL, NULL, NULL, "print_r", &retval, &dstr);
-    if (ZEND_FCI_INITIALIZED(uv->fci)) {
-        if (zend_call_function(&uv->fci, &uv->fcc) != SUCCESS) {
-            error = -1;
-        }
-
-    } else {
-        error = -2;
-    }
+//    if (ZEND_FCI_INITIALIZED(uv->fci)) {
+//        if (zend_call_function(&uv->fci, &uv->fcc) != SUCCESS) {
+//            error = -1;
+//        }
+//
+//    } else {
+//        error = -2;
+//    }
 //    php_stream_xport_sendto(clistream, "HTTP/1.1 200 OK\n", sizeof("HTTP/1.1 200 OK\n")-1, (int) flags, NULL, 0);
 //    i++;
 //    printf("req %ld\n", i);
-//    get_meta_data(clistream);
+
 //    php_stream_write(clistream, "HTTP/1.1 200 OK\n", strlen("HTTP/1.1 200 OK\n"));
-    php_stream_free(clistream,PHP_STREAM_FREE_KEEP_RSRC |
-                    (clistream->is_persistent ? PHP_STREAM_FREE_CLOSE_PERSISTENT : PHP_STREAM_FREE_CLOSE));
-//    uv_poll_stop(handle);
+//    php_stream_free(clistream,PHP_STREAM_FREE_KEEP_RSRC |
+//                    (clistream->is_persistent ? PHP_STREAM_FREE_CLOSE_PERSISTENT : PHP_STREAM_FREE_CLOSE));
+////    uv_poll_stop(handle);
 //    php_stream_xport_shutdown(stream, 0);
 }
 
@@ -128,13 +168,10 @@ PHP_FUNCTION (server) {
     size_t host_size = host_len+strlen(snum)+1;
     char host_[host_size];
     memset(host_,0,host_size);
-    printf("%s %zu\n", host, host_len);
+//    printf("%s %zu\n", host, host_len);
     strncpy(host_, host, host_len);
-    printf("%s\n",host_);
     strcat(host_, ":");
-    printf("%s\n",host_);
     strncat(host_, snum, strlen(snum));
-    printf("%s\n",host_);
     php_socket_t this_fd;
     printf("%s\n",host_);
 

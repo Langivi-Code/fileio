@@ -19,9 +19,13 @@
 // }, 0);
 
 const net = require('net');
-const sock = new net.Socket();
-sock.connect(8004, '192.168.250.132');
-sock.on('connect', (...data)=>console.log('connect', data));
+const sock = new net.Socket({readable:true, writable:true});
+
+sock.connect(8004, '0.0.0.0');
+sock.on('connect', (...data)=>{console.log('connect', data)
+sock.write("hell7777t6fi67fididi76du65du6iu6fir6yidkil77rfdur6iliduxiuo\n\0");
+ // sock.end();
+});
 sock.on('data', (...data)=>console.log('data', data.toString()));
 // let i = 0;
 // const serv = net.createServer((socket) => {
