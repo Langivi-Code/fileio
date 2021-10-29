@@ -11,5 +11,8 @@ struct server_type {
     uv_cb_type on_connect;
     uv_cb_type on_disconnect;
     uv_cb_type on_error;
+    uv_poll_t * connect_handle;
+    uv_poll_t * read_handle;
 };
+
 #endif //FILEIO_SERVER_H
