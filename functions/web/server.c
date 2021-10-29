@@ -12,6 +12,7 @@
 php_stream *server_stream = NULL;
 long i = 0;
 struct server_type php_server = {};
+char headers[] = "HTTP/1.1 200 OK\r\nserver: 0.0.0.0:8004\r\ndate: Wed, 27 Oct 2021 09:07:01 GMT\r\n\r\n";
 
 void get_meta_data(php_stream *stream) {
     zval * return_value;
@@ -65,20 +66,33 @@ struct timeval tv;
 php_stream *clistream = NULL;
 
 void poll_cb1(uv_poll_t *handle1, int status, int events) {
-
+    if (php_stream_eof(clistream)) {
+        uv_poll_stop(handle1);
+        return;
+    }
     zend_string * contents = NULL;
-
+    zend_long error;
 //    clistream=handle->data;
+    zval retval;
     contents = php_stream_read_to_str(clistream, 1024);
     int position = php_stream_tell(clistream);
     printf("pos %d", position);
     get_meta_data(clistream);
+    php_server.on_data.fci.retval = &retval;
     printf(" hgbgdg %p gtsrgsrtg %s fvsr\n", contents, ZSTR_VAL(contents));
+    if (ZEND_FCI_INITIALIZED(php_server.on_data.fci)) {
+        if (zend_call_function(&php_server.on_data.fci, &php_server.on_data.fcc) != SUCCESS) {
+            error = -1;
+        }
+    } else {
+        error = -2;
+    }
     if (contents) {
         printf("4444  %s  5555", ZSTR_VAL(contents));
     } else {
         printf("no content");
     }
+
 }
 
 
@@ -86,7 +100,7 @@ void poll_cb(uv_poll_t *handle1, int status, int events) {
     zend_long flags = STREAM_PEEK;
     zend_string * errstr = NULL;
     int this_fd;
-    php_stream_xport_accept(server_stream, &clistream, NULL, NULL, NULL, &tv, &errstr);
+    php_stream_xport_accept(php_server.server_stream, &clistream, NULL, NULL, NULL, &tv, &errstr);
     if (!clistream) {
         php_error_docref(NULL, E_ERROR, "Accept failed: %s", errstr ? ZSTR_VAL(errstr) : "Unknown error");
     }
@@ -95,31 +109,30 @@ void poll_cb(uv_poll_t *handle1, int status, int events) {
     uv_poll_t *handle = emalloc(sizeof(uv_poll_t));
     int cast_result = _php_stream_cast(clistream, PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL,
                                        (void *) &this_fd, 1);
-    if(cast_result == SUCCESS && ret == SUCCESS){
+    if (cast_result == SUCCESS && ret == SUCCESS) {
         uv_poll_init_socket(FILE_IO_GLOBAL(loop), handle, this_fd);
         handle->data = clistream;
         uv_poll_start(handle, UV_READABLE, poll_cb1);
-    } else{
+    } else {
         php_error_docref(NULL, E_ERROR, "Accept failed: %s", errstr ? ZSTR_VAL(errstr) : "Unknown error");
     }
 //    printf("accented %d\n", ret);
     uv_cb_type *uv = (uv_cb_type *) handle->data;
     zend_long error;
     zval retval;
-    uv->fci.retval = &retval;
+    php_server.on_connect.fci.retval = &retval;
 //    zval dstr;
 //    ZVAL_STRING(&dstr, "callback fn");
     //    zend_call_method_with_1_params(NULL, NULL, NULL, "print_r", &retval, &dstr);
-//    if (ZEND_FCI_INITIALIZED(uv->fci)) {
-//        if (zend_call_function(&uv->fci, &uv->fcc) != SUCCESS) {
-//            error = -1;
-//        }
-//
-//    } else {
-//        error = -2;
-//    }
-//    php_stream_xport_sendto(clistream, "HTTP/1.1 200 OK\n", sizeof("HTTP/1.1 200 OK\n")-1, (int) flags, NULL, 0);
-//    i++;
+    if (ZEND_FCI_INITIALIZED(php_server.on_connect.fci)) {
+        if (zend_call_function(&php_server.on_connect.fci, &php_server.on_connect.fcc) != SUCCESS) {
+            error = -1;
+        }
+    } else {
+        error = -2;
+    }
+    php_stream_xport_sendto(clistream, headers, sizeof(headers) - 1, (int) flags, NULL, 0);
+    i++;
 //    printf("req %ld\n", i);
 
     php_stream_write(clistream, "HTTP/1.1 200 OK\r\n", strlen("HTTP/1.1 200 OK\r\n"));
@@ -179,9 +192,10 @@ PHP_FUNCTION (server) {
 //    if (context) {
 //        GC_ADDREF(context->res);
 //    }
-    php_server.server_stream = _php_stream_xport_create(host_, strlen(host_), REPORT_ERRORS, STREAM_XPORT_SERVER | (int) flags,
-                                             NULL, NULL, NULL, &errstr, &err);
-    if (server_stream == NULL) {
+    php_server.server_stream = _php_stream_xport_create(host_, strlen(host_), REPORT_ERRORS,
+                                                        STREAM_XPORT_SERVER | (int) flags,
+                                                        NULL, NULL, NULL, &errstr, &err);
+    if (php_server.server_stream == NULL) {
         php_error_docref(NULL, E_WARNING, "Unable to connect  %s\n",
                          errstr == NULL ? "Unknown error" : ZSTR_VAL(errstr));
     }
@@ -194,14 +208,23 @@ PHP_FUNCTION (server) {
     printf("FD is : %d\n", this_fd);
     memcpy(&php_server.on_connect.fci, &fci, sizeof(zend_fcall_info));
     memcpy(&php_server.on_connect.fcc, &fcc, sizeof(zend_fcall_info_cache));
-    if (SUCCESS == cast_result && ret && php_server.server_fd != -1) {
+    if (ZEND_FCI_INITIALIZED(fci)) {
+        Z_TRY_ADDREF(php_server.on_connect.fci.function_name);
+        if (php_server.on_connect.fci.object) {
+            GC_ADDREF(php_server.on_connect.fci.object);
+        }
+    }
+    if (SUCCESS == cast_result && ret == 1 && php_server.server_fd != -1) {
         uv_poll_init_socket(FILE_IO_GLOBAL(loop), handle, php_server.server_fd);
         uv_cb_type uv = {};
 //        LOG("size of timeout handler %lu, fci  %lu \n\n", sizeof *idle_type, sizeof *fci);
         handle->data = (uv_cb_type *) emalloc(sizeof(uv_cb_type));
         fill_event_handle(handle, &fci, &fcc, &uv);
-        uv_poll_start(handle, UV_READABLE, poll_cb);
-
+        uv_poll_start(handle, UV_READABLE|UV_DISCONNECT, poll_cb);//TODO add on disconnect event
+//        uv_poll_init_socket(FILE_IO_GLOBAL(loop), handle, php_server.server_fd);
+//        uv_poll_start(handle, UV_DISCONNECT, poll_cb);
+    } else {
+        php_error_docref(NULL, E_WARNING, "Unable to get fd   %s\n", "Unknown error");
     }
     printf("cast result: %d\n", cast_result);
 
@@ -217,7 +240,12 @@ PHP_FUNCTION (server_on_data) {
             Z_PARAM_FUNC(fci, fcc);ZEND_PARSE_PARAMETERS_END();
     memcpy(&php_server.on_data.fci, &fci, sizeof(zend_fcall_info));
     memcpy(&php_server.on_data.fcc, &fcc, sizeof(zend_fcall_info_cache));
-
+    if (ZEND_FCI_INITIALIZED(fci)) {
+        Z_TRY_ADDREF(php_server.on_data.fci.function_name);
+        if (php_server.on_data.fci.object) {
+            GC_ADDREF(php_server.on_data.fci.object);
+        }
+    }
 }
 
 PHP_FUNCTION (server_on_disconnect) {
