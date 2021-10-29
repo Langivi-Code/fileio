@@ -15,7 +15,7 @@ struct server_type php_server = {};
 char headers[] = "HTTP/1.1 200 OK\r\nserver: 0.0.0.0:8004\r\ndate: Wed, 27 Oct 2021 09:07:01 GMT\r\n\r\n";
 
 void get_meta_data(php_stream *stream) {
-    zval * return_value;
+    zval *return_value;
     return_value = emalloc(sizeof(zval));
     array_init(return_value);
 
@@ -65,21 +65,29 @@ unsigned long long timeout = 100000;
 struct timeval tv;
 php_stream *clistream = NULL;
 
-void poll_cb1(uv_poll_t *handle1, int status, int events) {
+void on_listen_client_event(uv_poll_t *handle1, int status, int events) {
+    printf("11events %d statuses %d\n", events, status);
     if (php_stream_eof(clistream)) {
+        get_meta_data(clistream);
         uv_poll_stop(handle1);
+        php_stream_free(clistream, PHP_STREAM_FREE_KEEP_RSRC |
+                                   (clistream->is_persistent ? PHP_STREAM_FREE_CLOSE_PERSISTENT
+                                                             : PHP_STREAM_FREE_CLOSE));
         return;
     }
-    zend_string * contents = NULL;
+    zend_string *contents = NULL;
     zend_long error;
 //    clistream=handle->data;
     zval retval;
+    //TODO copy to zval containing data
+    zval args[1];
     contents = php_stream_read_to_str(clistream, 1024);
     int position = php_stream_tell(clistream);
-    printf("pos %d", position);
-    get_meta_data(clistream);
+    printf("file pointer pos -  %d\n", position);
+    ZVAL_STR(&args[0], contents);
+    php_server.on_data.fci.param_count = 1;
+    php_server.on_data.fci.params = args;
     php_server.on_data.fci.retval = &retval;
-    printf(" hgbgdg %p gtsrgsrtg %s fvsr\n", contents, ZSTR_VAL(contents));
     if (ZEND_FCI_INITIALIZED(php_server.on_data.fci)) {
         if (zend_call_function(&php_server.on_data.fci, &php_server.on_data.fcc) != SUCCESS) {
             error = -1;
@@ -88,17 +96,18 @@ void poll_cb1(uv_poll_t *handle1, int status, int events) {
         error = -2;
     }
     if (contents) {
-        printf("4444  %s  5555", ZSTR_VAL(contents));
+        printf("Content from client: %s\n", ZSTR_VAL(contents));
     } else {
-        printf("no content");
+        printf("No content");
     }
 
 }
 
 
-void poll_cb(uv_poll_t *handle1, int status, int events) {
+void on_listen_server_for_clients(uv_poll_t *handle1, int status, int events) {
+    printf("events %d statuses %d\n", events, status);
     zend_long flags = STREAM_PEEK;
-    zend_string * errstr = NULL;
+    zend_string *errstr = NULL;
     int this_fd;
     php_stream_xport_accept(php_server.server_stream, &clistream, NULL, NULL, NULL, &tv, &errstr);
     if (!clistream) {
@@ -112,7 +121,7 @@ void poll_cb(uv_poll_t *handle1, int status, int events) {
     if (cast_result == SUCCESS && ret == SUCCESS) {
         uv_poll_init_socket(FILE_IO_GLOBAL(loop), handle, this_fd);
         handle->data = clistream;
-        uv_poll_start(handle, UV_READABLE, poll_cb1);
+        uv_poll_start(handle, UV_READABLE|UV_DISCONNECT, on_listen_client_event);
     } else {
         php_error_docref(NULL, E_ERROR, "Accept failed: %s", errstr ? ZSTR_VAL(errstr) : "Unknown error");
     }
@@ -137,20 +146,20 @@ void poll_cb(uv_poll_t *handle1, int status, int events) {
 
     php_stream_write(clistream, "HTTP/1.1 200 OK\r\n", strlen("HTTP/1.1 200 OK\r\n"));
     //end
-//    php_stream_free(clistream,PHP_STREAM_FREE_KEEP_RSRC |
-//                    (clistream->is_persistent ? PHP_STREAM_FREE_CLOSE_PERSISTENT : PHP_STREAM_FREE_CLOSE));
-////    uv_poll_stop(handle);
 //    php_stream_xport_shutdown(stream, 0);
 }
 
 
+void on_disc(void * handle){
+    printf("disconnect'\n");
+}
 PHP_FUNCTION (server) {
     char *host;
     size_t host_len;
     zend_long port;
     zend_fcall_info_cache fcc = empty_fcall_info_cache;
     zend_fcall_info fci = empty_fcall_info;
-    zval * zerrno = NULL, *zerrstr = NULL, *zcontext = NULL;
+    zval *zerrno = NULL, *zerrstr = NULL, *zcontext = NULL;
     ZEND_PARSE_PARAMETERS_START(1, 3)
             Z_PARAM_LONG(port)
             Z_PARAM_OPTIONAL
@@ -164,7 +173,7 @@ PHP_FUNCTION (server) {
         host = "0.0.0.0";
         host_len = strlen(host);
     }
-    zend_string * errstr = NULL;
+    zend_string *errstr = NULL;
     php_stream_context *context = NULL;
     char snum[10];
     sprintf(snum, "%ld", port);
@@ -220,7 +229,7 @@ PHP_FUNCTION (server) {
 //        LOG("size of timeout handler %lu, fci  %lu \n\n", sizeof *idle_type, sizeof *fci);
         handle->data = (uv_cb_type *) emalloc(sizeof(uv_cb_type));
         fill_event_handle(handle, &fci, &fcc, &uv);
-        uv_poll_start(handle, UV_READABLE|UV_DISCONNECT, poll_cb);//TODO add on disconnect event
+        uv_poll_start(handle, UV_READABLE, on_listen_server_for_clients);//TODO add on disconnect event
 //        uv_poll_init_socket(FILE_IO_GLOBAL(loop), handle, php_server.server_fd);
 //        uv_poll_start(handle, UV_DISCONNECT, poll_cb);
     } else {
@@ -237,7 +246,8 @@ PHP_FUNCTION (server_on_data) {
     zend_fcall_info_cache fcc = empty_fcall_info_cache;
     zend_fcall_info fci = empty_fcall_info;
     ZEND_PARSE_PARAMETERS_START(1, 1)
-            Z_PARAM_FUNC(fci, fcc);ZEND_PARSE_PARAMETERS_END();
+            Z_PARAM_FUNC(fci, fcc);
+    ZEND_PARSE_PARAMETERS_END();
     memcpy(&php_server.on_data.fci, &fci, sizeof(zend_fcall_info));
     memcpy(&php_server.on_data.fcc, &fcc, sizeof(zend_fcall_info_cache));
     if (ZEND_FCI_INITIALIZED(fci)) {
@@ -245,6 +255,8 @@ PHP_FUNCTION (server_on_data) {
         if (php_server.on_data.fci.object) {
             GC_ADDREF(php_server.on_data.fci.object);
         }
+    } else {
+        zend_throw_error(NULL, "on data is not initialized");
     }
 }
 
@@ -252,7 +264,8 @@ PHP_FUNCTION (server_on_disconnect) {
     zend_fcall_info_cache fcc = empty_fcall_info_cache;
     zend_fcall_info fci = empty_fcall_info;
     ZEND_PARSE_PARAMETERS_START(1, 1)
-            Z_PARAM_FUNC(fci, fcc);ZEND_PARSE_PARAMETERS_END();
+            Z_PARAM_FUNC(fci, fcc);
+    ZEND_PARSE_PARAMETERS_END();
     memcpy(&php_server.on_disconnect.fci, &fci, sizeof(zend_fcall_info));
     memcpy(&php_server.on_disconnect.fcc, &fcc, sizeof(zend_fcall_info_cache));
 
@@ -262,7 +275,8 @@ PHP_FUNCTION (server_on_error) {
     zend_fcall_info_cache fcc = empty_fcall_info_cache;
     zend_fcall_info fci = empty_fcall_info;
     ZEND_PARSE_PARAMETERS_START(1, 1)
-            Z_PARAM_FUNC(fci, fcc);ZEND_PARSE_PARAMETERS_END();
+            Z_PARAM_FUNC(fci, fcc);
+    ZEND_PARSE_PARAMETERS_END();
     memcpy(&php_server.on_error.fci, &fci, sizeof(zend_fcall_info));
     memcpy(&php_server.on_error.fcc, &fcc, sizeof(zend_fcall_info_cache));
 

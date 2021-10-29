@@ -4,9 +4,9 @@ function test(PromiseStatus $status)
     var_dump($status, $status == PromiseStatus::Pending);
 }
 
-// server_on_data(fn()=>var_dump('on_data'));
-server(8004,"0.0.0.0", fn()=>var_dump('on_connect'));
 
+server(8004,"0.0.0.0", fn()=>var_dump('on_connect'));
+server_on_data(fn($arg)=>var_dump('on_data1:'.$arg));
 // $str = stream_socket_server("tcp://0.0.0.0:8004");
 // $i =0;
 // while (true){

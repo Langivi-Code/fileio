@@ -26,7 +26,11 @@ sock.on('connect', (...data)=>{console.log('connect', data)
 sock.write("hell7777t6fi67fididi76du65du6iu6fir6yidkil77rfdur6iliduxiuo\n\0");
  // sock.end();
 });
-sock.on('data', (...data)=>console.log('data', data.toString()));
+sock.on('data', (...data)=>{
+    console.log('data', data.toString())
+    sock.write("another data\n\0")
+    sock.end("bye")
+});
 // let i = 0;
 // const serv = net.createServer((socket) => {
 //     // console.log('req', i);
