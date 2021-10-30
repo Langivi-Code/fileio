@@ -17,7 +17,7 @@ typedef struct {
 
 typedef struct {
     unsigned long long handle_id;
-    uv_timer_t * handle
+    uv_timer_t * handle;
 } handle_id_item_t;
 void fill_timer_handle_with_data(
         uv_timer_t *handle,

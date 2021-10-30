@@ -4,6 +4,7 @@
 
 #ifndef FILEIO_SERVER_H
 #define FILEIO_SERVER_H
+
 struct server_type {
     php_stream * server_stream;
     int server_fd;

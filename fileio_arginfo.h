@@ -39,16 +39,6 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_file_put_contents_async, 0, 2, _
 ZEND_END_ARG_INFO()
 
 
-ZEND_BEGIN_ARG_INFO(arginfo_server, 0)
-                ZEND_ARG_TYPE_INFO(0, port, IS_LONG, 0)
-                ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, host, IS_STRING, 1, "null")
-                ZEND_ARG_TYPE_INFO(0, callback, IS_CALLABLE, 0)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO(arginfo_server_event_handler, 0)
-                ZEND_ARG_TYPE_INFO(0, callback, IS_CALLABLE, 0)
-ZEND_END_ARG_INFO()
-
 ZEND_FUNCTION(use_promise);
 ZEND_FUNCTION(enable_event);
 ZEND_FUNCTION(set_timeout);
@@ -73,10 +63,6 @@ PHP_FUNCTION (server_on_error);
         ZEND_FE(set_interval, arginfo_setInterval)
         ZEND_FE(clear_interval, arginfo_clearInterval)
         ZEND_FE(idle, arginfo_idle)
-        ZEND_FE(server, arginfo_server)
-        ZEND_FE(server_on_data, arginfo_server_event_handler)
-        ZEND_FE(server_on_disconnect, arginfo_server_event_handler)
-        ZEND_FE(server_on_error, arginfo_server_event_handler)
         ZEND_FE(enable_event, arginfo_enable_event)
         ZEND_FE(file_get_contents_async, arginfo_file_get_contents_async)
         ZEND_FE(file_put_contents_async, arginfo_file_put_contents_async)

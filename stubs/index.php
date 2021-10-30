@@ -3,11 +3,14 @@ function test(PromiseStatus $status)
 {
     var_dump($status, $status == PromiseStatus::Pending);
 }
-function work(...$arg){
-var_dump(123,$arg);}
 
-server(8004,"0.0.0.0", fn()=>var_dump('on_connect'));
-server_on_data("work");
+
+$serv = new Server(8100,callback:fn()=>1);
+$serv->on_data(function (...$arg){
+               var_dump(123,$arg);});
+var_dump($serv);
+// $serv2 = new Server(8005,"0.0.0.0", fn()=>var_dump('on_connect'));
+// $serv2->on_data("work");
 // $str = stream_socket_server("tcp://0.0.0.0:8004");
 // $i =0;
 // while (true){

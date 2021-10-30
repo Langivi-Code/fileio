@@ -8,67 +8,23 @@
 #include "../../php_fileio.h"
 #include "ext/standard/file.h"
 #include "server.h"
+#include "helpers.h"
+#include "server_args_info.h"
 
-php_stream *server_stream = NULL;
-long i = 0;
-struct server_type php_server = {};
+static zend_long server_id = -1;
+struct server_type php_servers[10] = {};
 char headers[] = "HTTP/1.1 200 OK\r\nserver: 0.0.0.0:8004\r\ndate: Wed, 27 Oct 2021 09:07:01 GMT\r\n\r\n";
-
-void get_meta_data(php_stream *stream) {
-    zval * return_value;
-    return_value = emalloc(sizeof(zval));
-    array_init(return_value);
-
-    if (!php_stream_populate_meta_data(stream, return_value)) {
-        add_assoc_bool(return_value, "timed_out", 0);
-        add_assoc_bool(return_value, "blocked", 1);
-        add_assoc_bool(return_value, "eof", php_stream_eof(stream));
-    }
-
-    if (!Z_ISUNDEF(stream->wrapperdata)) {
-        Z_ADDREF_P(&stream->wrapperdata);
-        add_assoc_zval(return_value, "wrapper_data", &stream->wrapperdata);
-    }
-    if (stream->wrapper) {
-        add_assoc_string(return_value, "wrapper_type", (char *) stream->wrapper->wops->label);
-    }
-    add_assoc_string(return_value, "stream_type", (char *) stream->ops->label);
-
-    add_assoc_string(return_value, "mode", stream->mode);
-
-#if 0    /* TODO: needs updating for new filter API */
-    if (stream->filterhead) {
-        php_stream_filter *filter;
-
-        MAKE_STD_ZVAL(newval);
-        array_init(newval);
-
-        for (filter = stream->filterhead; filter != NULL; filter = filter->next) {
-            add_next_index_string(newval, (char *)filter->fops->label);
-        }
-
-        add_assoc_zval(return_value, "filters", newval);
-    }
-#endif
-
-    add_assoc_long(return_value, "unread_bytes", stream->writepos - stream->readpos);
-
-    add_assoc_bool(return_value, "seekable", (stream->ops->seek) && (stream->flags & PHP_STREAM_FLAG_NO_SEEK) == 0);
-    if (stream->orig_path) {
-        add_assoc_string(return_value, "uri", stream->orig_path);
-    }
-    zend_print_zval_r(return_value, 0);
-    efree(return_value);
-}
 
 
 unsigned long long timeout = 100000;
 struct timeval tv;
 
-php_stream *clistream = NULL;
 
 void on_listen_client_event(uv_poll_t *handle1, int status, int events) {
     printf("11events %d statuses %d\n", events, status);
+    php_stream *clistream = NULL;
+    zend_long error;
+    clistream = (php_stream *) handle1->data;
     if (php_stream_eof(clistream)) {
         get_meta_data(clistream);
         uv_poll_stop(handle1);
@@ -85,8 +41,8 @@ void on_listen_client_event(uv_poll_t *handle1, int status, int events) {
         return;
     }
     zend_string * contents = NULL;
-    zend_long error;
-//    clistream=handle->data;
+
+
     zval retval;
     //TODO copy to zval containing data
     zval args[1];
@@ -105,7 +61,7 @@ void on_listen_client_event(uv_poll_t *handle1, int status, int events) {
         error = -2;
     }
     if (contents) {
-        printf("Content from client: %s\n", ZSTR_VAL(contents));
+        printf("Content from client: %s %lld\n", ZSTR_VAL(contents), error);
     } else {
         printf("No content");
     }
@@ -117,6 +73,7 @@ void on_listen_server_for_clients(uv_poll_t *handle1, int status, int events) {
     printf("events %d statuses %d\n", events, status);
     zend_long flags = STREAM_PEEK;
     zend_string * errstr = NULL;
+    php_stream *clistream = NULL;
     int this_fd;
     php_stream_xport_accept(php_server.server_stream, &clistream, NULL, NULL, NULL, &tv, &errstr);
     if (!clistream) {
@@ -150,8 +107,7 @@ void on_listen_server_for_clients(uv_poll_t *handle1, int status, int events) {
         error = -2;
     }
     php_stream_xport_sendto(clistream, headers, sizeof(headers) - 1, (int) flags, NULL, 0);
-    i++;
-//    printf("req %ld\n", i);
+
 
     php_stream_write(clistream, "HTTP/1.1 200 OK\r\n", strlen("HTTP/1.1 200 OK\r\n"));
     //end
@@ -159,26 +115,9 @@ void on_listen_server_for_clients(uv_poll_t *handle1, int status, int events) {
 }
 
 
-char *create_host(const char *host, size_t host_len, zend_long port, size_t *str_len) {
-    if (host == NULL) {
-        host = "0.0.0.0";
-        host_len = strlen(host);
-    }
-    char snum[10];
-    sprintf(snum, "%lld", port);
-    * str_len = host_len + strlen(snum) + 1;
-    char *host_ = emalloc(sizeof(char) * (*str_len));
-    memset(host_, 0, *str_len);
-    strncpy(host_, host, host_len);
-    strcat(host_, ":");
-    strncat(host_, snum, strlen(snum));
-    return  host_;
-}
-
-
 PHP_FUNCTION (server) {
-    char *host;
-    size_t host_len;
+    char *host = NULL;
+    size_t host_len = 0;
     size_t ret_sz;
     zend_long port;
     zend_fcall_info_cache fcc = empty_fcall_info_cache;
@@ -201,6 +140,8 @@ PHP_FUNCTION (server) {
     char full_host[ret_sz];
     strcpy(full_host, temp_host);
     efree(temp_host);
+
+
 #ifdef PHP_WIN32
     tv.tv_sec = (long)(timeout / 1000000);
     tv.tv_usec = (long)(timeout % 1000000);
@@ -208,13 +149,16 @@ PHP_FUNCTION (server) {
     tv.tv_sec = timeout / 1000000;
     tv.tv_usec = timeout % 1000000;
 #endif
-
+    server_id++;
+    zval id;
+    ZVAL_LONG(&id, server_id);
+    zend_update_property(FILE_IO_GLOBAL(server_class), Z_OBJ_P(ZEND_THIS),"#",sizeof("#")-1, &id);
     uv_poll_t *handle = emalloc(sizeof(uv_poll_t));
 //    context = php_stream_context_from_zval(NULL, flags & PHP_FILE_NO_DEFAULT_CONTEXT);
 //    if (context) {
 //        GC_ADDREF(context->res);
 //    }
-    php_server.server_stream = _php_stream_xport_create(host_, strlen(host_), REPORT_ERRORS,
+    php_server.server_stream = _php_stream_xport_create(full_host, ret_sz, REPORT_ERRORS,
                                                         STREAM_XPORT_SERVER | (int) flags,
                                                         NULL, NULL, NULL, &errstr, &err);
     if (php_server.server_stream == NULL) {
@@ -299,4 +243,22 @@ PHP_FUNCTION (server_on_error) {
     } else {
         zend_throw_error(NULL, "on error is not initialized");
     }
+}
+
+static const zend_function_entry class_Server_methods[] = {
+        ZEND_ME_MAPPING(__construct, server, arginfo_server, ZEND_ACC_PUBLIC)
+        ZEND_ME_MAPPING(on_data, server_on_data, arginfo_server_event_handler, ZEND_ACC_PUBLIC)
+        ZEND_ME_MAPPING(on_disconnect, server_on_disconnect, arginfo_server_event_handler, ZEND_ACC_PUBLIC)
+        ZEND_ME_MAPPING(on_error, server_on_error, arginfo_server_event_handler, ZEND_ACC_PUBLIC)
+        PHP_FE_END
+};
+
+zend_class_entry *register_class_Server(void) {
+    zend_class_entry ce;
+    INIT_CLASS_ENTRY(ce, "Server", class_Server_methods);
+    FILE_IO_GLOBAL(server_class) = zend_register_internal_class_ex(&ce, NULL);
+    FILE_IO_GLOBAL(server_class)->ce_flags |= ZEND_ACC_NO_DYNAMIC_PROPERTIES|ZEND_ACC_NOT_SERIALIZABLE;
+    zend_declare_property_long(FILE_IO_GLOBAL(server_class), "#", sizeof("#") - 1, server_id,
+                                 ZEND_ACC_PRIVATE | ZEND_ACC_READONLY);
+    return FILE_IO_GLOBAL(server_class);
 }

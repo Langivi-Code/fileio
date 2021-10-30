@@ -29,6 +29,7 @@
 extern zend_class_entry *create_PromiseStatus_enum(void);
 
 extern zend_class_entry *register_class_Promise(void);
+extern zend_class_entry *register_class_Server(void);
 extern  zend_function * promise_resolve;
 extern  zend_function * promise_reject;
 ZEND_DECLARE_MODULE_GLOBALS(fileio);
@@ -132,6 +133,7 @@ PHP_MINIT_FUNCTION (fileio) {
     FILE_IO_GLOBAL(loop) = uv_default_loop();
     create_PromiseStatus_enum();
     register_class_Promise();
+    register_class_Server();
     REGISTER_INI_ENTRIES();
     promise_resolve = zend_hash_str_find_ptr(&FILE_IO_GLOBAL(promise_class->function_table), "resolve", sizeof("resolve")-1);
     promise_reject = zend_hash_str_find_ptr(&FILE_IO_GLOBAL(promise_class->function_table), "reject", sizeof("reject")-1);
@@ -188,6 +190,7 @@ PHP_RSHUTDOWN_FUNCTION (fileio) {
 PHP_MSHUTDOWN_FUNCTION (fileio) {
     UNREGISTER_INI_ENTRIES();
 //    free(FILE_IO_GLOBAL(loop));
+    return SUCCESS;
 }
 
 /* }}} */
