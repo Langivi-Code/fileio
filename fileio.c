@@ -24,12 +24,14 @@
 #include "functions/common/callback_interface.h"
 #include "constants.h"
 #include <ext/standard/basic_functions.h>
+#include "./functions//web/server.h"
 #include "./functions/files/file_interface.h"
 
 extern zend_class_entry *create_PromiseStatus_enum(void);
 
 extern zend_class_entry *register_class_Promise(void);
 extern zend_class_entry *register_class_Server(void);
+extern  server_type php_servers[10];
 extern  zend_function * promise_resolve;
 extern  zend_function * promise_reject;
 ZEND_DECLARE_MODULE_GLOBALS(fileio);
@@ -149,6 +151,7 @@ PHP_RINIT_FUNCTION (fileio) {
 //    PG(auto_prepend_file)="Promise.php";
     memset(timer_handle_map,0, HANDLE_MAP_SIZE * sizeof(handle_id_item_t));
     memset(fstimeout_handle_map,0, HANDLE_MAP_SIZE * sizeof(fs_handles_id_item_t));
+    memset(php_servers, 0, sizeof(struct server_type) * 10);
 #if defined(ZTS) && defined(COMPILE_DL_FILEIO)
     ZEND_TSRMLS_CACHE_UPDATE();
 #endif

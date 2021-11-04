@@ -21,15 +21,26 @@
 const net = require('net');
 const sock = new net.Socket({readable:true, writable:true});
 
+// sock.connect(8100, '0.0.0.0');
+// sock.on('connect', (...data)=>{console.log('connect', data)
+// sock.write("hello from node js 8100\n\0");
+//  // sock.end();
+// });
+// sock.on('data', (...data)=>{
+//     console.log('data', data.toString())
+//     // sock.write("another data\n\0")
+//     sock.end("bye from ports 8100")
+// });
+
 sock.connect(8100, '0.0.0.0');
 sock.on('connect', (...data)=>{console.log('connect', data)
-sock.write("hell7777t6fi67fididi76du65du6iu6fir6yidkil77rfdur6iliduxiuo\n\0");
- // sock.end();
+    sock.write("hello from node js 8200\n\0");
+    // sock.end();
 });
 sock.on('data', (...data)=>{
     console.log('data', data.toString())
-    sock.write("another data\n\0")
-    sock.end("bye")
+    // sock.write("another data\n\0")
+    sock.end("bye from ports 8200")
 });
 // let i = 0;
 // const serv = net.createServer((socket) => {
