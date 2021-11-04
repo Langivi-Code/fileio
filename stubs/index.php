@@ -4,17 +4,19 @@ function test(PromiseStatus $status)
     var_dump($status, $status == PromiseStatus::Pending);
 }
 
-
-$serv = new Server(8100, callback:fn()=>1);
-$serv->on_data(function (...$arg){
-    var_dump("on_data8100",$arg);
-               }
-               );
-var_dump($serv);
+//
+//$serv = new Server(8100, callback:fn()=>1);
+//$serv->on_data(function (...$arg){
+//    var_dump("on_data8100",$arg);
+//               }
+//               );
+//var_dump($serv);
 
 $serv1 = new Server(8200, callback:fn()=>1);
-$serv1->on_data(function (...$arg){
+$serv1->on_data(function (...$arg) use (&$serv1){
                var_dump("on_data8200",$arg);
+               echo "Sending  data\n";
+               $serv1->write(" from php hello");
 });
 var_dump($serv1);
 // $serv2 = new Server(8005,"0.0.0.0", fn()=>var_dump('on_connect'));

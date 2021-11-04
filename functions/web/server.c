@@ -229,6 +229,7 @@ PHP_FUNCTION (server) {
         php_error_docref(NULL, E_WARNING, "Unable to get fd   %s\n", "Unknown error");
     }
     printf("Server start up finished \n\n");
+    puts("------------------------------------------------------------\n");
 }
 
 
@@ -307,6 +308,7 @@ static const zend_function_entry class_Server_methods[] = {
         ZEND_ME_MAPPING(on_data, server_on_data, arginfo_server_event_handler, ZEND_ACC_PUBLIC)
         ZEND_ME_MAPPING(on_disconnect, server_on_disconnect, arginfo_server_event_handler, ZEND_ACC_PUBLIC)
         ZEND_ME_MAPPING(on_error, server_on_error, arginfo_server_event_handler, ZEND_ACC_PUBLIC)
+        ZEND_ME_MAPPING(write, server_write, arginfo_server_write ,ZEND_ACC_PUBLIC)
         PHP_FE_END
 };
 
@@ -314,8 +316,8 @@ zend_class_entry *register_class_Server(void) {
     zend_class_entry ce;
     INIT_CLASS_ENTRY(ce, "Server", class_Server_methods);
     FILE_IO_GLOBAL(server_class) = zend_register_internal_class_ex(&ce, NULL);
-//    FILE_IO_GLOBAL(server_class)->ce_flags |= ZEND_ACC_NO_DYNAMIC_PROPERTIES | ZEND_ACC_NOT_SERIALIZABLE;
+    FILE_IO_GLOBAL(server_class)->ce_flags |= ZEND_ACC_NO_DYNAMIC_PROPERTIES | ZEND_ACC_NOT_SERIALIZABLE;
     zend_declare_property_long(FILE_IO_GLOBAL(server_class), "#", sizeof("#") - 1, server_id,
-                               ZEND_ACC_PUBLIC );
+                               ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
     return FILE_IO_GLOBAL(server_class);
 }

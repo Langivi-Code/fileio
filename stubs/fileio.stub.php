@@ -19,4 +19,5 @@ public function __construct(int $port, string $host, callable $callback){}
 public function on_data(callable $callback){}
 public function on_error(callable $callback){}
 public function on_disconnect(callable $callback){}
+public function write(string $data){}
 }

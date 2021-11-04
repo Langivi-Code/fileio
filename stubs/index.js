@@ -32,7 +32,7 @@ const sock = new net.Socket({readable:true, writable:true});
 //     sock.end("bye from ports 8100")
 // });
 
-sock.connect(8100, '0.0.0.0');
+sock.connect(8200, '0.0.0.0');
 sock.on('connect', (...data)=>{console.log('connect', data)
     sock.write("hello from node js 8200\n\0");
     // sock.end();
@@ -40,7 +40,7 @@ sock.on('connect', (...data)=>{console.log('connect', data)
 sock.on('data', (...data)=>{
     console.log('data', data.toString())
     // sock.write("another data\n\0")
-    sock.end("bye from ports 8200")
+    setTimeout(()=>sock.end("bye from ports 8200"),100)
 });
 // let i = 0;
 // const serv = net.createServer((socket) => {
