@@ -5,14 +5,16 @@ function test(PromiseStatus $status)
 }
 
 
-$serv = new Server(8100,callback:fn()=>1);
+$serv = new Server(8100, callback:fn()=>1);
 $serv->on_data(function (...$arg){
-               var_dump(123,$arg);});
+//                var_dump($this);
+               }
+               );
 var_dump($serv);
-$serv1 = new Server(8200,callback:fn()=>1);
-$serv1->on_data(function (...$arg){
-               var_dump(123,$arg);});
-var_dump($serv1);
+// $serv1 = new Server(8200,callback:fn()=>1);
+// $serv1->on_data(function (...$arg){
+//                var_dump(123,$arg);});
+// var_dump($serv1);
 // $serv2 = new Server(8005,"0.0.0.0", fn()=>var_dump('on_connect'));
 // $serv2->on_data("work");
 // $str = stream_socket_server("tcp://0.0.0.0:8004");

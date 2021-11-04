@@ -7,6 +7,7 @@
 
 struct server_type {
     php_stream * server_stream;
+    php_stream * current_client_stream;
     int server_fd;
     uv_cb_type on_data;
     uv_cb_type on_connect;

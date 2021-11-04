@@ -26,7 +26,7 @@ void on_listen_client_event(uv_poll_t *handle, int status, int events) {
 
     php_stream *clistream = NULL;
     zend_long error;
-    clistream = (php_stream *) ((event_handle_item *)handle->data)->handle_data;
+    clistream = (php_stream *) ((event_handle_item *) handle->data)->handle_data;
     if (php_stream_eof(clistream)) {
         get_meta_data(clistream);
         uv_poll_stop(handle);
@@ -41,6 +41,7 @@ void on_listen_client_event(uv_poll_t *handle, int status, int events) {
         php_stream_free(clistream, PHP_STREAM_FREE_KEEP_RSRC |
                                    (clistream->is_persistent ? PHP_STREAM_FREE_CLOSE_PERSISTENT
                                                              : PHP_STREAM_FREE_CLOSE));
+        php_servers[cur_id].current_client_stream = NULL;
         return;
     }
     zend_string * contents = NULL;
@@ -83,7 +84,7 @@ void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
     if (!clistream) {
         php_error_docref(NULL, E_ERROR, "Accept failed: %s", errstr ? ZSTR_VAL(errstr) : "Unknown error");
     }
-//    get_meta_data(server_stream);
+    php_servers[cur_id].current_client_stream = clistream;
     int ret = clistream->ops->set_option(clistream, PHP_STREAM_OPTION_BLOCKING, 0, NULL);
     uv_poll_t *cli_handle = emalloc(sizeof(uv_poll_t));
     int cast_result = _php_stream_cast(clistream, PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL,
@@ -97,7 +98,6 @@ void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
         php_error_docref(NULL, E_ERROR, "Accept failed: %s", errstr ? ZSTR_VAL(errstr) : "Unknown error");
     }
 //    printf("accented %d\n", ret);
-//    uv_cb_type *uv = (uv_cb_type *) handle->data;
     zend_long error;
     zval retval;
     php_servers[cur_id].on_connect.fci.retval = &retval;
@@ -119,9 +119,10 @@ void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
 //    php_stream_xport_shutdown(stream, 0);
 }
 
-void sig_cb(void * arg ){
+void sig_cb(void *arg) {
     printf("sig int\n");
 }
+
 PHP_FUNCTION (server) {
     char *host = NULL;
     size_t host_len = 0;
@@ -139,7 +140,7 @@ PHP_FUNCTION (server) {
     ZEND_PARSE_PARAMETERS_END();
     int err = 0;
     zend_long flags = STREAM_XPORT_BIND | STREAM_XPORT_LISTEN;
-    php_socket_t this_fd;
+    php_socket_t this_fd = 0;
     zend_string * errstr = NULL;
     php_stream_context *context = NULL;
 
@@ -156,7 +157,7 @@ PHP_FUNCTION (server) {
     tv.tv_sec = timeout / 1000000;
     tv.tv_usec = timeout % 1000000;
 #endif
-    zend_long cur_id = server_id++;
+    zend_long cur_id = ++server_id;
     zval id;
     ZVAL_LONG(&id, server_id);
     zend_update_property(FILE_IO_GLOBAL(server_class), Z_OBJ_P(ZEND_THIS), "#", sizeof("#") - 1, &id);
@@ -165,9 +166,16 @@ PHP_FUNCTION (server) {
 //    if (context) {
 //        GC_ADDREF(context->res);
 //    }
+    printf("id is %lld\n", cur_id);
     php_servers[cur_id].server_stream = _php_stream_xport_create(full_host, ret_sz, REPORT_ERRORS,
                                                                  STREAM_XPORT_SERVER | (int) flags,
+
                                                                  NULL, NULL, NULL, &errstr, &err);
+    if (cur_id == 1) {
+        printf("diff %d\n",
+               memcmp(php_servers[cur_id - 1].server_stream, php_servers[cur_id].server_stream, sizeof(php_stream)));
+    }
+//       get_meta_data(php_servers[cur_id].server_stream);
     if (php_servers[cur_id].server_stream == NULL) {
         php_error_docref(NULL, E_WARNING, "Unable to connect  %s\n",
                          errstr == NULL ? "Unknown error" : ZSTR_VAL(errstr));
@@ -180,7 +188,7 @@ PHP_FUNCTION (server) {
     int cast_result = _php_stream_cast(php_servers[cur_id].server_stream,
                                        PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL,
                                        (void *) &php_servers[cur_id].server_fd, 1);
-    printf("FD is: %d\n", this_fd);
+    printf("FD is: %d\n", php_servers[cur_id].server_fd);
     memcpy(&php_servers[cur_id].on_connect.fci, &fci, sizeof(zend_fcall_info));
     memcpy(&php_servers[cur_id].on_connect.fcc, &fcc, sizeof(zend_fcall_info_cache));
     if (ZEND_FCI_INITIALIZED(fci)) {
@@ -191,7 +199,7 @@ PHP_FUNCTION (server) {
     }
     if (SUCCESS == cast_result && ret == 1 && php_servers[cur_id].server_fd != -1) {
         uv_poll_init_socket(FILE_IO_GLOBAL(loop), handle, php_servers[cur_id].server_fd);
-        uv_signal_t * sig_handle = emalloc(sizeof(uv_signal_t));
+        uv_signal_t *sig_handle = emalloc(sizeof(uv_signal_t));
         uv_signal_init(FILE_IO_GLOBAL(loop), sig_handle);
         uv_cb_type uv = {};
 //        LOG("size of timeout handler %lu, fci  %lu \n\n", sizeof *idle_type, sizeof *fci);
@@ -216,6 +224,9 @@ PHP_FUNCTION (server_on_data) {
     GET_SERV_ID();
     memcpy(&php_servers[cur_id].on_data.fci, &fci, sizeof(zend_fcall_info));
     memcpy(&php_servers[cur_id].on_data.fcc, &fcc, sizeof(zend_fcall_info_cache));
+//    php_servers[cur_id].on_data.fcc.object = php_servers[cur_id].on_data.fci.object = Z_OBJ_P(ZEND_THIS);
+//    php_servers[cur_id].on_data.fcc.called_scope = Z_OBJCE_P(ZEND_THIS);
+//    php_servers[cur_id].on_data.fcc.calling_scope = Z_OBJCE_P(ZEND_THIS);
     if (ZEND_FCI_INITIALIZED(fci)) {
         Z_TRY_ADDREF(php_servers[cur_id].on_data.fci.function_name);
         if (php_servers[cur_id].on_data.fci.object) {
@@ -242,6 +253,16 @@ PHP_FUNCTION (server_on_disconnect) {
     } else {
         zend_throw_error(NULL, "on disconnect is not initialized");
     }
+}
+
+PHP_FUNCTION (server_write) {
+    char *data;
+    zend_long data_len;
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+            Z_PARAM_STRING(data, data_len)ZEND_PARSE_PARAMETERS_END();
+    GET_SERV_ID();
+
+    php_stream_write(php_servers[cur_id].current_client_stream, data, data_len);
 }
 
 PHP_FUNCTION (server_on_error) {
