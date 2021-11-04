@@ -14,6 +14,8 @@ function test(PromiseStatus $status)
 
 $serv1 = new Server(8200, callback:fn()=>1);
 $serv1->on_data(function (...$arg) use (&$serv1){
+    $serv1->write("cool");
+        var_dump($serv1);
                var_dump("on_data8200",$arg);
                echo "Sending  data\n";
                $serv1->write(" from php hello");

@@ -57,13 +57,15 @@ void on_listen_client_event(uv_poll_t *handle, int status, int events) {
     zend_long error = 0;
     event_handle_item * event_handle = (event_handle_item *) handle->data;
     clistream = (php_stream *) event_handle->handle_data;
+    zval * closable_zv;
+    printf("this point %p", event_handle->this);
+    closable_zv = zend_read_property(event_handle->this->ce, event_handle->this, CLOSABLE, sizeof(CLOSABLE)-1, 0, NULL);
+    long closable = Z_LVAL_P(closable_zv);
+    printf("closable %ld\n",closable);
     if (php_stream_eof(clistream)) {
 //        get_meta_data(clistream);
         uv_poll_stop(handle);
-        zval * closable_zv;
-        closable_zv = zend_read_property(event_handle->this->ce, event_handle->this, CLOSABLE, sizeof(CLOSABLE)-1, 0, NULL);
-       long closable = Z_LVAL_P(closable_zv);
-        printf("closable %dl\n",closable);
+
         if (events == 5 && ZEND_FCI_INITIALIZED(php_servers[cur_id].on_disconnect.fci)) {
             if (zend_call_function(&php_servers[cur_id].on_disconnect.fci, &php_servers[cur_id].on_connect.fcc) !=
                 SUCCESS) {
@@ -99,6 +101,9 @@ void on_listen_client_event(uv_poll_t *handle, int status, int events) {
         error = -2;
     }
     parse_fci_error(error, "on data");
+    closable_zv = zend_read_property(event_handle->this->ce, event_handle->this, CLOSABLE, sizeof(CLOSABLE)-1, 0, NULL);
+    closable = Z_LVAL_P(closable_zv);
+    printf("closable %ld\n",closable);
 
 }
 
@@ -177,7 +182,7 @@ PHP_FUNCTION (server) {
     strcpy(full_host, temp_host);
     efree(temp_host);
     printf("----- Running on port %d by full dns %s -----\n", port, full_host);
-
+    printf("this point %p\n", Z_OBJ_P(ZEND_THIS));
 #ifdef PHP_WIN32
     tv.tv_sec = (long)(timeout / 1000000);
     tv.tv_usec = (long)(timeout % 1000000);
@@ -288,7 +293,9 @@ PHP_FUNCTION (server_write) {
     ZEND_PARSE_PARAMETERS_START(1, 1)
             Z_PARAM_STRING(data, data_len)ZEND_PARSE_PARAMETERS_END();
     GET_SERV_ID();
-    zend_update_property(Z_OBJ_P(ZEND_THIS)->ce, Z_OBJ_P(ZEND_THIS), CLOSABLE, sizeof(CLOSABLE)-1, 0);
+    zval rv1;
+    ZVAL_BOOL(&rv1,0);
+    zend_update_property(Z_OBJ_P(ZEND_THIS)->ce, Z_OBJ_P(ZEND_THIS), CLOSABLE, sizeof(CLOSABLE)-1, &rv1);
     php_stream_write(php_servers[cur_id].current_client_stream, data, data_len);
 }
 
@@ -328,6 +335,6 @@ zend_class_entry *register_class_Server(void) {
     zend_declare_property_long(FILE_IO_GLOBAL(server_class), SERVER_ID, sizeof(SERVER_ID) - 1, server_id,
                                ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
     zend_declare_property_bool(FILE_IO_GLOBAL(server_class), CLOSABLE, sizeof(CLOSABLE) - 1, 1,
-                               ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
+                               ZEND_ACC_PUBLIC);
     return FILE_IO_GLOBAL(server_class);
 }
