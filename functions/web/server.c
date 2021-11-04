@@ -58,28 +58,29 @@ void on_listen_client_event(uv_poll_t *handle, int status, int events) {
     event_handle_item * event_handle = (event_handle_item *) handle->data;
     clistream = (php_stream *) event_handle->handle_data;
     zval * closable_zv;
-    printf("this point %p", event_handle->this);
+    printf("this point %p\n", event_handle->this);
     closable_zv = zend_read_property(event_handle->this->ce, event_handle->this, CLOSABLE, sizeof(CLOSABLE)-1, 0, NULL);
-    long closable = Z_LVAL_P(closable_zv);
-    printf("closable %ld\n",closable);
+    long closable =  Z_TYPE_INFO_P(closable_zv);
+    printf("closable %ld\n", closable);
     if (php_stream_eof(clistream)) {
 //        get_meta_data(clistream);
         uv_poll_stop(handle);
-
-        if (events == 5 && ZEND_FCI_INITIALIZED(php_servers[cur_id].on_disconnect.fci)) {
-            if (zend_call_function(&php_servers[cur_id].on_disconnect.fci, &php_servers[cur_id].on_connect.fcc) !=
-                SUCCESS) {
-                error = -1;
+        if (closable == IS_TRUE) {
+            if (events == 5 && ZEND_FCI_INITIALIZED(php_servers[cur_id].on_disconnect.fci)) {
+                if (zend_call_function(&php_servers[cur_id].on_disconnect.fci, &php_servers[cur_id].on_connect.fcc) !=
+                    SUCCESS) {
+                    error = -1;
+                }
+            } else {
+                error = -2;
             }
-        } else {
-            error = -2;
+            parse_fci_error(error, "on disconnect");
+            php_stream_free(clistream, PHP_STREAM_FREE_KEEP_RSRC |
+                                       (clistream->is_persistent ? PHP_STREAM_FREE_CLOSE_PERSISTENT
+                                                                 : PHP_STREAM_FREE_CLOSE));
+            php_servers[cur_id].current_client_stream = NULL;
+            efree(handle);
         }
-        parse_fci_error(error, "on disconnect");
-        php_stream_free(clistream, PHP_STREAM_FREE_KEEP_RSRC |
-                                   (clistream->is_persistent ? PHP_STREAM_FREE_CLOSE_PERSISTENT
-                                                             : PHP_STREAM_FREE_CLOSE));
-        php_servers[cur_id].current_client_stream = NULL;
-        efree(handle);
         return;
     }
     zend_string * contents = NULL;
@@ -102,8 +103,8 @@ void on_listen_client_event(uv_poll_t *handle, int status, int events) {
     }
     parse_fci_error(error, "on data");
     closable_zv = zend_read_property(event_handle->this->ce, event_handle->this, CLOSABLE, sizeof(CLOSABLE)-1, 0, NULL);
-    closable = Z_LVAL_P(closable_zv);
-    printf("closable %ld\n",closable);
+    closable =  Z_TYPE_INFO_P(closable_zv);
+    printf("closable %ld\n", closable);
 
 }
 

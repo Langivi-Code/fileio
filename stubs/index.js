@@ -40,7 +40,7 @@ sock.on('connect', (...data)=>{console.log('connect', data)
 sock.on('data', (...data)=>{
     console.log('data', data.toString())
     // sock.write("another data\n\0")
-    setTimeout(()=>sock.end("bye from ports 8200"),100)
+    // setTimeout(()=>sock.end("bye from ports 8200"),100)
 });
 // let i = 0;
 // const serv = net.createServer((socket) => {
