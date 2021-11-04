@@ -11,6 +11,8 @@
 #include "helpers.h"
 #include "server_args_info.h"
 
+#define SERVER_ID "#"
+#define CLOSABLE "##"
 static zend_long server_id = -1;
 server_type php_servers[10];
 char headers[] = "HTTP/1.1 200 OK\r\nserver: 0.0.0.0:8004\r\ndate: Wed, 27 Oct 2021 09:07:01 GMT\r\n\r\n";
@@ -19,8 +21,8 @@ char headers[] = "HTTP/1.1 200 OK\r\nserver: 0.0.0.0:8004\r\ndate: Wed, 27 Oct 2
 unsigned long long timeout = 100000;
 struct timeval tv;
 
-void parse_fci_error(long error, const char * func_name){
-    printf("%s - ",func_name);
+void parse_fci_error(long error, const char *func_name) {
+    printf("%s - ", func_name);
     switch (error) {
         case 0:
             printf("Function run\n");
@@ -53,10 +55,15 @@ void on_listen_client_event(uv_poll_t *handle, int status, int events) {
     parse_uv_event(events, status);
     php_stream *clistream = NULL;
     zend_long error = 0;
-    clistream = (php_stream *) ((event_handle_item *) handle->data)->handle_data;
+    event_handle_item * event_handle = (event_handle_item *) handle->data;
+    clistream = (php_stream *) event_handle->handle_data;
     if (php_stream_eof(clistream)) {
 //        get_meta_data(clistream);
         uv_poll_stop(handle);
+        zval * closable_zv;
+        closable_zv = zend_read_property(event_handle->this->ce, event_handle->this, CLOSABLE, sizeof(CLOSABLE)-1, 0, NULL);
+       long closable = Z_LVAL_P(closable_zv);
+        printf("closable %dl\n",closable);
         if (events == 5 && ZEND_FCI_INITIALIZED(php_servers[cur_id].on_disconnect.fci)) {
             if (zend_call_function(&php_servers[cur_id].on_disconnect.fci, &php_servers[cur_id].on_connect.fcc) !=
                 SUCCESS) {
@@ -65,7 +72,7 @@ void on_listen_client_event(uv_poll_t *handle, int status, int events) {
         } else {
             error = -2;
         }
-        parse_fci_error(error,"on disconnect");
+        parse_fci_error(error, "on disconnect");
         php_stream_free(clistream, PHP_STREAM_FREE_KEEP_RSRC |
                                    (clistream->is_persistent ? PHP_STREAM_FREE_CLOSE_PERSISTENT
                                                              : PHP_STREAM_FREE_CLOSE));
@@ -91,7 +98,7 @@ void on_listen_client_event(uv_poll_t *handle, int status, int events) {
     } else {
         error = -2;
     }
-    parse_fci_error(error,"on data");
+    parse_fci_error(error, "on data");
 
 }
 
@@ -102,6 +109,7 @@ void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
     zend_long flags = STREAM_PEEK;
     zend_string * errstr = NULL;
     php_stream *clistream = NULL;
+
     int this_fd;
     php_stream_xport_accept(php_servers[cur_id].server_stream, &clistream, NULL, NULL, NULL, &tv, &errstr);
 
@@ -116,7 +124,7 @@ void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
 
     if (cast_result == SUCCESS && ret == SUCCESS) {
         uv_poll_init_socket(FILE_IO_GLOBAL(loop), cli_handle, this_fd);
-        event_handle_item handleItem = {.cur_id=cur_id, .handle_data=clistream};
+        event_handle_item handleItem = {.cur_id=cur_id, .handle_data=clistream, .this=((event_handle_item *) handle->data)->this};
         memcpy(cli_handle->data, &handleItem, sizeof(event_handle_item));
         uv_poll_start(cli_handle, UV_READABLE | UV_DISCONNECT, on_listen_client_event);
     } else {
@@ -133,7 +141,7 @@ void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
     } else {
         error = -2;
     }
-    parse_fci_error(error,"on connect");
+    parse_fci_error(error, "on connect");
     php_stream_xport_sendto(clistream, headers, sizeof(headers) - 1, (int) flags, NULL, 0);
     //TODO remove after debug
     php_stream_write(clistream, "HTTP/1.1 200 OK\r\n", strlen("HTTP/1.1 200 OK\r\n"));
@@ -221,7 +229,7 @@ PHP_FUNCTION (server) {
 //        LOG("size of timeout handler %lu, fci  %lu \n\n", sizeof *idle_type, sizeof *fci);
         php_servers[cur_id].connect_handle = handle->data = (uv_cb_type *) emalloc(sizeof(uv_cb_type));
         fill_event_handle(handle, &fci, &fcc, &uv);
-        event_handle_item handleItem = {.cur_id=cur_id};
+        event_handle_item handleItem = {.cur_id=cur_id, .this=Z_OBJ_P(ZEND_THIS)};
         memcpy(handle->data, &handleItem, sizeof(event_handle_item));
         uv_poll_start(handle, UV_READABLE, on_listen_server_for_clients);
 //        uv_signal_start(sig_handle, (uv_signal_cb) sig_cb, SIGINT);
@@ -280,7 +288,7 @@ PHP_FUNCTION (server_write) {
     ZEND_PARSE_PARAMETERS_START(1, 1)
             Z_PARAM_STRING(data, data_len)ZEND_PARSE_PARAMETERS_END();
     GET_SERV_ID();
-
+    zend_update_property(Z_OBJ_P(ZEND_THIS)->ce, Z_OBJ_P(ZEND_THIS), CLOSABLE, sizeof(CLOSABLE)-1, 0);
     php_stream_write(php_servers[cur_id].current_client_stream, data, data_len);
 }
 
@@ -308,7 +316,7 @@ static const zend_function_entry class_Server_methods[] = {
         ZEND_ME_MAPPING(on_data, server_on_data, arginfo_server_event_handler, ZEND_ACC_PUBLIC)
         ZEND_ME_MAPPING(on_disconnect, server_on_disconnect, arginfo_server_event_handler, ZEND_ACC_PUBLIC)
         ZEND_ME_MAPPING(on_error, server_on_error, arginfo_server_event_handler, ZEND_ACC_PUBLIC)
-        ZEND_ME_MAPPING(write, server_write, arginfo_server_write ,ZEND_ACC_PUBLIC)
+        ZEND_ME_MAPPING(write, server_write, arginfo_server_write, ZEND_ACC_PUBLIC)
         PHP_FE_END
 };
 
@@ -317,7 +325,9 @@ zend_class_entry *register_class_Server(void) {
     INIT_CLASS_ENTRY(ce, "Server", class_Server_methods);
     FILE_IO_GLOBAL(server_class) = zend_register_internal_class_ex(&ce, NULL);
     FILE_IO_GLOBAL(server_class)->ce_flags |= ZEND_ACC_NO_DYNAMIC_PROPERTIES | ZEND_ACC_NOT_SERIALIZABLE;
-    zend_declare_property_long(FILE_IO_GLOBAL(server_class), "#", sizeof("#") - 1, server_id,
+    zend_declare_property_long(FILE_IO_GLOBAL(server_class), SERVER_ID, sizeof(SERVER_ID) - 1, server_id,
+                               ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
+    zend_declare_property_bool(FILE_IO_GLOBAL(server_class), CLOSABLE, sizeof(CLOSABLE) - 1, 1,
                                ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
     return FILE_IO_GLOBAL(server_class);
 }

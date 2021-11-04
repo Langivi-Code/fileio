@@ -16,8 +16,10 @@ typedef struct server_type {
     uv_poll_t * connect_handle;
     uv_poll_t * read_handle;
 } server_type;
+
 typedef struct event_handle_item {
     zend_long cur_id;
+    zend_object * this;
     void * handle_data;
 } event_handle_item;
 
