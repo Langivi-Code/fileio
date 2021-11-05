@@ -45,15 +45,15 @@ void parse_uv_event(int event, int status) {
         case UV_DISCONNECT:
             printf("UV_DISCONNECT event, status -  %d \n", status);
             break;
-        case UV_WRITABLE:
-            printf("UV_WRITABLE event, status -  %d \n", status);
-            break;
+//        case UV_WRITABLE:
+//            printf("UV_WRITABLE event, status -  %d \n", status);
+//            break;
         case UV_READABLE:
             printf("UV_READABLE event, status -  %d \n", status);
             break;
-        default:
-            printf("%d event, status -  %d \n", event, status);
-            break;
+//        default:
+//            printf("%d event, status -  %d \n", event, status);
+//            break;
     }
 }
 

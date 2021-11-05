@@ -76,7 +76,6 @@ PHP_METHOD (Promise, __construct) {
     fci.retval = &retavl;
     zval paramsName;
     ZVAL_STRING(&paramsName, "trolo");
-    //TODO fill params
     fci.param_count = 2;
     zend_create_fake_closure(&func, promise_resolve, FILE_IO_GLOBAL(promise_class), FILE_IO_GLOBAL(promise_class),
                              ZEND_THIS);
