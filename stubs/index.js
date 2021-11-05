@@ -38,6 +38,7 @@ sock.on('connect', (...data)=>{console.log('connect', data)
     // sock.end();
 });
 let i=2;
+sock.write("get_cool");
 sock.on('data', (...data)=>{
     console.log('data:', data.toString())
     if (i>0){
