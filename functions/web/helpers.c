@@ -36,6 +36,8 @@ void parse_fci_error(long error, const char *func_name) {
             printf("Function not initialized\n");
             break;
     }
+    puts("");
+    puts("");
 }
 
 void parse_uv_event(int event, int status) {
@@ -50,7 +52,7 @@ void parse_uv_event(int event, int status) {
             printf("UV_READABLE event, status -  %d \n", status);
             break;
         default:
-            printf("UV_CONNECT event, status -  %d \n", status);
+            printf("%d event, status -  %d \n", event, status);
             break;
     }
 }

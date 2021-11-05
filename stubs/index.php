@@ -5,12 +5,12 @@ function test(PromiseStatus $status)
 }
 
 //
-$serv = new Server(8100, callback:fn()=>1);
-$serv->on_data(function (...$arg){
-   var_dump("on_data8100",$arg);
-              }
-              );
-var_dump($serv);
+// $serv = new Server(8100, callback:fn()=>1);
+// $serv->on_data(function (...$arg){
+//    var_dump("on_data8100",$arg);
+//               }
+//               );
+// var_dump($serv);
 
 $serv1 = new Server(8200, callback: fn() => 1);
 

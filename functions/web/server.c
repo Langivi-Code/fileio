@@ -23,62 +23,66 @@ struct timeval tv;
 
 void on_ready_to_write(uv_poll_t *handle, int status, int events) {
     GET_SERV_ID_FROM_EVENT_HANDLE();
-    event_handle_item * event_handle = (event_handle_item *) handle->data;
+    event_handle_item *event_handle = (event_handle_item *) handle->data;
     if (php_servers[cur_id].current_client_stream != NULL && php_servers[cur_id].write_buf.len > 1) {
         printf("data get from buffer %s", php_servers[cur_id].write_buf.base);
-        php_stream_write(php_servers[cur_id].current_client_stream, php_servers[cur_id].write_buf.base, php_servers[cur_id].write_buf.len);
+        php_stream_write(php_servers[cur_id].current_client_stream, php_servers[cur_id].write_buf.base,
+                         php_servers[cur_id].write_buf.len);
         efree(php_servers[cur_id].write_buf.base);
         php_servers[cur_id].write_buf.len = 1;
+        zval rv1;
+        ZVAL_BOOL(&rv1, 1);
+        zend_update_property(event_handle->this->ce, event_handle->this, PROP(CLOSABLE), &rv1);
     } else {
         puts("Client handle is empty");
     }
 
-    zval rv1;
-    ZVAL_BOOL(&rv1, 1);
-    zend_update_property(event_handle->this->ce, event_handle->this, CLOSABLE, sizeof(CLOSABLE)-1, &rv1);
-//    efree(handle);
 }
 
 void on_listen_client_event(uv_poll_t *handle, int status, int events) {
     GET_SERV_ID_FROM_EVENT_HANDLE();
     parse_uv_event(events, status);
-    php_stream *clistream = NULL;
+    event_handle_item *event_handle = (event_handle_item *) handle->data;
+    php_stream *clistream = (php_stream *) event_handle->handle_data;
     zend_long error = 0;
+    zval *closable_zv;
+    long closable;
+
+    printf("this point %p\n", event_handle->this);
+    closable_zv = zend_read_property(event_handle->this->ce, event_handle->this, CLOSABLE, sizeof(CLOSABLE) - 1, 0,
+                                     NULL);
+    closable = Z_TYPE_INFO_P(closable_zv);
+    printf("closable %s\n", closable == IS_TRUE ? "true" : "false");
+
+
     if (events == UV_WRITABLE) {
         on_ready_to_write(handle, status, events);
     }
-    if (events == UV_READABLE) {
 
-    }
-    event_handle_item * event_handle = (event_handle_item *) handle->data;
-    clistream = (php_stream *) event_handle->handle_data;
-    zval * closable_zv;
-    printf("this point %p\n", event_handle->this);
-    closable_zv = zend_read_property(event_handle->this->ce, event_handle->this, CLOSABLE, sizeof(CLOSABLE)-1, 0, NULL);
-    long closable =  Z_TYPE_INFO_P(closable_zv);
-    printf("closable %s\n", closable==IS_TRUE?"true":"false");
-    if (php_stream_eof(clistream)) {
+    if (php_stream_eof(clistream) && closable == IS_TRUE) {
 //        get_meta_data(clistream);
         uv_poll_stop(handle);
-        if (closable == IS_TRUE) {
-            if (events == 5 && ZEND_FCI_INITIALIZED(php_servers[cur_id].on_disconnect.fci)) {
-                if (zend_call_function(&php_servers[cur_id].on_disconnect.fci, &php_servers[cur_id].on_disconnect.fcc) !=
-                    SUCCESS) {
-                    error = -1;
-                }
-            } else {
-                error = -2;
+        if (events == 5 && ZEND_FCI_INITIALIZED(php_servers[cur_id].on_disconnect.fci)) {
+            if (zend_call_function(&php_servers[cur_id].on_disconnect.fci, &php_servers[cur_id].on_disconnect.fcc) !=
+                SUCCESS) {
+                error = -1;
             }
-            parse_fci_error(error, "on disconnect");
-            php_stream_free(clistream, PHP_STREAM_FREE_KEEP_RSRC |
-                                       (clistream->is_persistent ? PHP_STREAM_FREE_CLOSE_PERSISTENT
-                                                                 : PHP_STREAM_FREE_CLOSE));
-            php_servers[cur_id].current_client_stream = NULL;
-            efree(handle);
+        } else {
+            error = -2;
         }
+        parse_fci_error(error, "on disconnect");
+        php_stream_free(clistream, PHP_STREAM_FREE_KEEP_RSRC |
+                                   (clistream->is_persistent ? PHP_STREAM_FREE_CLOSE_PERSISTENT
+                                                             : PHP_STREAM_FREE_CLOSE));
+        php_servers[cur_id].current_client_stream = NULL;
+        efree(handle);
+
         return;
     }
-    zend_string * contents = NULL;
+
+    if (events & UV_READABLE) {
+
+    zend_string *contents = NULL;
     zval retval;
     //TODO copy to zval containing data
     zval args[1];
@@ -96,10 +100,13 @@ void on_listen_client_event(uv_poll_t *handle, int status, int events) {
     } else {
         error = -2;
     }
+
     parse_fci_error(error, "on data");
-    closable_zv = zend_read_property(event_handle->this->ce, event_handle->this, CLOSABLE, sizeof(CLOSABLE)-1, 0, NULL);
-    closable =  Z_TYPE_INFO_P(closable_zv);
-    printf("closable %s\n", closable==IS_TRUE?"true":"false");
+    closable_zv = zend_read_property(event_handle->this->ce, event_handle->this, CLOSABLE, sizeof(CLOSABLE) - 1, 0,
+                                     NULL);
+    closable = Z_TYPE_INFO_P(closable_zv);
+    printf("closable %s\n", closable == IS_TRUE ? "true" : "false");
+    }
 
 }
 
@@ -108,7 +115,7 @@ void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
     GET_SERV_ID_FROM_EVENT_HANDLE();
     parse_uv_event(events, status);
     zend_long flags = STREAM_PEEK;
-    zend_string * errstr = NULL;
+    zend_string *errstr = NULL;
     php_stream *clistream = NULL;
 
     int this_fd;
@@ -161,7 +168,7 @@ PHP_FUNCTION (server) {
     zend_long port;
     zend_fcall_info_cache fcc = empty_fcall_info_cache;
     zend_fcall_info fci = empty_fcall_info;
-    zval * zerrno = NULL, *zerrstr = NULL, *zcontext = NULL;
+    zval *zerrno = NULL, *zerrstr = NULL, *zcontext = NULL;
     ZEND_PARSE_PARAMETERS_START(1, 3)
             Z_PARAM_LONG(port)
             Z_PARAM_OPTIONAL
@@ -171,7 +178,7 @@ PHP_FUNCTION (server) {
     ZEND_PARSE_PARAMETERS_END();
     int err = 0;
     zend_long flags = STREAM_XPORT_BIND | STREAM_XPORT_LISTEN;
-    zend_string * errstr = NULL;
+    zend_string *errstr = NULL;
     php_stream_context *context = NULL;
 
     const char *temp_host = create_host(host, host_len, port, &ret_sz);
@@ -179,7 +186,7 @@ PHP_FUNCTION (server) {
     strcpy(full_host, temp_host);
     efree(temp_host);
     printf("----- Running on port %d by full dns %s -----\n", port, full_host);
-    printf("this point %p\n", Z_OBJ_P(ZEND_THIS));
+
 #ifdef PHP_WIN32
     tv.tv_sec = (long)(timeout / 1000000);
     tv.tv_usec = (long)(timeout % 1000000);
@@ -247,7 +254,8 @@ PHP_FUNCTION (server_on_data) {
     zend_fcall_info_cache fcc = empty_fcall_info_cache;
     zend_fcall_info fci = empty_fcall_info;
     ZEND_PARSE_PARAMETERS_START(1, 1)
-            Z_PARAM_FUNC(fci, fcc);ZEND_PARSE_PARAMETERS_END();
+            Z_PARAM_FUNC(fci, fcc);
+    ZEND_PARSE_PARAMETERS_END();
     GET_SERV_ID();
     printf("Server_on_data  Server id is %ld\n", cur_id);
     memcpy(&php_servers[cur_id].on_data.fci, &fci, sizeof(zend_fcall_info));
@@ -269,7 +277,8 @@ PHP_FUNCTION (server_on_disconnect) {
     zend_fcall_info_cache fcc = empty_fcall_info_cache;
     zend_fcall_info fci = empty_fcall_info;
     ZEND_PARSE_PARAMETERS_START(1, 1)
-            Z_PARAM_FUNC(fci, fcc);ZEND_PARSE_PARAMETERS_END();
+            Z_PARAM_FUNC(fci, fcc);
+    ZEND_PARSE_PARAMETERS_END();
     GET_SERV_ID();
     printf("Server_on_disconnect  Server id is %ld\n", cur_id);
     memcpy(&php_servers[cur_id].on_disconnect.fci, &fci, sizeof(zend_fcall_info));
@@ -285,32 +294,37 @@ PHP_FUNCTION (server_on_disconnect) {
 }
 
 PHP_FUNCTION (server_write) {
-    char * data;
+    char *data;
     size_t data_len;
     ZEND_PARSE_PARAMETERS_START(1, 1)
-            Z_PARAM_STRING(data, data_len)ZEND_PARSE_PARAMETERS_END();
+            Z_PARAM_STRING(data, data_len)
+    ZEND_PARSE_PARAMETERS_END();
     GET_SERV_ID();
     zval rv1;
-    ZVAL_BOOL(&rv1,0);
-    zend_update_property(Z_OBJ_P(ZEND_THIS)->ce, Z_OBJ_P(ZEND_THIS), CLOSABLE, sizeof(CLOSABLE)-1, &rv1);
+    ZVAL_BOOL(&rv1, 0);
+    zend_update_property(Z_OBJ_P(ZEND_THIS)->ce, Z_OBJ_P(ZEND_THIS), CLOSABLE, sizeof(CLOSABLE) - 1, &rv1);
     unsigned int len = data_len + 1;
-    if (php_servers[cur_id].write_buf.len == 0){
+    //TODO APPEND data if not writeable
+    
+    if (php_servers[cur_id].write_buf.len == 0) {
         php_servers[cur_id].write_buf = uv_buf_init(emalloc(sizeof(char) * len), len);
         memset(php_servers[cur_id].write_buf.base, '\0', len);
-    } else if (php_servers[cur_id].write_buf.len == 1){
+    } else if (php_servers[cur_id].write_buf.len == 1) {
         php_servers[cur_id].write_buf.base = emalloc(sizeof(char) * len);
         php_servers[cur_id].write_buf.len = len;
         memset(php_servers[cur_id].write_buf.base, '\0', len);
     }
     strncpy(php_servers[cur_id].write_buf.base, data, data_len);
-    printf("data set to buffer %s, data len %zu", php_servers[cur_id].write_buf.base, php_servers[cur_id].write_buf.len);
+    printf("data set to buffer %s, data len %zu", php_servers[cur_id].write_buf.base,
+           php_servers[cur_id].write_buf.len);
 }
 
 PHP_FUNCTION (server_on_error) {
     zend_fcall_info_cache fcc = empty_fcall_info_cache;
     zend_fcall_info fci = empty_fcall_info;
     ZEND_PARSE_PARAMETERS_START(1, 1)
-            Z_PARAM_FUNC(fci, fcc);ZEND_PARSE_PARAMETERS_END();
+            Z_PARAM_FUNC(fci, fcc);
+    ZEND_PARSE_PARAMETERS_END();
     GET_SERV_ID();
     printf("Server_on_error  Server id is %ld\n", cur_id);
     memcpy(&php_servers[cur_id].on_error.fci, &fci, sizeof(zend_fcall_info));

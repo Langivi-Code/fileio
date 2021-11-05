@@ -30,4 +30,5 @@ zend_long cur_id = Z_LVAL_P(rv);
 
 #define GET_SERV_ID_FROM_EVENT_HANDLE()  zend_long cur_id;\
 cur_id = ((event_handle_item *)handle->data)->cur_id;
+#define PROP(string)  string, sizeof(string) - 1
 #endif //FILEIO_SERVER_H
