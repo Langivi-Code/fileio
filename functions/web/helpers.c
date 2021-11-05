@@ -5,6 +5,7 @@
 #include <string.h>
 #include <zend_API.h>
 #include <php.h>
+#include <uv.h>
 #include "helpers.h"
 
 char *create_host(const char *host, size_t host_len, zend_long port, size_t *str_len) {
@@ -21,6 +22,37 @@ char *create_host(const char *host, size_t host_len, zend_long port, size_t *str
     strcat(host_, ":");
     strncat(host_, snum, strlen(snum));
     return  host_;
+}
+void parse_fci_error(long error, const char *func_name) {
+    printf("%s - ", func_name);
+    switch (error) {
+        case 0:
+            printf("Function run\n");
+            break;
+        case -1:
+            printf("Error in function execution\n");
+            break;
+        case -2:
+            printf("Function not initialized\n");
+            break;
+    }
+}
+
+void parse_uv_event(int event, int status) {
+    switch (event) {
+        case UV_DISCONNECT:
+            printf("UV_DISCONNECT event, status -  %d \n", status);
+            break;
+        case UV_WRITABLE:
+            printf("UV_WRITABLE event, status -  %d \n", status);
+            break;
+        case UV_READABLE:
+            printf("UV_READABLE event, status -  %d \n", status);
+            break;
+        default:
+            printf("UV_CONNECT event, status -  %d \n", status);
+            break;
+    }
 }
 
 void get_meta_data(php_stream *stream) {

@@ -37,11 +37,18 @@ sock.on('connect', (...data)=>{console.log('connect', data)
     sock.write("hello from node js 8200\n\0");
     // sock.end();
 });
+let i=2;
 sock.on('data', (...data)=>{
-    console.log('data', data.toString())
-    // sock.write("another data\n\0")
-    // setTimeout(()=>sock.end("bye from ports 8200"),100)
+    console.log('data:', data.toString())
+    if (i>0){
+        sock.write("get_cool");
+        i--;
+    }
+
+
 });
+
+setTimeout(()=>sock.end("bye from ports 8200"),100);
 // let i = 0;
 // const serv = net.createServer((socket) => {
 //     // console.log('req', i);

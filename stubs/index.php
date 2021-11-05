@@ -5,21 +5,24 @@ function test(PromiseStatus $status)
 }
 
 //
-//$serv = new Server(8100, callback:fn()=>1);
-//$serv->on_data(function (...$arg){
-//    var_dump("on_data8100",$arg);
-//               }
-//               );
-//var_dump($serv);
+$serv = new Server(8100, callback:fn()=>1);
+$serv->on_data(function (...$arg){
+   var_dump("on_data8100",$arg);
+              }
+              );
+var_dump($serv);
 
-$serv1 = new Server(8200, callback:fn()=>1);
-$serv1->on_data(function (...$arg) use (&$serv1){
-    $serv1->write("cool");
-        var_dump($serv1);
-               var_dump("on_data8200",$arg);
-               echo "Sending  data\n";
-               $serv1->write(" from php hello");
+$serv1 = new Server(8200, callback: fn() => 1);
+
+$serv1->on_data(function ($data) use (&$serv1) {
+    if ($data == "get_cool")
+         $serv1->write("cool");
+    var_dump($serv1);
+    var_dump("on_data8200: " . $data);
+
+//                $serv1->write(" from php hello");
 });
+$serv1->write(" from php hello");
 var_dump($serv1);
 // $serv2 = new Server(8005,"0.0.0.0", fn()=>var_dump('on_connect'));
 // $serv2->on_data("work");
@@ -33,13 +36,6 @@ var_dump($serv1);
 // //    echo  $i."\n";
 //    fclose($con);
 // }
-
-
-
-
-
-
-
 
 
 //$ret = new Promise(function ($resolve, $reject) {
