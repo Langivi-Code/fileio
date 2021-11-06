@@ -9,10 +9,15 @@
 #include "ext/standard/file.h"
 #include "server.h"
 #include "helpers.h"
+#include "../common/struct.h"
 #include "server_args_info.h"
 
 #define SERVER_ID "#"
 #define CLOSABLE "##"
+
+CREATE_HANDLE_LIST(server, client_type);
+
+
 static zend_long server_id = -1;
 server_type php_servers[10];
 char headers[] = "HTTP/1.1 200 OK\r\nserver: 0.0.0.0:8004\r\ndate: Wed, 27 Oct 2021 09:07:01 GMT\r\n\r\n";

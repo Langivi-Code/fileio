@@ -31,7 +31,7 @@ unsigned short count_handles() {
 
 unsigned long long add_handle(uv_timer_t *handle) {
     unsigned short handle_count = count_handles();
-    timer_handle_map[handle_count] = (handle_id_item_t) {uv_now(FILE_IO_GLOBAL(loop)), handle};
+    timer_handle_map[handle_count] = (handle_id_item_t){.handle_id=uv_hrtime(), .handle=handle};
     return timer_handle_map[handle_count].handle_id;
 }
 
