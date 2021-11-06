@@ -5,23 +5,28 @@
 #ifndef FILEIO_SERVER_H
 #define FILEIO_SERVER_H
 
+typedef struct {
+    php_stream *current_stream;
+    int current_fd;
+    uint64_t id;
+} client_type;
+
 typedef struct server_type {
-    php_stream * server_stream;
-    php_stream * current_client_stream;
+    php_stream *server_stream;
     int server_fd;
-    int current_client_fd;
+    client_type *client_stream;
+    uint64_t clients_count;
     uv_cb_type on_data;
     uv_cb_type on_connect;
     uv_cb_type on_disconnect;
     uv_cb_type on_error;
-    uv_poll_t * connect_handle;
-    uv_buf_t  write_buf;
+    uv_buf_t write_buf;
 } server_type;
 
 typedef struct event_handle_item {
     zend_long cur_id;
-    zend_object * this;
-    void * handle_data;
+    zend_object *this;
+    void *handle_data;
 } event_handle_item;
 
 #define GET_SERV_ID()     zval * rv; \

@@ -73,7 +73,7 @@ void on_listen_client_event(uv_poll_t *handle, int status, int events) {
         php_stream_free(clistream, PHP_STREAM_FREE_KEEP_RSRC |
                                    (clistream->is_persistent ? PHP_STREAM_FREE_CLOSE_PERSISTENT
                                                              : PHP_STREAM_FREE_CLOSE));
-        php_servers[cur_id].current_client_stream = NULL;
+        php_servers[cur_id].current_client_stream = NULL; //TODO find way to remove cli item
         php_servers[cur_id].current_client_fd = -1;
         efree(handle);
 
@@ -123,7 +123,11 @@ void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
     if (!clistream) {
         php_error_docref(NULL, E_ERROR, "Accept failed: %s", errstr ? ZSTR_VAL(errstr) : "Unknown error");
     }
-    php_servers[cur_id].current_client_stream = clistream;
+    php_servers[cur_id].clients_count ++;
+    uint64_t cli_id = php_servers[cur_id].clients_count;
+    php_servers[cur_id].client_stream = erealloc(php_servers[cur_id].client_stream, php_servers[cur_id].clients_count * sizeof(client_type));
+    php_servers[cur_id].client_stream[cli_id].current_stream = clistream;
+    php_servers[cur_id].client_stream[cli_id].id = cli_id;
     int ret = clistream->ops->set_option(clistream, PHP_STREAM_OPTION_BLOCKING, 0, NULL);
     uv_poll_t *cli_handle = emalloc(sizeof(uv_poll_t));
     int cast_result = _php_stream_cast(clistream, PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL,
@@ -131,7 +135,7 @@ void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
     printf("New connection accepted fd is %d ", this_fd);
     if (cast_result == SUCCESS && ret == SUCCESS) {
         uv_poll_init_socket(FILE_IO_GLOBAL(loop), cli_handle, this_fd);
-        php_servers[cur_id].current_client_fd = this_fd;
+        php_servers[cur_id].client_stream[cli_id].current_fd = this_fd;
         event_handle_item handleItem = {.cur_id=cur_id, .handle_data=clistream, .this=((event_handle_item *) handle->data)->this};
         memcpy(cli_handle->data, &handleItem, sizeof(event_handle_item));
         uv_poll_start(cli_handle, UV_READABLE | UV_DISCONNECT | UV_WRITABLE, on_listen_client_event);
@@ -232,8 +236,9 @@ PHP_FUNCTION (server) {
         uv_signal_init(FILE_IO_GLOBAL(loop), sig_handle);
         uv_cb_type uv = {};
 //        LOG("size of timeout handler %lu, fci  %lu \n\n", sizeof *idle_type, sizeof *fci);
-        php_servers[cur_id].connect_handle = handle->data = (uv_cb_type *) emalloc(sizeof(uv_cb_type)); //TODO FREE on server shutdown
-        fill_event_handle(handle, &fci, &fcc, &uv);
+        handle->data = (uv_cb_type *) emalloc(sizeof(uv_cb_type)); //TODO FREE on server shutdown
+        php_servers[cur_id].clients_count = 0;
+                fill_event_handle(handle, &fci, &fcc, &uv);
         event_handle_item handleItem = {.cur_id=cur_id, .this=Z_OBJ_P(ZEND_THIS)};
         memcpy(handle->data, &handleItem, sizeof(event_handle_item));
         uv_poll_start(handle, UV_READABLE, on_listen_server_for_clients);
