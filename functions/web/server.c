@@ -129,16 +129,17 @@ void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
     GET_SERV_ID_FROM_EVENT_HANDLE();
     parse_uv_event(events, status);
     zend_long flags = STREAM_PEEK;
-    zend_string *errstr = NULL;
+    zend_string *errstr = NULL, *textaddr=NULL;
     php_stream *clistream = NULL;
+
     //TODO SET CURRENT CLIENT ID TO BE ABLE TO CLEAN IT
-    php_stream_xport_accept(php_servers[cur_id].server_stream, &clistream, NULL, NULL, NULL, &tv, &errstr);
+    php_stream_xport_accept(php_servers[cur_id].server_stream, &clistream, &textaddr, NULL, NULL, &tv, &errstr);
 
     if (!clistream) {
         php_error_docref(NULL, E_ERROR, "Accept failed: %s", errstr ? ZSTR_VAL(errstr) : "Unknown error");
     }
 
-    int ret = clistream->ops->set_option(clistream, PHP_STREAM_OPTION_BLOCKING, 0, NULL);
+    int ret = set_non_blocking(clistream);
     uv_poll_t *cli_handle = emalloc(sizeof(uv_poll_t));
 
     zend_result cast_result;
@@ -146,19 +147,22 @@ void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
 
     printf("New connection accepted fd is %d ", this_fd);
     if (cast_result == SUCCESS && ret == SUCCESS) {
-        php_servers[cur_id].clients_count ++;
+        php_servers[cur_id].clients_count++;
         client_type * que_cli_handle = emalloc(sizeof(client_type));
         que_cli_handle->current_stream = clistream;
+        clistream = NULL;
+        this_fd = -1;
         que_cli_handle->current_fd = this_fd;
         unsigned long long id =  add_client_stream_handle(php_servers[cur_id].client_stream_handle_map, que_cli_handle);
         uv_poll_t *cli_handle = emalloc(sizeof(uv_poll_t));
-        uv_poll_init_socket(FILE_IO_GLOBAL(loop), cli_handle, this_fd); // if the same what to do?
+        uv_poll_init_socket(FILE_IO_GLOBAL(loop), cli_handle,  que_cli_handle->current_fd); // if the same what to do?
 //        event_handle_item handleItem = {.cur_id=cur_id, .handle_data=(void *) id, .this=((event_handle_item *) handle->data)->this};
         event_handle_item* handleItem = emalloc(sizeof(event_handle_item));
         handleItem->cur_id=cur_id;
         handleItem->handle_data=(void *) id;
         handleItem->this=((event_handle_item *) handle->data)->this;
-        memcpy(cli_handle->data, &handleItem, sizeof(event_handle_item));
+        cli_handle->data = handleItem;
+//        memcpy(cli_handle->data, &handleItem, sizeof(event_handle_item));
         uv_poll_start(cli_handle, UV_READABLE | UV_DISCONNECT | UV_WRITABLE, (uv_poll_cb) sig_cb);
     } else {
         php_error_docref(NULL, E_ERROR, "Accept failed: %s", errstr ? ZSTR_VAL(errstr) : "Unknown error");
@@ -175,6 +179,7 @@ void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
         error = -2;
     }
     parse_fci_error(error, "on connect");
+    zval_ptr_dtor(&retval);
 //    php_stream_xport_sendto(clistream, headers, sizeof(headers) - 1, (int) flags, NULL, 0);
 }
 
@@ -232,35 +237,29 @@ PHP_FUNCTION (server) {
         php_error_docref(NULL, E_WARNING, "Unable to connect  %s\n",
                          errstr == NULL ? "Unknown error" : ZSTR_VAL(errstr));
     }
+
     printf("Stream errors %d\n", err);
-    int ret = php_servers[cur_id].server_stream->ops->set_option(php_servers[cur_id].server_stream,
-                                                                 PHP_STREAM_OPTION_BLOCKING, 0, NULL);
+    int ret = set_non_blocking(php_servers[cur_id].server_stream);
     printf("Set non block result: %d\n", ret);
     zend_result cast_result;
     php_servers[cur_id].server_fd = cast_to_fd(php_servers[cur_id].server_stream, &cast_result);
     printf("Server FD is: %d\n", php_servers[cur_id].server_fd);
 
-    memcpy(&php_servers[cur_id].on_connect.fci, &fci, sizeof(zend_fcall_info));
-    memcpy(&php_servers[cur_id].on_connect.fcc, &fcc, sizeof(zend_fcall_info_cache));
     zval obj;
     ZVAL_OBJ(&obj,Z_OBJ_P(ZEND_THIS));
+    init_cb(&fci,&fcc, &php_servers[cur_id].on_connect);
     php_servers[cur_id].on_connect.fci.params=&obj;
     php_servers[cur_id].on_connect.fci.param_count=1;
-    if (ZEND_FCI_INITIALIZED(fci)) {
-        Z_TRY_ADDREF(php_servers[cur_id].on_connect.fci.function_name);
-        if (php_servers[cur_id].on_connect.fci.object) {
-            GC_ADDREF(php_servers[cur_id].on_connect.fci.object);
-        }
-    }
+
     if (SUCCESS == cast_result && ret == 1 && php_servers[cur_id].server_fd != -1) {
         uv_poll_init_socket(FILE_IO_GLOBAL(loop), handle, php_servers[cur_id].server_fd);
-        uv_signal_t *sig_handle = emalloc(sizeof(uv_signal_t)); //TODO FREE on server shutdown
-        uv_signal_init(FILE_IO_GLOBAL(loop), sig_handle);
-        uv_cb_type uv = {};
+//        uv_signal_t *sig_handle = emalloc(sizeof(uv_signal_t)); //TODO FREE on server shutdown
+//        uv_signal_init(FILE_IO_GLOBAL(loop), sig_handle);
+//        uv_cb_type uv = {};
 //        LOG("size of timeout handler %lu, fci  %lu \n\n", sizeof *idle_type, sizeof *fci);
-        handle->data = (uv_cb_type *) emalloc(sizeof(uv_cb_type)); //TODO FREE on server shutdown
+        handle->data = (event_handle_item *) emalloc(sizeof(event_handle_item)); //TODO FREE on server shutdown
         php_servers[cur_id].clients_count = 0;
-                fill_event_handle(handle, &fci, &fcc, &uv);
+//                fill_event_handle(handle, &fci, &fcc, &uv);
         event_handle_item handleItem = {.cur_id=cur_id, .this=Z_OBJ_P(ZEND_THIS)};
         memcpy(handle->data, &handleItem, sizeof(event_handle_item));
         uv_poll_start(handle, UV_READABLE, on_listen_server_for_clients);

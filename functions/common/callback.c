@@ -133,6 +133,8 @@ zend_long fn_fs(uv_fs_t *handle) {
     } else {
         error = -2;
     }
+    zval_ptr_dtor(&dstr[0]);
+    zval_ptr_dtor(&retval);
     LOG("PHP Callback ended, status - %lld", error);
     return  error;
 }

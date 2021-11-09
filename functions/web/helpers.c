@@ -112,3 +112,6 @@ int cast_to_fd(php_stream *stream, zend_result *result) {
     }
     return fd;
 }
+int set_non_blocking(php_stream * stream) {
+    return stream->ops->set_option(stream, PHP_STREAM_OPTION_BLOCKING, 0, NULL);
+}
