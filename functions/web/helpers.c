@@ -103,3 +103,12 @@ void get_meta_data(php_stream *stream) {
     zend_print_zval_r(return_value, 0);
     efree(return_value);
 }
+
+int cast_to_fd(php_stream *stream, zend_result *result) {
+    int fd = -1;
+    (*result) = _php_stream_cast(stream,PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL,(void *) &fd, 1);
+    if (*result == FAILURE) {
+        php_error_docref(NULL, E_ERROR, "Could not get FD of stream");
+    }
+    return fd;
+}

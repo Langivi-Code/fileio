@@ -117,7 +117,7 @@ void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
     zend_string *errstr = NULL;
     php_stream *clistream = NULL;
 
-    int this_fd;
+    ;
     php_stream_xport_accept(php_servers[cur_id].server_stream, &clistream, NULL, NULL, NULL, &tv, &errstr);
 
     if (!clistream) {
@@ -126,8 +126,10 @@ void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
     php_servers[cur_id].current_client_stream = clistream;
     int ret = clistream->ops->set_option(clistream, PHP_STREAM_OPTION_BLOCKING, 0, NULL);
     uv_poll_t *cli_handle = emalloc(sizeof(uv_poll_t));
-    int cast_result = _php_stream_cast(clistream, PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL,
-                                       (void *) &this_fd, 1);
+
+    zend_result cast_result;
+    int this_fd = cast_to_fd(clistream, &cast_result);
+
     printf("New connection accepted fd is %d ", this_fd);
     if (cast_result == SUCCESS && ret == SUCCESS) {
         uv_poll_init_socket(FILE_IO_GLOBAL(loop), cli_handle, this_fd);
@@ -214,10 +216,10 @@ PHP_FUNCTION (server) {
     int ret = php_servers[cur_id].server_stream->ops->set_option(php_servers[cur_id].server_stream,
                                                                  PHP_STREAM_OPTION_BLOCKING, 0, NULL);
     printf("Set non block result: %d\n", ret);
-    int cast_result = _php_stream_cast(php_servers[cur_id].server_stream,
-                                       PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL,
-                                       (void *) &php_servers[cur_id].server_fd, 1);
+    zend_result cast_result;
+    php_servers[cur_id].server_fd = cast_to_fd(php_servers[cur_id].server_stream, &cast_result);
     printf("Server FD is: %d\n", php_servers[cur_id].server_fd);
+
     memcpy(&php_servers[cur_id].on_connect.fci, &fci, sizeof(zend_fcall_info));
     memcpy(&php_servers[cur_id].on_connect.fcc, &fcc, sizeof(zend_fcall_info_cache));
     if (ZEND_FCI_INITIALIZED(fci)) {
