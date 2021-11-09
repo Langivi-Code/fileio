@@ -9,7 +9,7 @@
 #include "php.h"
 #include "php_ini.h"
 #include "ext/standard/info.h"
-
+#include <TSRM.h>
 #include "php_fileio.h"
 #include "zend_API.h"
 

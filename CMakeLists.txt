@@ -15,12 +15,38 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 11)
 
 
-
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -std=gnu11")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -ggdb -O0 -Wall -std=gnu11 -fvisibility=hidden")
 
 set(PHP_VERSION 8.0.1)
 get_filename_component(PHP_SRC_PATH "../../" ABSOLUTE)
+
+
+if (EXISTS "${PHP_SRC_PATH}/main")
+    message("We are in PHP folder already")
+elseif (EXISTS "/usr/include/php/20210902/")
+    set(D main;Zend;ext;sapi)
+    set(CMAKE_INCLUDE_PATH "/usr/include/php/20210902/;${CMAKE_INCLUDE_PATH}")
+    foreach (X IN LISTS D)
+        message(STATUS "X=${X}")
+        set(CMAKE_INCLUDE_PATH "/usr/include/php/20210902/${X};${CMAKE_INCLUDE_PATH}")
+    endforeach ()
+    set(PHP_SRC_PATH "/usr/include/php/20210902/")
+else ()
+    if (NOT EXISTS "./php-src")
+        execute_process(COMMAND git clone https://github.com/php/php-src.git -b PHP-8.1)
+    endif ()
+    get_filename_component(PHP_SRC_PATH "./cmake-build-debug/php-src/" ABSOLUTE)
+    message(${PHP_SRC_PATH})
+
+    set(D main;Zend;ext;sapi)
+    set(CMAKE_INCLUDE_PATH "${PHP_SRC_PATH};${CMAKE_INCLUDE_PATH}")
+    foreach (X IN LISTS D)
+        message(STATUS "X=${X}")
+        set(CMAKE_INCLUDE_PATH "${PHP_SRC_PATH}/${X};${CMAKE_INCLUDE_PATH}")
+    endforeach ()
+    message(${CMAKE_INCLUDE_PATH})
+endif ()
 
 include_directories(
         "${PHP_SRC_PATH}"
@@ -30,18 +56,20 @@ include_directories(
         "${PHP_SRC_PATH}/ext"
         "${PHP_SRC_PATH}/sapi"
         "/usr/local/Cellar/libuv/1.42.0/include/"
-
-
 )
-find_file(uvPath uv.h /)
 find_library(uvPath2 NAMES uv libuv)
+
 FIND_PATH(LIBUV_INCLUDE_DIR NAMES uv.h)
-message(${uvPath2} )
-message(${LIBUV_INCLUDE_DIR} )
+FIND_PATH(PHP_INCLUDE_DIR NAMES php.h)
+#message(${uvPath2} )
+#message(${LIBUV_INCLUDE_DIR} )
+message(${PHP_INCLUDE_DIR})
+
 FILE(GLOB KernelHeaders ./kernel/*.h)
 FILE(GLOB KernelSources ./kernel/*.c)
 FILE(GLOB ExtensionHeaders ./functions/**/*.h)
 FILE(GLOB ExtensionSources ./functions/**/*.c)
+
 #FILE(GLOB uvHeaders /usr/local/Cellar/libuv/1.42.0/include/*.h)
 
 set(SOURCE_FILES
@@ -52,13 +80,12 @@ set(SOURCE_FILES
         ${ExtensionHeaders}
         ${ExtensionSources}
         ${LIBUV_INCLUDE_DIR}
-        "${PHP_SRC_PATH}/Zend"
-         constants.h)
+        constants.h)
 message(${ExtensionSources})
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/config.h")
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/config.h")
     add_definitions(-DHAVE_CONFIG_H)
     set(SOURCE_FILES "${SOURCE_FILES};config.h")
-endif()
+endif ()
 
 add_library(fileio SHARED
         ${SOURCE_FILES})

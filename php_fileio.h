@@ -2,7 +2,7 @@
 
 #ifndef PHP_FILEIO_H
 # define PHP_FILEIO_H
-
+# define PHP_FILEIO_VERSION "0.1.0-beta"
 #include <uv.h>
 #include <zend_modules.h>
 #ifdef ZTS
@@ -26,7 +26,7 @@ ZEND_EXTERN_MODULE_GLOBALS(fileio)
 extern zend_module_entry fileio_module_entry;
 #define phpext_fileio_ptr &fileio_module_entry
 
-# define PHP_FILEIO_VERSION "0.1.0-beta"
+
 
 #ifdef ZTS
 #define FILE_IO_GLOBAL(v) TSRMG(fileio_globals_id, zend_fileio_globals *, v)
