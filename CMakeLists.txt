@@ -1,9 +1,9 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.21)
 
 project(fileio
         VERSION 1.0.0
         LANGUAGES C)
-
+set(CMAKE_C_STANDARD 23)
 message(STATUS "Begin cmaking of PHP extension ...")
 
 if (NOT CMAKE_BUILD_TYPE)
@@ -12,19 +12,16 @@ if (NOT CMAKE_BUILD_TYPE)
 endif ()
 
 set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_STANDARD 11)
-
-
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -std=gnu11")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -std=gnu17")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -ggdb -O0 -Wall -std=gnu11 -fvisibility=hidden")
 
 set(PHP_VERSION 8.0.1)
 get_filename_component(PHP_SRC_PATH "../../" ABSOLUTE)
 
 
-if (EXISTS "${PHP_SRC_PATH}/main")
+if (EXISTS "${PHP_SRC_PATH}/main1")
     message("We are in PHP folder already")
-elseif (EXISTS "/usr/include/php/20210902/")
+elseif (EXISTS "/usr/include/php/20210902/") # Linux configs
     set(D main;Zend;ext;sapi)
     set(CMAKE_INCLUDE_PATH "/usr/include/php/20210902/;${CMAKE_INCLUDE_PATH}")
     foreach (X IN LISTS D)
@@ -32,6 +29,14 @@ elseif (EXISTS "/usr/include/php/20210902/")
         set(CMAKE_INCLUDE_PATH "/usr/include/php/20210902/${X};${CMAKE_INCLUDE_PATH}")
     endforeach ()
     set(PHP_SRC_PATH "/usr/include/php/20210902/")
+elseif (EXISTS "/usr/local/Cellar/php@8.1/8.1.0_2/include/php/")  # MacOS configs
+    set(D main;Zend;ext;sapi)
+    set(CMAKE_INCLUDE_PATH "/usr/local/Cellar/php@8.1/8.1.0_2/include/php/;${CMAKE_INCLUDE_PATH}")
+    foreach (X IN LISTS D)
+        message(STATUS "X=${X}")
+        set(CMAKE_INCLUDE_PATH "/usr/local/Cellar/php@8.1/8.1.0_2/include/php/${X};${CMAKE_INCLUDE_PATH}")
+    endforeach ()
+    set(PHP_SRC_PATH "/usr/local/Cellar/php@8.1/8.1.0_2/include/php/")
 else ()
     if (NOT EXISTS "./php-src")
         execute_process(COMMAND git clone https://github.com/php/php-src.git -b PHP-8.1)

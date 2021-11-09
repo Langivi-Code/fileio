@@ -7,6 +7,13 @@ PHP_ARG_ENABLE(uv-debug, for uv debug support,
 PHP_ARG_ENABLE(dtrace, Whether to enable the "dtrace" debug,
     [ --enable-dtrace         Enable "dtrace" support], no, no)
 
+AX_CHECK_COMPILE_FLAG([-std=c11], [
+  CFLAGS+=" -std=c11"
+], [
+  echo "C compiler cannot compile C11 code"
+  exit -1
+])
+
 AC_DEFUN([GLOB_DIR],[
   get_abs_filename() {
   # $1 : relative filename
@@ -116,10 +123,10 @@ if test $PHP_UV != "no"; then
     fi
       case $host in
           *linux*)
-              CFLAGS="$CFLAGS -luv"
+              CFLAGS="$CFLAGS -luv -std=c11"
            ;;
            *darwin*)
-              CFLAGS="$CFLAGS -luv"
+              CFLAGS="$CFLAGS -luv -std=c11"
       esac
 	PHP_SUBST([CFLAGS])
     PHP_SUBST(UV_SHARED_LIBADD)

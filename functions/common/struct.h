@@ -10,13 +10,14 @@
 #include "../common/fill_event_handle.h"
 
 #define LOG_TAG "timer_handles"
-#define CREATE_HANDLE_LIST(name, type)                                                  \
-typedef struct {                                                                        \
+#define ADD_HANDLE_TO_STRUCT(name) name##_id_item_t name##_handle_map[HANDLE_MAP_SIZE];
+#define ADD_STRUCT(name, type) typedef struct {                                                                        \
         unsigned long long handle_id;                                                   \
         type * handle;                                                                  \
-    } name##_id_item_t;                                                                 \
-name##_id_item_t name##_handle_map[HANDLE_MAP_SIZE]; \
-unsigned short count_##name##_handles() {                                                        \
+    } name##_id_item_t;
+
+#define CREATE_HANDLE_LIST(name, type)                                                  \
+unsigned short count_##name##_handles(name##_id_item_t * name##_handle_map) {                                                        \
     unsigned short i = 0;                                                               \
     for (; i < HANDLE_MAP_SIZE; i++) {                                                  \
         if (name##_handle_map[i].handle_id == 0) {                                     \
@@ -26,12 +27,12 @@ unsigned short count_##name##_handles() {                                       
     }                                                                                   \
     return i;                                                                           \
 }                                                                                       \
-unsigned long long add_handle(type *handle) {                                           \
-    unsigned short handle_count = count_##name##_handles();                             \
+unsigned long long add_##name##_handle(name##_id_item_t * name##_handle_map, type *handle) {                                           \
+    unsigned short handle_count = count_##name##_handles(name##_handle_map);                             \
     name##_handle_map[handle_count] = (name##_id_item_t){.handle_id=uv_hrtime(), .handle=handle}; \
     return name##_handle_map[handle_count].handle_id;                                        \
 }                                                                                       \
-name##_id_item_t * find_handle(unsigned long long handleId) {                           \
+name##_id_item_t * find_##name##_handle(name##_id_item_t * name##_handle_map, unsigned long long handleId) {                           \
     unsigned short i = 0;                                                               \
     for (; i < HANDLE_MAP_SIZE; i++) {                                                  \
         if (name##_handle_map[i].handle_id == handleId) {                                 \
@@ -40,7 +41,7 @@ name##_id_item_t * find_handle(unsigned long long handleId) {                   
         }                                                                                \
     }                                                                                    \
 }                                                                                        \
-void remove_handle(unsigned long long handleId) {                                        \
+void remove_##name##_handle(name##_id_item_t * name##_handle_map,unsigned long long handleId) {                                        \
     name##_id_item_t *tempItems = malloc(1024 * sizeof(name##_id_item_t));               \
     unsigned short i = 0;                                                                \
     unsigned short tagret = 0;                                                           \

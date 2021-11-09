@@ -4,17 +4,17 @@
 
 #ifndef FILEIO_SERVER_H
 #define FILEIO_SERVER_H
-
+#include "../common/struct.h"
 typedef struct {
     php_stream *current_stream;
     int current_fd;
-    uint64_t id;
 } client_type;
+ADD_STRUCT(client_stream, client_type);
 
 typedef struct server_type {
     php_stream *server_stream;
     int server_fd;
-    client_type *client_stream;
+    ADD_HANDLE_TO_STRUCT(client_stream)
     uint64_t clients_count;
     uv_cb_type on_data;
     uv_cb_type on_connect;
