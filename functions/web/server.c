@@ -27,9 +27,9 @@ char headers[] = "HTTP/1.1 200 OK\r\nserver: 0.0.0.0:8004\r\ndate: Wed, 27 Oct 2
 unsigned long long timeout = 100000;
 struct timeval tv;
 
-void sig_cb(uv_poll_t *handleg) {
+void sig_cb(uv_poll_t *handle, int status, int events) {
     printf("sig int\n");
-    uv_poll_stop(handleg);
+    uv_poll_stop(handle);
 
 }
 void on_ready_to_write(uv_poll_t *handle, int status, int events) {
@@ -54,12 +54,12 @@ void on_ready_to_write(uv_poll_t *handle, int status, int events) {
     }
 
 }
-
+static unsigned long long  current_client=-1;
 void on_listen_client_event(uv_poll_t *handle, int status, int events) {
     GET_SERV_ID_FROM_EVENT_HANDLE();
     parse_uv_event(events, status);
     event_handle_item *event_handle = (event_handle_item *) handle->data;
-    unsigned long long  id = (unsigned long long ) event_handle->handle_data;
+    unsigned long long  id = current_client = (unsigned long long ) event_handle->handle_data;
     client_stream_id_item_t * client = find_client_stream_handle(php_servers[cur_id].client_stream_handle_map, id);
     php_stream * clistream = client->handle->current_stream;
 
@@ -114,7 +114,7 @@ void on_listen_client_event(uv_poll_t *handle, int status, int events) {
         } else {
             error = -2;
         }
-
+        current_client=-1;
         parse_fci_error(error, "on data");
         closable_zv = zend_read_property(event_handle->this->ce, event_handle->this, CLOSABLE, sizeof(CLOSABLE) - 1, 0,
                                          NULL);
@@ -128,33 +128,36 @@ void on_listen_client_event(uv_poll_t *handle, int status, int events) {
 void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
     GET_SERV_ID_FROM_EVENT_HANDLE();
     parse_uv_event(events, status);
-    zend_long flags = STREAM_PEEK;
-    zend_string *errstr = NULL, *textaddr=NULL;
+    zend_string *errstr = NULL;
+    zend_string *errstr1 = NULL;
     php_stream *clistream = NULL;
 
     //TODO SET CURRENT CLIENT ID TO BE ABLE TO CLEAN IT
-    php_stream_xport_accept(php_servers[cur_id].server_stream, &clistream, &textaddr, NULL, NULL, &tv, &errstr);
+    php_stream_xport_accept(php_servers[cur_id].server_stream, &clistream, &errstr1, NULL, NULL, NULL, &errstr);
 
     if (!clistream) {
         php_error_docref(NULL, E_ERROR, "Accept failed: %s", errstr ? ZSTR_VAL(errstr) : "Unknown error");
     }
-
+    zend_result cast_result;
+    int this_fd = cast_to_fd(clistream, &cast_result);
     int ret = set_non_blocking(clistream);
     uv_poll_t *cli_handle = emalloc(sizeof(uv_poll_t));
 
-    zend_result cast_result;
-    int this_fd = cast_to_fd(clistream, &cast_result);
 
-    printf("New connection accepted fd is %d ", this_fd);
+
+
+    printf("non block %d cast %d\n", ret, cast_result);
+    printf( "addr : %s\n", errstr1 ? ZSTR_VAL(errstr1) : "no addr");
+    printf("New connection accepted fd is %d\n ", this_fd);
+
     if (cast_result == SUCCESS && ret == SUCCESS) {
         php_servers[cur_id].clients_count++;
         client_type * que_cli_handle = emalloc(sizeof(client_type));
         que_cli_handle->current_stream = clistream;
         clistream = NULL;
-        this_fd = -1;
         que_cli_handle->current_fd = this_fd;
+        this_fd = -1;
         unsigned long long id =  add_client_stream_handle(php_servers[cur_id].client_stream_handle_map, que_cli_handle);
-        uv_poll_t *cli_handle = emalloc(sizeof(uv_poll_t));
         uv_poll_init_socket(FILE_IO_GLOBAL(loop), cli_handle,  que_cli_handle->current_fd); // if the same what to do?
 //        event_handle_item handleItem = {.cur_id=cur_id, .handle_data=(void *) id, .this=((event_handle_item *) handle->data)->this};
         event_handle_item* handleItem = emalloc(sizeof(event_handle_item));
@@ -162,24 +165,26 @@ void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
         handleItem->handle_data=(void *) id;
         handleItem->this=((event_handle_item *) handle->data)->this;
         cli_handle->data = handleItem;
-//        memcpy(cli_handle->data, &handleItem, sizeof(event_handle_item));
-        uv_poll_start(cli_handle, UV_READABLE | UV_DISCONNECT | UV_WRITABLE, (uv_poll_cb) sig_cb);
+//        memcpy(cli_handle->data, handleItem, sizeof(event_handle_item));
+        uv_poll_start(cli_handle, UV_READABLE | UV_DISCONNECT | UV_WRITABLE, on_listen_client_event);
     } else {
         php_error_docref(NULL, E_ERROR, "Accept failed: %s", errstr ? ZSTR_VAL(errstr) : "Unknown error");
     }
-    zend_long error;
-    zval retval;
-    php_servers[cur_id].on_connect.fci.retval = &retval;
-    //    zend_call_method_with_1_params(NULL, NULL, NULL, "print_r", &retval, &dstr);
-    if (ZEND_FCI_INITIALIZED(php_servers[cur_id].on_connect.fci)) {
-        if (zend_call_function(&php_servers[cur_id].on_connect.fci, &php_servers[cur_id].on_connect.fcc) != SUCCESS) {
-            error = -1;
-        }
-    } else {
-        error = -2;
-    }
-    parse_fci_error(error, "on connect");
-    zval_ptr_dtor(&retval);
+    printf("Client counts %d\n", count_client_stream_handles(php_servers[cur_id].client_stream_handle_map) );
+//    exit(0);
+//    zend_long error;
+//    zval retval;
+//    php_servers[cur_id].on_connect.fci.retval = &retval;
+//    //    zend_call_method_with_1_params(NULL, NULL, NULL, "print_r", &retval, &dstr);
+//    if (ZEND_FCI_INITIALIZED(php_servers[cur_id].on_connect.fci)) {
+//        if (zend_call_function(&php_servers[cur_id].on_connect.fci, &php_servers[cur_id].on_connect.fcc) != SUCCESS) {
+//            error = -1;
+//        }
+//    } else {
+//        error = -2;
+//    }
+//    parse_fci_error(error, "on connect");
+//    zval_ptr_dtor(&retval);
 //    php_stream_xport_sendto(clistream, headers, sizeof(headers) - 1, (int) flags, NULL, 0);
 }
 
@@ -324,6 +329,7 @@ PHP_FUNCTION (server_write) {
     GET_SERV_ID();
     zval rv1;
     ZVAL_BOOL(&rv1, 0);
+    printf("clID: %lld\n", current_client);
     zend_update_property(Z_OBJ_P(ZEND_THIS)->ce, Z_OBJ_P(ZEND_THIS), CLOSABLE, sizeof(CLOSABLE) - 1, &rv1);
     unsigned int len = data_len + 1;
     //TODO APPEND data if not writeable

@@ -19,7 +19,7 @@ set(PHP_VERSION 8.0.1)
 get_filename_component(PHP_SRC_PATH "../../" ABSOLUTE)
 
 
-if (EXISTS "${PHP_SRC_PATH}/main1")
+if (EXISTS "${PHP_SRC_PATH}/main")
     message("We are in PHP folder already")
 elseif (EXISTS "/usr/include/php/20210902/") # Linux configs
     set(D main;Zend;ext;sapi)

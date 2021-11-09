@@ -8,6 +8,7 @@
 typedef struct {
     php_stream *current_stream;
     int current_fd;
+    uv_buf_t write_buf;
 } client_type;
 ADD_STRUCT(client_stream, client_type);
 
