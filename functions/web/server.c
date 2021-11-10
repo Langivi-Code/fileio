@@ -38,14 +38,14 @@ void on_ready_to_write(uv_poll_t *handle, int status, int events) {
     unsigned long long  id = (unsigned long long ) event_handle->handle_data;
     client_stream_id_item_t * client = find_client_stream_handle(php_servers[cur_id].client_stream_handle_map, id);
     php_stream * clistream = client->handle->current_stream;
-    if (php_servers[cur_id].write_buf.len <= 1)
+    if (client->handle->write_buf.len <= 1)
         return;
     if (clistream != NULL) {
-        printf("**Data get from buffer: %s  sz:%zu**\n", php_servers[cur_id].write_buf.base, php_servers[cur_id].write_buf.len);
-        php_stream_write(clistream, php_servers[cur_id].write_buf.base,
-                         php_servers[cur_id].write_buf.len);
-        efree(php_servers[cur_id].write_buf.base);
-        php_servers[cur_id].write_buf.len = 1;
+        printf("**Data get from buffer: %s  sz:%zu**\n", client->handle->write_buf.base,client->handle->write_buf.len);
+        php_stream_write(clistream, client->handle->write_buf.base,
+                         client->handle->write_buf.len);
+        efree(client->handle->write_buf.base);
+        client->handle->write_buf.len = 1;
         zval rv1;
         ZVAL_BOOL(&rv1, 1);
         zend_update_property(event_handle->this->ce, event_handle->this, PROP(CLOSABLE), &rv1);
@@ -74,7 +74,7 @@ void on_listen_client_event(uv_poll_t *handle, int status, int events) {
     }
     if (events & UV_DISCONNECT)
         printf("-------------- READY FOR DISCONNECT(%d)----------\n", events);
-    if (php_stream_eof(clistream) && closable == IS_TRUE) {
+    if (php_stream_eof(clistream) && client->handle->write_buf.len<=1) {
 //        get_meta_data(clistream);
         uv_poll_stop(handle);
         if (events == 5 && ZEND_FCI_INITIALIZED(php_servers[cur_id].on_disconnect.fci)) {
@@ -153,6 +153,7 @@ void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
     if (cast_result == SUCCESS && ret == SUCCESS) {
         php_servers[cur_id].clients_count++;
         client_type * que_cli_handle = emalloc(sizeof(client_type));
+        memset(que_cli_handle, 0, sizeof(client_type));
         que_cli_handle->current_stream = clistream;
         clistream = NULL;
         que_cli_handle->current_fd = this_fd;
@@ -333,27 +334,54 @@ PHP_FUNCTION (server_write) {
     zend_update_property(Z_OBJ_P(ZEND_THIS)->ce, Z_OBJ_P(ZEND_THIS), CLOSABLE, sizeof(CLOSABLE) - 1, &rv1);
     unsigned int len = data_len + 1;
     //TODO APPEND data if not writeable
-    bool append = !(php_servers[cur_id].write_buf.len == 0 || php_servers[cur_id].write_buf.len == 1);
-    if (php_servers[cur_id].write_buf.len == 0) {
-        php_servers[cur_id].write_buf = uv_buf_init(emalloc(sizeof(char) * len), len);
-        memset(php_servers[cur_id].write_buf.base, '\0', len);
-    } else if (php_servers[cur_id].write_buf.len == 1) {
-        php_servers[cur_id].write_buf.base = emalloc(sizeof(char) * len);
-        php_servers[cur_id].write_buf.len = len;
-        memset(php_servers[cur_id].write_buf.base, '\0', len);
-    } else {
-        php_servers[cur_id].write_buf.base = erealloc(php_servers[cur_id].write_buf.base,
-                                                      sizeof(char) * (php_servers[cur_id].write_buf.len + data_len));
-        php_servers[cur_id].write_buf.len = php_servers[cur_id].write_buf.len + data_len;
-    }
-    if (append) {
-        strncat(php_servers[cur_id].write_buf.base, data, data_len);
-    } else {
-        strncpy(php_servers[cur_id].write_buf.base, data, data_len);
+    if (current_client == FAILURE) {
+        bool append = !(php_servers[cur_id].write_buf.len == 0 || php_servers[cur_id].write_buf.len == 1);
+        if (php_servers[cur_id].write_buf.len == 0) {
+            php_servers[cur_id].write_buf = uv_buf_init(emalloc(sizeof(char) * len), len);
+            memset(php_servers[cur_id].write_buf.base, '\0', len);
+        } else if (php_servers[cur_id].write_buf.len == 1) {
+            php_servers[cur_id].write_buf.base = emalloc(sizeof(char) * len);
+            php_servers[cur_id].write_buf.len = len;
+            memset(php_servers[cur_id].write_buf.base, '\0', len);
+        } else {
+            php_servers[cur_id].write_buf.base = erealloc(php_servers[cur_id].write_buf.base,
+                                                          sizeof(char) * (php_servers[cur_id].write_buf.len + data_len));
+            php_servers[cur_id].write_buf.len = php_servers[cur_id].write_buf.len + data_len;
+        }
+        if (append) {
+            strncat(php_servers[cur_id].write_buf.base, data, data_len);
+        } else {
+            strncpy(php_servers[cur_id].write_buf.base, data, data_len);
+        }
+
+        printf("Data set to buffer: %s, len %zu\n", php_servers[cur_id].write_buf.base,
+               php_servers[cur_id].write_buf.len);
+    } else  {
+        client_stream_id_item_t * client = find_client_stream_handle(php_servers[cur_id].client_stream_handle_map, current_client);
+
+        bool append = !(client->handle->write_buf.len == 0 || client->handle->write_buf.len == 1);
+        if (client->handle->write_buf.len == 0) {
+            client->handle->write_buf = uv_buf_init(emalloc(sizeof(char) * len), len);
+            memset(client->handle->write_buf.base, '\0', len);
+        } else if (client->handle->write_buf.len == 1) {
+            client->handle->write_buf.base = emalloc(sizeof(char) * len);
+            client->handle->write_buf.len = len;
+            memset(client->handle->write_buf.base, '\0', len);
+        } else {
+            client->handle->write_buf.base = erealloc(client->handle->write_buf.base,
+                                                          sizeof(char) * (client->handle->write_buf.len + data_len));
+            client->handle->write_buf.len = client->handle->write_buf.len + data_len;
+        }
+        if (append) {
+            strncat(client->handle->write_buf.base, data, data_len);
+        } else {
+            strncpy(client->handle->write_buf.base, data, data_len);
+        }
+
+        printf("Data set to buffer: %s, len %zu\n", client->handle->write_buf.base,
+               client->handle->write_buf.len);
     }
 
-    printf("Data set to buffer: %s, len %zu\n", php_servers[cur_id].write_buf.base,
-           php_servers[cur_id].write_buf.len);
 }
 
 
