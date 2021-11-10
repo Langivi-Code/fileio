@@ -30,6 +30,9 @@ struct timeval tv;
 void sig_cb(uv_poll_t *handle, int status, int events) {
     printf("sig int\n");
     uv_poll_stop(handle);
+    //TODO STOP ALL CLIENT HANDLES
+    //STOP SERVER HANDLES
+    //FREE CALLBACKS
 
 }
 
@@ -103,6 +106,8 @@ void on_listen_client_event(uv_poll_t *handle, int status, int events) {
                                    (clistream->is_persistent ? PHP_STREAM_FREE_CLOSE_PERSISTENT
                                                              : PHP_STREAM_FREE_CLOSE));
         remove_client_stream_handle(php_servers[cur_id].client_stream_handle_map, id);
+        efree(client->handle);
+        efree(handle->data);
         efree(handle);
 
         return;
@@ -177,7 +182,6 @@ void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
         handleItem->handle_data = (void *) id;
         handleItem->this = ((event_handle_item *) handle->data)->this;
         cli_handle->data = handleItem;
-//        memcpy(cli_handle->data, handleItem, sizeof(event_handle_item));
         uv_poll_start(cli_handle, UV_READABLE | UV_DISCONNECT | UV_WRITABLE, on_listen_client_event);
     } else {
         php_error_docref(NULL, E_ERROR, "Accept failed: %s", errstr ? ZSTR_VAL(errstr) : "Unknown error");
@@ -276,7 +280,6 @@ PHP_FUNCTION (server) {
 //        LOG("size of timeout handler %lu, fci  %lu \n\n", sizeof *idle_type, sizeof *fci);
         handle->data = (event_handle_item *) emalloc(sizeof(event_handle_item)); //TODO FREE on server shutdown
         php_servers[cur_id].clients_count = 0;
-//                fill_event_handle(handle, &fci, &fcc, &uv);
         event_handle_item handleItem = {.cur_id=cur_id, .this=Z_OBJ_P(ZEND_THIS)};
         memcpy(handle->data, &handleItem, sizeof(event_handle_item));
         uv_poll_start(handle, UV_READABLE, on_listen_server_for_clients);
@@ -297,17 +300,11 @@ PHP_FUNCTION (server_on_data) {
     ZEND_PARSE_PARAMETERS_END();
     GET_SERV_ID();
     printf("Server_on_data  Server id is %lld\n", cur_id);
-    memcpy(&php_servers[cur_id].on_data.fci, &fci, sizeof(zend_fcall_info));
-    memcpy(&php_servers[cur_id].on_data.fcc, &fcc, sizeof(zend_fcall_info_cache));
+    init_cb(&fci, &fcc, &php_servers[cur_id].on_data);
 //    php_servers[cur_id].on_data.fcc.object = php_servers[cur_id].on_data.fci.object = Z_OBJ_P(ZEND_THIS);
 //    php_servers[cur_id].on_data.fcc.called_scope = Z_OBJCE_P(ZEND_THIS);
 //    php_servers[cur_id].on_data.fcc.calling_scope = Z_OBJCE_P(ZEND_THIS);
-    if (ZEND_FCI_INITIALIZED(fci)) {
-        Z_TRY_ADDREF(php_servers[cur_id].on_data.fci.function_name);
-        if (php_servers[cur_id].on_data.fci.object) {
-            GC_ADDREF(php_servers[cur_id].on_data.fci.object);
-        }
-    } else {
+    if (!ZEND_FCI_INITIALIZED(fci)) {
         zend_throw_error(NULL, "on data is not initialized");
     }
 }
@@ -320,14 +317,8 @@ PHP_FUNCTION (server_on_disconnect) {
     ZEND_PARSE_PARAMETERS_END();
     GET_SERV_ID();
     printf("Server_on_disconnect  Server id is %ld\n", cur_id);
-    memcpy(&php_servers[cur_id].on_disconnect.fci, &fci, sizeof(zend_fcall_info));
-    memcpy(&php_servers[cur_id].on_disconnect.fcc, &fcc, sizeof(zend_fcall_info_cache));
-    if (ZEND_FCI_INITIALIZED(fci)) {
-        Z_TRY_ADDREF(php_servers[cur_id].on_disconnect.fci.function_name);
-        if (php_servers[cur_id].on_disconnect.fci.object) {
-            GC_ADDREF(php_servers[cur_id].on_disconnect.fci.object);
-        }
-    } else {
+    init_cb(&fci, &fcc, &php_servers[cur_id].on_disconnect);
+    if (!ZEND_FCI_INITIALIZED(fci)) {
         zend_throw_error(NULL, "on disconnect is not initialized");
     }
 }
@@ -422,14 +413,8 @@ PHP_FUNCTION (server_on_error) {
     ZEND_PARSE_PARAMETERS_END();
     GET_SERV_ID();
     printf("Server_on_error  Server id is %ld\n", cur_id);
-    memcpy(&php_servers[cur_id].on_error.fci, &fci, sizeof(zend_fcall_info));
-    memcpy(&php_servers[cur_id].on_error.fcc, &fcc, sizeof(zend_fcall_info_cache));
-    if (ZEND_FCI_INITIALIZED(fci)) {
-        Z_TRY_ADDREF(php_servers[cur_id].on_error.fci.function_name);
-        if (php_servers[cur_id].on_error.fci.object) {
-            GC_ADDREF(php_servers[cur_id].on_error.fci.object);
-        }
-    } else {
+    init_cb(&fci, &fcc, &php_servers[cur_id].on_error);
+    if (!ZEND_FCI_INITIALIZED(fci)) {
         zend_throw_error(NULL, "on error is not initialized");
     }
 }

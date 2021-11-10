@@ -9,6 +9,7 @@ typedef struct {
     php_stream *current_stream;
     int current_fd;
     uv_buf_t write_buf;
+    uv_poll_t *client_handle;
 } client_type;
 ADD_STRUCT(client_stream, client_type);
 
@@ -17,6 +18,7 @@ typedef struct server_type {
     int server_fd;
     ADD_HANDLE_TO_STRUCT(client_stream)
     uint64_t clients_count;
+    uv_poll_t *server_handle;
     uv_cb_type on_data;
     uv_cb_type on_connect;
     uv_cb_type on_disconnect;
