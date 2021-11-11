@@ -37,19 +37,23 @@ void sig_cb(uv_poll_t *handle, int status, int events) {
 }
 
 void on_ready_to_write(uv_poll_t *handle, int status, int events) {
+
     GET_SERV_ID_FROM_EVENT_HANDLE();
     event_handle_item *event_handle = (event_handle_item *) handle->data;
     unsigned long long id = (unsigned long long) event_handle->handle_data;
     client_stream_id_item_t *client = find_client_stream_handle(php_servers[cur_id].client_stream_handle_map, id);
     php_stream *clistream = client->handle->current_stream;
     if (clistream != NULL) {
+
         if (php_servers[cur_id].write_buf.len > 1) {
-            printf("**Data get from buffer: %s  sz:%zu**\n", php_servers[cur_id].write_buf.base,
+            printf("**Data get from buffer: %s  sz:%zu **\n", php_servers[cur_id].write_buf.base,
                    php_servers[cur_id].write_buf.len);
             php_stream_write(clistream, php_servers[cur_id].write_buf.base,
                              php_servers[cur_id].write_buf.len);
             efree(php_servers[cur_id].write_buf.base);
             php_servers[cur_id].write_buf.len = 1;
+            printf("**Data get from buffer: %s  sz:%zu **\n", php_servers[cur_id].write_buf.base,
+                   php_servers[cur_id].write_buf.len);
         }
 
         if (client->handle->write_buf.len > 1) {
@@ -137,7 +141,7 @@ void on_listen_client_event(uv_poll_t *handle, int status, int events) {
         } else {
             error = -2;
         }
-        current_client = -1;
+        current_client = -1; //something with client id on write in connect
         parse_fci_error(error, "on data");
         closable_zv = zend_read_property(event_handle->this->ce, event_handle->this, CLOSABLE, sizeof(CLOSABLE) - 1, 0,
                                          NULL);
@@ -203,6 +207,10 @@ void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
     ZVAL_OBJ(&obj[0], ((event_handle_item *) handle->data)->this);
     php_servers[cur_id].on_connect.fci.params = obj;
     php_servers[cur_id].on_connect.fci.param_count = 1;
+    php_servers[cur_id].on_connect.fci.object = ((event_handle_item *) handle->data)->this;
+    php_servers[cur_id].on_connect.fcc.object = ((event_handle_item *) handle->data)->this;
+    php_servers[cur_id].on_connect.fcc.called_scope = ((event_handle_item *) handle->data)->this->ce;
+    php_servers[cur_id].on_connect.fcc.calling_scope = ((event_handle_item *) handle->data)->this->ce;
     php_servers[cur_id].on_connect.fci.retval = &retval;
     //    zend_call_method_with_1_params(NULL, NULL, NULL, "print_r", &retval, &dstr);
     if (ZEND_FCI_INITIALIZED(php_servers[cur_id].on_connect.fci)) {
