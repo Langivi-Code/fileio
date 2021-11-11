@@ -95,6 +95,7 @@ void get_meta_data(php_stream *stream) {
 #endif
 
     add_assoc_long(return_value, "unread_bytes", stream->writepos - stream->readpos);
+    add_assoc_long(return_value, "position", stream->position);
 
     add_assoc_bool(return_value, "seekable", (stream->ops->seek) && (stream->flags & PHP_STREAM_FLAG_NO_SEEK) == 0);
     if (stream->orig_path) {

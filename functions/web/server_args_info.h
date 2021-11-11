@@ -17,4 +17,7 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO(arginfo_server_write, 0)
                 ZEND_ARG_TYPE_INFO(0, data, IS_STRING, 0)
 ZEND_END_ARG_INFO()
+ZEND_BEGIN_ARG_INFO(arginfo_server_setBuffer, 0)
+                ZEND_ARG_TYPE_INFO(0, size, IS_LONG, 0)
+ZEND_END_ARG_INFO()
 #endif //FILEIO_SERVER_ARGS_INFO_H

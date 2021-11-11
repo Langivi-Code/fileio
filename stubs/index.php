@@ -11,19 +11,29 @@ function test(PromiseStatus $status)
 //               }
 //               );
 // var_dump($serv);
+class HttpServer extends Server {
 
-$serv1 = new Server(8200, callback: fn($obj) => var_dump($obj));
-$str = "HTTP/1.1 200 OK\n\r";
+}
+
+$serv1 = new HttpServer(8200, callback: function(Server $obj) { var_dump(123, $obj); return $obj;});
+// $serv1->setReadBufferSize(5);
 $serv1->on_data(function ($data) use (&$serv1) {
-    if ($data == "get_cool")
-         $serv1->write("cool");
-    var_dump("on_data8200: " . $data);
+$str = "HTTP/1.1 200 OK\n\r";
+ var_dump("on_data: " . $data);
+    if ($data == "get_cool"){
+
+    $serv1->write($str);
+    $serv1->end("");
+    }
+
+
 
 //                $serv1->write(" from php hello");
 });
-$serv1->write("from php hello");
-$serv1->write($str);
+// $serv1->write("from php hello");
+// $serv1->write($str);
 var_dump($serv1);
+
 // idle(fn()=>print_r("hello"));
 // idle(fn()=>print_r("hello2"));
 // idle(fn()=>print_r("hello3"));
