@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #php  -dextension=fileio -m
+#ENV
 php  -dextension=fileio -dmemory_limit=512M -f ./stubs/index.php
 #source=""
 #for i in $(pwd)/functions/*/*.c ; do

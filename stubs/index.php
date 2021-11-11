@@ -17,22 +17,21 @@ class HttpServer extends Server
 }
 
 $serv1 = new HttpServer(8200, callback: function (Server $obj) {
-    var_dump(123, $this->setReadBufferSize(55),$this->write("geloo"), $this);
+    var_dump(123, $this->setReadBufferSize(55), $this->write("geloo"), $this);
 });
 //  $serv1->setReadBufferSize(5);
- $serv1->on_data(function ($data) use (&$serv1) {
- $str = "HTTP/1.1 200 OK\n\r";
-  var_dump("on_data: " . $data);
+$serv1->on_data(function ($data) use (&$serv1) {
+    $str = "HTTP/1.1 200 OK\n\r";
+    var_dump("on_data: " . $data);
 //      if ($data == "get_cool"){
 
-     $serv1->write($str);
+    $serv1->write($str);
 //      $serv1->end("");
 //      }
 
 
-
- //                $serv1->write(" from php hello");
- });
+    //                $serv1->write(" from php hello");
+});
 // $serv1->write("from php hello");
 // $serv1->write($str);
 var_dump($serv1);

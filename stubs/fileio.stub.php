@@ -15,7 +15,7 @@ function file_put_contents_async(string $filename, string $data, callable $cb, b
 function server(int $port, string $host):void{}
 
 class Server{
-public function __construct(int $port, string $host, callable $callback){}
+public function __construct(int $port, string $host = "0.0.0.0", callable|null $callback){}
 public function on_data(callable $callback){}
 public function on_error(callable $callback){}
 public function on_disconnect(callable $callback){}

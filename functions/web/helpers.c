@@ -6,8 +6,9 @@
 #include <zend_API.h>
 #include <php.h>
 #include <uv.h>
+#include "../../constants.h"
 #include "helpers.h"
-
+#define LOG_TAG "TCP SERVER"
 char *create_host(const char *host, size_t host_len, zend_long port, size_t *str_len) {
     if (host == NULL) {
         host = "0.0.0.0";
@@ -24,16 +25,16 @@ char *create_host(const char *host, size_t host_len, zend_long port, size_t *str
     return  host_;
 }
 void parse_fci_error(long error, const char *func_name) {
-    printf("%s - ", func_name);
+    LOG("%s - ", func_name);
     switch (error) {
         case 0:
-            printf("Function run\n");
+            LOG("Function run\n");
             break;
         case -1:
-            printf("Error in function execution\n");
+            LOG("Error in function execution\n");
             break;
         case -2:
-            printf("Function not initialized\n");
+            LOG("Function not initialized\n");
             break;
     }
     puts("");
@@ -43,16 +44,16 @@ void parse_fci_error(long error, const char *func_name) {
 void parse_uv_event(int event, int status) {
     switch (event) {
         case UV_DISCONNECT:
-            printf("UV_DISCONNECT event, status -  %d \n", status);
+            LOG("UV_DISCONNECT event, status -  %d \n", status);
             break;
 //        case UV_WRITABLE:
-//            printf("UV_WRITABLE event, status -  %d \n", status);
+//            LOG("UV_WRITABLE event, status -  %d \n", status);
 //            break;
         case UV_READABLE:
-            printf("UV_READABLE event, status -  %d \n", status);
+            LOG("UV_READABLE event, status -  %d \n", status);
             break;
 //        default:
-//            printf("%d event, status -  %d \n", event, status);
+//            LOG("%d event, status -  %d \n", event, status);
 //            break;
     }
 }
