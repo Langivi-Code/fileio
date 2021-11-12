@@ -512,12 +512,12 @@ zend_class_entry *register_class_HttpRequest(void) {
     FILE_IO_GLOBAL(http_request_class) = zend_register_internal_class_ex(&ce, NULL);
     FILE_IO_GLOBAL(http_request_class)->ce_flags |= ZEND_ACC_NO_DYNAMIC_PROPERTIES | ZEND_ACC_NOT_SERIALIZABLE;
     zend_declare_property_string(FILE_IO_GLOBAL(http_request_class), PROP("method"), "", ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
-    zval *ht;
-    array_init(ht);
-    zend_declare_property(FILE_IO_GLOBAL(http_request_class), PROP("headers"), ht, ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
-    zval *query;
-    array_init(query);
-    zend_declare_property(FILE_IO_GLOBAL(http_request_class), PROP("query"), query, ZEND_ACC_PUBLIC);
+    zval ht;
+    array_init(&ht);
+    zend_declare_property(FILE_IO_GLOBAL(http_request_class), PROP("headers"), &ht, ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
+    zval query;
+    array_init(&query);
+    zend_declare_property(FILE_IO_GLOBAL(http_request_class), PROP("query"), &query, ZEND_ACC_PUBLIC);
     zend_declare_property_string(FILE_IO_GLOBAL(http_request_class), PROP("clientAddress"), "",  ZEND_ACC_PUBLIC);
     return FILE_IO_GLOBAL(http_request_class);
 }
