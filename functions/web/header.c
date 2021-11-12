@@ -65,7 +65,7 @@ static int on_hdata(llhttp_t* p, const char *at, size_t length) {
     return 0;
 }
 
-void parse(char * headers, size_t len) {
+void parse(char * headers, size_t len, zend_object * request) {
     llhttp_t parser;
 //    llhttp_settings_init(&settings);
     llhttp_settings_t settings = {

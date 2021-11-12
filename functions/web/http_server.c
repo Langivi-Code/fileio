@@ -25,12 +25,12 @@
  * 5. Create Response class
  * 6. Generate Response headers
  * */
-
+zend_class_entry *register_class_HttpRequest(void);
 static zend_long server_id = -1;
 static server_type php_servers[10];
 
 CREATE_HANDLE_LIST(http_client_stream, http_client_type);
-static char headers[] = "HTTP/1.1 200 OK\r\nserver: 0.0.0.0:8004\r\ndate: Wed, 27 Oct 2021 09:07:01 GMT\r\n\r\n helo from hollywood\r\n";
+
 
 
 static unsigned long long timeout = 100000;
@@ -132,21 +132,19 @@ static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
         zend_string * headers = NULL;
         zval retval;
         zval args[1];
-        LOG("Unread bytes  %lld\n", clistream->writepos - clistream->readpos, cur_id);
+        LOG("Unread bytes  %ld\n", clistream->writepos - clistream->readpos, cur_id);
         zend_off_t data_buf = clistream->writepos - clistream->readpos;
         /// get headers////
         char len[]="\r\n\r\n";
         if ((headers = php_stream_get_record(clistream, PHP_SOCK_CHUNK_SIZE, len, strlen(len)))) {
-            parse(ZSTR_VAL(headers), ZSTR_LEN(headers));
+            zend_object * request;
+            request=zend_objects_new(FILE_IO_GLOBAL(http_request_class));
+
+            parse(ZSTR_VAL(headers), ZSTR_LEN(headers), request);
         } else {
+            puts("no headers are present");
            //do something of no headers
         }
-            php_stream_xport_sendto(clistream, headers, sizeof(headers) - 1, (int) 0, NULL, 0);
-        php_stream_free(client->handle->current_stream, PHP_STREAM_FREE_KEEP_RSRC |
-                                                        (client->handle->current_stream->is_persistent
-                                                         ? PHP_STREAM_FREE_CLOSE_PERSISTENT
-                                                         : PHP_STREAM_FREE_CLOSE));
-        uv_poll_stop(handle);
         /// get headers////
         contents = php_stream_read_to_str(clistream, data_buf); //TODO RESTORE SIZE TO READ OR USE ANOTHER READ FUCNTION
         int position = php_stream_tell(clistream);
@@ -499,5 +497,27 @@ zend_class_entry *register_class_HttpServer(void) {
                                ZEND_ACC_PUBLIC);
     zend_declare_property_string(FILE_IO_GLOBAL(http_server_class), PROP("clientAddress"), "",
                                  ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
+    register_class_HttpRequest();
     return FILE_IO_GLOBAL(http_server_class);
+}
+
+static const zend_function_entry class_ServerRequest_methods[] = {
+        PHP_FE_END
+};
+
+
+zend_class_entry *register_class_HttpRequest(void) {
+    zend_class_entry ce;
+    INIT_CLASS_ENTRY(ce, "HttpRequest", class_ServerRequest_methods);
+    FILE_IO_GLOBAL(http_request_class) = zend_register_internal_class_ex(&ce, NULL);
+    FILE_IO_GLOBAL(http_request_class)->ce_flags |= ZEND_ACC_NO_DYNAMIC_PROPERTIES | ZEND_ACC_NOT_SERIALIZABLE;
+    zend_declare_property_string(FILE_IO_GLOBAL(http_request_class), PROP("method"), "", ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
+    zval *ht;
+    array_init(ht);
+    zend_declare_property(FILE_IO_GLOBAL(http_request_class), PROP("headers"), ht, ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
+    zval *query;
+    array_init(query);
+    zend_declare_property(FILE_IO_GLOBAL(http_request_class), PROP("query"), query, ZEND_ACC_PUBLIC);
+    zend_declare_property_string(FILE_IO_GLOBAL(http_request_class), PROP("clientAddress"), "",  ZEND_ACC_PUBLIC);
+    return FILE_IO_GLOBAL(http_request_class);
 }

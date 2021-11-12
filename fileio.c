@@ -135,7 +135,8 @@ PHP_INI_END()
 PHP_MINIT_FUNCTION (fileio) {
     FILE_IO_GLOBAL(loop) = uv_default_loop();
     create_PromiseStatus_enum();
-    register_class_Promise();register_class_HttpServer();
+    register_class_Promise();
+    register_class_HttpServer();
     register_class_Server();
     REGISTER_INI_ENTRIES();
     promise_resolve = zend_hash_str_find_ptr(&FILE_IO_GLOBAL(promise_class->function_table), "resolve", sizeof("resolve")-1);

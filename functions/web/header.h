@@ -4,5 +4,8 @@
 
 #ifndef FILEIO_HEADER_H
 #define FILEIO_HEADER_H
-void parse(char * headers, size_t len);
+
+#include <zend_types.h>
+
+void parse(char * headers, size_t len, zend_object * request);
 #endif //FILEIO_HEADER_H
