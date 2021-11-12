@@ -18,7 +18,6 @@ set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -ggdb -O0 -Wall -std=gnu11 -fvis
 set(PHP_VERSION 8.0.1)
 get_filename_component(PHP_SRC_PATH "../../" ABSOLUTE)
 
-
 if (EXISTS "${PHP_SRC_PATH}/main")
     message("We are in PHP folder already")
 elseif (EXISTS "/usr/include/php/20210902/") # Linux configs
@@ -61,6 +60,7 @@ include_directories(
         "${PHP_SRC_PATH}/ext"
         "${PHP_SRC_PATH}/sapi"
         "/usr/local/Cellar/libuv/1.42.0/include/"
+        "./3rd/llhttp"
 )
 find_library(uvPath2 NAMES uv libuv)
 
@@ -72,6 +72,7 @@ message(${PHP_INCLUDE_DIR})
 
 FILE(GLOB KernelHeaders ./kernel/*.h)
 FILE(GLOB KernelSources ./kernel/*.c)
+FILE(GLOB 3rd ./3rd/**/*.c)
 FILE(GLOB ExtensionHeaders ./functions/**/*.h)
 FILE(GLOB ExtensionSources ./functions/**/*.c)
 
@@ -84,6 +85,7 @@ set(SOURCE_FILES
         ${KernelSources}
         ${ExtensionHeaders}
         ${ExtensionSources}
+        ${3rd}
         ${LIBUV_INCLUDE_DIR}
         constants.h)
 message(${ExtensionSources})

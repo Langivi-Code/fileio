@@ -22,3 +22,6 @@ public function on_disconnect(callable $callback){}
 public function write(string $data){}
 public function setReadBufferSize(long $size):void{}
 }
+
+class HttpServer {
+}

@@ -35,6 +35,10 @@ for i in $rpath/functions/*/*.c ; do
   file=$(echo $i | sed -e "s|$rpath/| |g")
   source="$source $file"
 done
+for i in $rpath/3rd/*/*.c ; do
+  file=$(echo $i | sed -e "s|$rpath/| |g")
+  source="$source $file"
+done
   $1[]_DIR=$source
    AC_MSG_NOTICE($source)
 ])

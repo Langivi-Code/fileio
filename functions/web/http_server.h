@@ -10,13 +10,13 @@ typedef struct {
     int current_fd;
     uv_buf_t write_buf;
     uv_poll_t *client_handle;
-} client_type;
-ADD_STRUCT(client_stream, client_type);
+} http_client_type;
+ADD_STRUCT(http_client_stream, http_client_type);
 
 typedef struct server_type {
     php_stream *server_stream;
     int server_fd;
-    ADD_HANDLE_TO_STRUCT(client_stream)
+    ADD_HANDLE_TO_STRUCT(http_client_stream)
     uint64_t clients_count;
     uv_poll_t *server_handle;
     uv_cb_type on_data;

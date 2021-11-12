@@ -49,10 +49,7 @@ ZEND_FUNCTION(idle);
 ZEND_FUNCTION(file_get_contents_async);
 ZEND_FUNCTION(file_put_contents_async);
 PHP_FUNCTION (send_header);
-PHP_FUNCTION (server);
-PHP_FUNCTION (server_on_data);
-PHP_FUNCTION (server_on_disconnect);
-PHP_FUNCTION (server_on_error);
+
 
 
 

@@ -36,7 +36,7 @@ name##_id_item_t * find_##name##_handle(name##_id_item_t * name##_handle_map, un
     unsigned short i = 0;                                                               \
     for (; i < HANDLE_MAP_SIZE; i++) {                                                  \
         if (name##_handle_map[i].handle_id == handleId) {                                 \
-            LOG("Searching element #%d with handle_id=%llu", i, name##_handle_map[i].handle_id); \
+                                                                                        \
             return &name##_handle_map[i];                                                 \
         }                                                                                \
     }                                                                                    \
