@@ -55,20 +55,6 @@ static void on_ready_to_write(uv_poll_t *handle, int status, int events) {
             php_servers[cur_id].http_client_stream_handle_map, id);
     php_stream *clistream = client->handle->current_stream;
     if (clistream != NULL) {
-
-        if (php_servers[cur_id].write_buf.len > 1) {
-            puts("on writable");
-            get_meta_data(clistream);
-            LOG("**Data get from buffer: %s  sz:%zu **\n", php_servers[cur_id].write_buf.base,
-                php_servers[cur_id].write_buf.len);
-            php_stream_write(clistream, php_servers[cur_id].write_buf.base,
-                             php_servers[cur_id].write_buf.len);
-            efree(php_servers[cur_id].write_buf.base);
-            php_servers[cur_id].write_buf.len = 1;
-            LOG("**Data get from buffer: %s  sz:%zu **\n", php_servers[cur_id].write_buf.base,
-                php_servers[cur_id].write_buf.len);
-        }
-
         if (client->handle->write_buf.len > 1) {
             LOG("**Data get from buffer TO CLIENT %lld: %s  sz:%zu**\n", client->handle_id,
                 client->handle->write_buf.base,
@@ -105,13 +91,13 @@ static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
                                      NULL);
     closable = Z_TYPE_INFO_P(closable_zv);
     if (events & UV_WRITABLE) {
-
         on_ready_to_write(handle, status, events);
     }
 
     if (events & UV_DISCONNECT)
         LOG("-------------- READY FOR DISCONNECT(%d)----------\n", events);
-    if (php_stream_eof(clistream) && client->handle->write_buf.len <= 1) {
+    if ((php_stream_eof(clistream) || (clistream->writepos - clistream->readpos) > 0) &&
+        client->handle->write_buf.len <= 1) {
 
 //zend_fcall_info_argn
         uv_poll_stop(handle);
