@@ -29,6 +29,7 @@ $serv1 = new HttpServer(8000, "tcp://0.0.0.0", []);
 // $serv1->write("from php hello");
 // $serv1->write($str);
 var_dump($serv1);
+var_dump(new HttpRequest);
 
 // idle(fn()=>print_r("hello"));
 // idle(fn()=>print_r("hello2"));

@@ -3,10 +3,12 @@
 //
 #include <php.h>
 #include <zend_API.h>
+
 #include <uv.h>
 #include "../common/fill_event_handle.h"
 #include "../../php_fileio.h"
 #include "ext/standard/file.h"
+#include "ext/standard/php_var.h"
 #include "http_server.h"
 #include "helpers.h"
 #include "../common/struct.h"
@@ -105,6 +107,7 @@ static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
         LOG("-------------- READY FOR DISCONNECT(%d)----------\n", events);
     if (php_stream_eof(clistream) && client->handle->write_buf.len <= 1) {
 //        get_meta_data(clistream);
+//zend_fcall_info_argn
         uv_poll_stop(handle);
         if (events == 5 && ZEND_FCI_INITIALIZED(php_servers[cur_id].on_disconnect.fci)) {
             if (zend_call_function(&php_servers[cur_id].on_disconnect.fci, &php_servers[cur_id].on_disconnect.fcc) !=
@@ -132,15 +135,21 @@ static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
         zend_string * headers = NULL;
         zval retval;
         zval args[1];
-        LOG("Unread bytes  %ld\n", clistream->writepos - clistream->readpos, cur_id);
+        LOG("Unread bytes  %lld\n", clistream->writepos - clistream->readpos);
         zend_off_t data_buf = clistream->writepos - clistream->readpos;
         /// get headers////
         char len[]="\r\n\r\n";
         if ((headers = php_stream_get_record(clistream, PHP_SOCK_CHUNK_SIZE, len, strlen(len)))) {
             zend_object * request;
-            request=zend_objects_new(FILE_IO_GLOBAL(http_request_class));
+            zval obj;
+            object_init_ex(&obj,FILE_IO_GLOBAL(http_request_class));
+            request= Z_OBJ(obj);
+//            request=zend_objects_new(FILE_IO_GLOBAL(http_request_class));
 
             parse(ZSTR_VAL(headers), ZSTR_LEN(headers), request);
+
+            ZVAL_OBJ(&obj, request);
+            php_var_dump(&obj, 1);
         } else {
             puts("no headers are present");
            //do something of no headers
@@ -497,7 +506,9 @@ zend_class_entry *register_class_HttpServer(void) {
                                ZEND_ACC_PUBLIC);
     zend_declare_property_string(FILE_IO_GLOBAL(http_server_class), PROP("clientAddress"), "",
                                  ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
-    register_class_HttpRequest();
+    zend_declare_property_string(FILE_IO_GLOBAL(http_server_class), PROP("clientAddress2"), "",
+                                 ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
+
     return FILE_IO_GLOBAL(http_server_class);
 }
 
@@ -510,14 +521,15 @@ zend_class_entry *register_class_HttpRequest(void) {
     zend_class_entry ce;
     INIT_CLASS_ENTRY(ce, "HttpRequest", class_ServerRequest_methods);
     FILE_IO_GLOBAL(http_request_class) = zend_register_internal_class_ex(&ce, NULL);
-    FILE_IO_GLOBAL(http_request_class)->ce_flags |= ZEND_ACC_NO_DYNAMIC_PROPERTIES | ZEND_ACC_NOT_SERIALIZABLE;
+//    FILE_IO_GLOBAL(http_request_class)->ce_flags |= ZEND_ACC_NO_DYNAMIC_PROPERTIES | ZEND_ACC_NOT_SERIALIZABLE;
     zend_declare_property_string(FILE_IO_GLOBAL(http_request_class), PROP("method"), "", ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
+    zend_declare_property_string(FILE_IO_GLOBAL(http_request_class), PROP("HttpVersion"), "",  ZEND_ACC_PUBLIC);
     zval ht;
-    array_init(&ht);
-    zend_declare_property(FILE_IO_GLOBAL(http_request_class), PROP("headers"), &ht, ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
+    ZVAL_EMPTY_ARRAY(&ht);//TODO REWRITE ON TYPED PROPERTY
+    zend_declare_property(FILE_IO_GLOBAL(http_request_class), PROP("headers"), &ht, ZEND_ACC_PUBLIC);
     zval query;
-    array_init(&query);
+    ZVAL_EMPTY_ARRAY(&query);//TODO REWRITE ON TYPED PROPERTY
     zend_declare_property(FILE_IO_GLOBAL(http_request_class), PROP("query"), &query, ZEND_ACC_PUBLIC);
-    zend_declare_property_string(FILE_IO_GLOBAL(http_request_class), PROP("clientAddress"), "",  ZEND_ACC_PUBLIC);
+
     return FILE_IO_GLOBAL(http_request_class);
 }
