@@ -6,8 +6,20 @@
 #define FILEIO_HEADER_H
 
 #include <zend_types.h>
+
 #ifndef PROP
-    #define PROP(string)  string, sizeof(string) - 1
+#define PROP(string)  string, sizeof(string) - 1
 #endif
-void parse(char * headers, size_t len, zend_object * request);
+struct key_value {
+    char key[UINT16_MAX];
+    char value[UINT16_MAX];
+};
+struct uri_parsed {
+    char uri[UINT16_MAX];
+    uint8_t qs_size;
+    struct key_value *get_qs;
+};
+
+void parse(char *headers, size_t len, zend_object *request);
+
 #endif //FILEIO_HEADER_H

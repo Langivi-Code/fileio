@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Langivi code</title>
+    <style>
+        /*@font-face {*/
+        /*font-family: Nyala Regular;*/
+        /*src: url(nyala.ttf);*/
+        /*}*/
+        .line {
+            padding: 10px;
+            line-height: 25px;
+            padding-left: 80px;
+            font-weight: bold;
+            font-family: nyala regular;
+            font-size: 19px;
+            margin-left: 40px;
+            display: inline-block;
+        }
+
+        .line:hover {
+            background-color: rgba(40, 44, 45, 0.6);
+            color: #48b1ce;
+            padding-bottom: 20px;
+            cursor: pointer;
+        }
+
+        .molecule {
+            background-image: url("m.png");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: 20px 0px;
+        }
+
+        .bus {
+            /*background-image: url("b.png");*/
+            /*   background-image: url(b.png);*/
+            background-size: 50px 36px;
+            background-repeat: no-repeat;
+            background-position: 5px 5px;
+        }
+
+        .bus:hover {
+            background-size: 63px 45px;
+        }
+
+        body {
+            /*background-image:url(base.jpg);*/
+            background-repeat: no-repeat;
+            background-position: 60px 90px;
+            font-family: Nyala Regular;
+            background-color: #ddf0e9;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: inherit;
+        }
+
+    </style>
+</head>
+<body>
+<div style="width: 100%;height: 35px; background-color: black;color: white">
+    <span class="line molecule">Chemical Research</span>
+    <span class="line  bus"><a href="http://bus.langivi:81">Bus in UA </a></span>
+    <span class="line molecule">Pharma helper</span>
+    <span class="line "><a href="http://lekkamowa.ml">Lekka mowa</a></span>
+    <span class="line "><a href="http://host.langivi:81">Data&site hosting</a></span>
+</div>
+</body>
+</html>

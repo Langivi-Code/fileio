@@ -36,6 +36,11 @@ typedef struct event_handle_item {
 rv = zend_read_property(FILE_IO_GLOBAL(http_server_class), Z_OBJ_P(ZEND_THIS),"#",sizeof("#")-1, 0, NULL); \
 zend_long cur_id = Z_LVAL_P(rv);
 
+#define GET_HTTP_SERV_ID_FROM_RES()     zval * rv, *serv; \
+serv = zend_read_property(FILE_IO_GLOBAL(http_response_class), Z_OBJ_P(ZEND_THIS), PROP("server"), 0, NULL); \
+rv = zend_read_property(FILE_IO_GLOBAL(http_server_class), Z_OBJ_P(serv),"#",sizeof("#")-1, 0, NULL); \
+zend_long cur_id = Z_LVAL_P(rv);
+
 #define GET_HTTP_SERV_ID_FROM_EVENT_HANDLE()  zend_long cur_id;\
 cur_id = ((event_handle_item *)handle->data)->cur_id;
 #define PROP(string)  string, sizeof(string) - 1

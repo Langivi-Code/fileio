@@ -11,25 +11,37 @@ function test(PromiseStatus $status)
 //               }
 //               );
 // var_dump($serv);
-
+$file = file_get_contents("./stubs/index.html");
 $serv1 = new HttpServer(8000, "tcp://0.0.0.0", []);
 // //  $serv1->setReadBufferSize(5);
-// $serv1->on_data(function ($data) use (&$serv1) {
-//     $str = "HTTP/1.1 200 OK\n\r";
-//     var_dump("on_data: " . $data);
-// //      if ($data == "get_cool"){
-//
-//     $serv1->write($str);
-// //      $serv1->end("");
-// //      }
-//
-//
-//     //                $serv1->write(" from php hello");
-// });
+$serv1->on_request(function (HttpRequest $req, HttpResponse $res) use ($file) {
+    $str = <<<END
+HTTP/1.1 200 OK
+content-type: text/html; charset=utf-8
+strict-transport-security: max-age=15552000
+x-frame-options: SAMEORIGIN
+
+END;
+    echo "Request details\n";
+    $str.="\r\n";
+    $str.= $file;
+    var_dump($res);
+//     $req->method="strange";
+//     var_dump($req, $req->query);
+    $res->send($str);
+//     $res->end("");
+//      if ($data == "get_cool"){
+
+//    $serv1->write($str);
+//      $serv1->end("");
+//      }
+
+
+    //                $serv1->write(" from php hello");
+});
 // $serv1->write("from php hello");
 // $serv1->write($str);
-var_dump($serv1);
-var_dump(new HttpRequest);
+// var_dump($serv1);
 
 // idle(fn()=>print_r("hello"));
 // idle(fn()=>print_r("hello2"));

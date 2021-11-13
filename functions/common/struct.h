@@ -21,15 +21,16 @@ unsigned short count_##name##_handles(name##_id_item_t * name##_handle_map) {   
     unsigned short i = 0;                                                               \
     for (; i < HANDLE_MAP_SIZE; i++) {                                                  \
         if (name##_handle_map[i].handle_id == 0) {                                     \
-            LOG("Handles count - %d, last handle_id is %llu", i, name##_handle_map[i].handle_id); \
+            LOG("Handles count - %d, last handle_id is %llu\n", i, name##_handle_map[i].handle_id); \
             break;                                                                      \
         }                                                                               \
     }                                                                                   \
     return i;                                                                           \
 }                                                                                       \
 unsigned long long add_##name##_handle(name##_id_item_t * name##_handle_map, type *handle) {                                           \
-    unsigned short handle_count = count_##name##_handles(name##_handle_map);                             \
-    name##_handle_map[handle_count] = (name##_id_item_t){.handle_id=uv_hrtime(), .handle=handle}; \
+    unsigned short handle_count = count_##name##_handles(name##_handle_map);            \
+    name##_handle_map[handle_count] = (name##_id_item_t){.handle_id=uv_hrtime(), .handle=handle};                                    \
+    LOG("Added  - %d, last handle_id is %llu\n", handle_count+1, name##_handle_map[handle_count].handle_id);                          \
     return name##_handle_map[handle_count].handle_id;                                        \
 }                                                                                       \
 name##_id_item_t * find_##name##_handle(name##_id_item_t * name##_handle_map, unsigned long long handleId) {                           \
@@ -47,7 +48,7 @@ void remove_##name##_handle(name##_id_item_t * name##_handle_map,unsigned long l
     unsigned short tagret = 0;                                                           \
     for (; i < HANDLE_MAP_SIZE; i++) {                                                   \
         if (name##_handle_map[i].handle_id == handleId) {                                \
-            printf(" element #%d with handle_id=%llu was removed", i, name##_handle_map[i].handle_id); \
+            printf("Element #%d with handle_id=%llu was removed\n", i, name##_handle_map[i].handle_id); \
             continue;                                                                    \
         }                                                                                \
         tempItems[tagret] = name##_handle_map[i];                                        \

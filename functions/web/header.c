@@ -8,6 +8,7 @@
 #include "../../fileio_arginfo.h"
 #include <php.h>
 #include <zend_API.h>
+#include "../../3rd/utils/strpos.h"
 #include "ext/standard/php_var.h"
 
 PHP_FUNCTION (send_header) {
@@ -55,7 +56,13 @@ static int on_status(llhttp_t *p, const char *at, size_t length) {
 
 static int on_url(llhttp_t *p, const char *at, size_t length) {
     printf("METHOD IS is %s\n", llhttp_method_name(p->method));
-    querystring = emalloc(sizeof(char) * (length + 1));
+    printf("QS IS is %s %zu\n", at, length);
+    if (querystring == NULL) {
+        querystring = emalloc(sizeof(char) * (length + 1));
+    } else {
+        querystring = erealloc(querystring, sizeof(char) * (length + 1));
+    }
+
     memset(querystring, 0, sizeof(char) * (length + 1));
     strncpy(querystring, at, length);
     return 0;
@@ -83,10 +90,63 @@ static int on_header_value(llhttp_t *p, const char *at, size_t length) {
     return 0;
 }
 
+
+//TODO REVIEW LIMITS
+//TOO implement array parsing
+static struct key_value parse_key_value(char *key_value) {
+    uintptr_t eq_pos = strpos(key_value, "=");
+    struct key_value kv = {};
+    uintptr_t val_len = strlen(key_value) - eq_pos;
+    memset(kv.key, 0, eq_pos + 1);
+    strncpy(kv.key, key_value, eq_pos);
+    memset(kv.value, 0, val_len + 1);
+    strncpy(kv.value, (key_value + eq_pos + 1), val_len);
+    return kv;
+}
+
+static struct uri_parsed *parse_querystring(char *querystring_arg) {
+    struct uri_parsed *request_parsed = emalloc(sizeof(struct uri_parsed));
+    uintptr_t qsStart = strpos(querystring_arg, "?");
+    if (qsStart == FAILURE) {
+        qsStart = strlen(querystring_arg);
+    }
+    printf(" qsStart %lu ----- %s\n", qsStart, querystring_arg);
+    if ((qsStart + 1) < strlen(querystring_arg)) {
+        uint8_t qs_size = strlen(querystring_arg) - (qsStart + 1);
+        printf("qs wsize %u\n", qs_size);
+        request_parsed->qs_size = 0;
+        char qs[qs_size + 1];
+        memset(qs, 0, qs_size + 1);
+        strncpy(qs, (querystring_arg + qsStart + 1), qs_size);
+        char *p;
+        p = strtok(qs, "&");
+        ++request_parsed->qs_size;
+        request_parsed->get_qs = emalloc(sizeof(struct key_value));
+        request_parsed->get_qs[0] = parse_key_value(p);
+        printf("%s\n", p);
+        do {
+            p = strtok('\0', "&");
+            if (p) {
+                request_parsed->get_qs = erealloc(request_parsed->get_qs,
+                                                  sizeof(struct key_value) * (request_parsed->qs_size + 1));
+                request_parsed->get_qs[request_parsed->qs_size] = parse_key_value(p);
+                ++request_parsed->qs_size;
+                printf("%s\n", p);
+            }
+        } while (p);
+        //parse QS
+    }
+    memset(request_parsed->uri, 0, qsStart + 1);
+    strncpy(request_parsed->uri, querystring_arg, qsStart);
+    return request_parsed;
+
+}
+
 void parse(char *headers, size_t len, zend_object *request) {
     llhttp_t parser;
 //    llhttp_settings_init(&settings);
     zval zv_headers;
+    zval zv_qs;
     array_init(&zv_headers); //  zend_read_property(request->ce, request, PROP("headers"), 0, NULL);
 
 
@@ -110,37 +170,29 @@ void parse(char *headers, size_t len, zend_object *request) {
         /* Successfully parsed! */
 
         printf("%s  \n", llhttp_method_name(parser.method));
-        zend_update_property_string(request->ce, request, PROP("method"), llhttp_method_name(parser.method));
-        zend_update_property_string(request->ce, request, PROP("query"), querystring);
+
+        struct uri_parsed *parsed = parse_querystring(querystring);
+        array_init_size(&zv_qs, parsed->qs_size);
+        for (int i = 0; i < parsed->qs_size; ++i) {
+            printf("key %s\n", parsed->get_qs[i].key);
+            printf("value %s\n", parsed->get_qs[i].value);
+            add_assoc_string(&zv_qs, parsed->get_qs[i].key, parsed->get_qs[i].value);
+        }
+
         char version[5] = "\0";
         sprintf(version, "%d.%d", parser.http_major, parser.http_minor);
-        zend_update_property(request->ce, request, PROP("HttpVersion"), version);
+
+        zend_update_property_string(request->ce, request, PROP("method"), llhttp_method_name(parser.method));
+        zend_update_property_string(request->ce, request, PROP("querystring"), querystring);
+        zend_update_property_string(request->ce, request, PROP("HttpVersion"), version);
+        zend_update_property_string(request->ce, request, PROP("uri"), parsed->uri);
         zend_update_property(request->ce, request, PROP("headers"), &zv_headers);
+        zend_update_property(request->ce, request, PROP("query"), &zv_qs);
         printf("parse finished");
-        printf("query string is %s %s", querystring, version);
+//        printf("query string is %s %s", querystring, version);
         efree(header_name);
     } else {
         fprintf(stderr, "Parse error: %s %s\n", llhttp_errno_name(err),
                 parser.reason);
     }
-}
-
-void parse_querystring(const char *querystring) {
-
-    char array[] = "address=1234&port=1234&username=1234&password=1234"
-                   "&gamename=1234&&square=1234&LOGIN=LOGIN",
-            *query = strdup(array),  /* duplicate array, &array is not char** */
-    *tokens = query,
-            *p = query;
-
-    while ((p = strsep(&tokens, "&\n"))) {
-        char *var = strtok(p, "="),
-                *val = NULL;
-        if (var && (val = strtok(NULL, "=")))
-            printf("%-8s    %s\n", var, val);
-        else
-            fputs("<empty field>\n", stderr);
-    }
-
-    free(query);
 }

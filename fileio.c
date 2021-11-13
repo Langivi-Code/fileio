@@ -32,7 +32,9 @@ extern zend_class_entry *create_PromiseStatus_enum(void);
 extern zend_class_entry *register_class_Promise(void);
 extern zend_class_entry *register_class_Server(void);
 extern zend_class_entry *register_class_HttpServer(void);
-extern zend_class_entry * register_class_HttpRequest(void);
+extern zend_class_entry *register_class_HttpRequest(void);
+
+extern zend_class_entry *register_class_HttpResponse(void);
 extern  server_type php_servers[10];
 extern  zend_function * promise_resolve;
 extern  zend_function * promise_reject;
@@ -139,6 +141,7 @@ PHP_MINIT_FUNCTION (fileio) {
     register_class_Promise();
     register_class_HttpServer();
     register_class_HttpRequest();
+    register_class_HttpResponse();
     register_class_Server();
     REGISTER_INI_ENTRIES();
     promise_resolve = zend_hash_str_find_ptr(&FILE_IO_GLOBAL(promise_class->function_table), "resolve", sizeof("resolve")-1);
