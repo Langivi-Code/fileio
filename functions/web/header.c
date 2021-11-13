@@ -189,6 +189,7 @@ void parse(char *headers, size_t len, zend_object *request) {
 //        printf("query string is %s %s", querystring, version);
         efree(header_name);
         efree(querystring);
+        querystring = NULL;
     } else {
         fprintf(stderr, "Parse error: %s %s\n", llhttp_errno_name(err),
                 parser.reason);
