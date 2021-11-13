@@ -46,7 +46,7 @@ static int on_cinfo(llhttp_t *p) {
 }
 
 char *header_name = NULL;
-char *querystring = NULL;
+static char *querystring = NULL;
 
 static int on_status(llhttp_t *p, const char *at, size_t length) {
     printf("STATUS IS is %s\n", llhttp_method_name(p->method));
@@ -55,16 +55,13 @@ static int on_status(llhttp_t *p, const char *at, size_t length) {
 }
 
 static int on_url(llhttp_t *p, const char *at, size_t length) {
-    printf("METHOD IS is %s\n", llhttp_method_name(p->method));
-    printf("QS IS is %s %zu\n", at, length);
     if (querystring == NULL) {
         querystring = emalloc(sizeof(char) * (length + 1));
-    } else {
-        querystring = erealloc(querystring, sizeof(char) * (length + 1));
     }
 
     memset(querystring, 0, sizeof(char) * (length + 1));
     strncpy(querystring, at, length);
+    printf("QS AFTER copy is %zu  %s\n", length, querystring);
     return 0;
 }
 
@@ -107,10 +104,11 @@ static struct key_value parse_key_value(char *key_value) {
 static struct uri_parsed *parse_querystring(char *querystring_arg) {
     struct uri_parsed *request_parsed = emalloc(sizeof(struct uri_parsed));
     uintptr_t qsStart = strpos(querystring_arg, "?");
+    printf("1st qsStart %lu ----- %s\n", qsStart, querystring_arg);
     if (qsStart == FAILURE) {
         qsStart = strlen(querystring_arg);
     }
-    printf(" qsStart %lu ----- %s\n", qsStart, querystring_arg);
+    printf("2nd qsStart %lu ----- %s\n", qsStart, querystring_arg);
     if ((qsStart + 1) < strlen(querystring_arg)) {
         uint8_t qs_size = strlen(querystring_arg) - (qsStart + 1);
         printf("qs wsize %u\n", qs_size);
@@ -170,7 +168,6 @@ void parse(char *headers, size_t len, zend_object *request) {
         /* Successfully parsed! */
 
         printf("%s  \n", llhttp_method_name(parser.method));
-
         struct uri_parsed *parsed = parse_querystring(querystring);
         array_init_size(&zv_qs, parsed->qs_size);
         for (int i = 0; i < parsed->qs_size; ++i) {
@@ -191,6 +188,7 @@ void parse(char *headers, size_t len, zend_object *request) {
         printf("parse finished");
 //        printf("query string is %s %s", querystring, version);
         efree(header_name);
+        efree(querystring);
     } else {
         fprintf(stderr, "Parse error: %s %s\n", llhttp_errno_name(err),
                 parser.reason);

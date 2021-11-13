@@ -56,8 +56,7 @@ static void on_ready_to_write(uv_poll_t *handle, int status, int events) {
     php_stream *clistream = client->handle->current_stream;
     if (clistream != NULL) {
         if (client->handle->write_buf.len > 1) {
-            LOG("**Data get from buffer TO CLIENT %lld: %s  sz:%zu**\n", client->handle_id,
-                client->handle->write_buf.base,
+            LOG("**Data get from buffer TO CLIENT %lld:  sz:%zu**\n", client->handle_id,
                 client->handle->write_buf.len);
             php_stream_write(clistream, client->handle->write_buf.base,
                              client->handle->write_buf.len);
@@ -128,7 +127,7 @@ static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
         zend_string * headers = NULL;
         zval retval;
         zval args[2];
-        LOG("Unread bytes  %lld\n", clistream->writepos - clistream->readpos);
+        LOG("Unread bytes before read %lld\n", clistream->writepos - clistream->readpos);
         /// get headers////
         char len[] = "\r\n\r\n";
         zval reqObj;
@@ -141,8 +140,8 @@ static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
             parse(ZSTR_VAL(headers), ZSTR_LEN(headers), request);
 
             ZVAL_OBJ(&reqObj, request);
-            php_var_dump(&reqObj, 1);
-            LOG("Unread bytes  %lld\n", clistream->writepos - clistream->readpos);
+//            php_var_dump(&reqObj, 1);
+            LOG("Unread bytes after read  %lld\n", clistream->writepos - clistream->readpos);
             zend_off_t data_buf = clistream->writepos - clistream->readpos;
             /// get headers////
             body = php_stream_read_to_str(clistream, data_buf); //TODO RESTORE SIZE TO READ OR USE ANOTHER READ FUCNTION
@@ -451,8 +450,7 @@ PHP_FUNCTION (response_write) {
             strncpy(client->handle->write_buf.base, data, data_len);
         }
 
-        LOG("Data set to buffer: %s, len %zu\n", client->handle->write_buf.base,
-            client->handle->write_buf.len);
+        LOG("Data set to buffer: len %zu\n", client->handle->write_buf.len);
     }
 
 }
