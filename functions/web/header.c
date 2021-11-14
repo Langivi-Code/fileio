@@ -104,11 +104,11 @@ static struct key_value parse_key_value(char *key_value) {
 static struct uri_parsed *parse_querystring(char *querystring_arg) {
     struct uri_parsed *request_parsed = emalloc(sizeof(struct uri_parsed));
     uintptr_t qsStart = strpos(querystring_arg, "?");
-    printf("1st qsStart %lu ----- %s\n", qsStart, querystring_arg);
+//    printf("1st qsStart %lu ----- %s\n", qsStart, querystring_arg);
     if (qsStart == FAILURE) {
         qsStart = strlen(querystring_arg);
     }
-    printf("2nd qsStart %lu ----- %s\n", qsStart, querystring_arg);
+//    printf("2nd qsStart %lu ----- %s\n", qsStart, querystring_arg);
     if ((qsStart + 1) < strlen(querystring_arg)) {
         uint8_t qs_size = strlen(querystring_arg) - (qsStart + 1);
         printf("qs wsize %u\n", qs_size);
@@ -185,11 +185,10 @@ void parse(char *headers, size_t len, zend_object *request) {
         zend_update_property_string(request->ce, request, PROP("uri"), parsed->uri);
         zend_update_property(request->ce, request, PROP("headers"), &zv_headers);
         zend_update_property(request->ce, request, PROP("query"), &zv_qs);
-        printf("parse finished");
+//        printf("parse finished");
 //        printf("query string is %s %s", querystring, version);
         efree(header_name);
         efree(querystring);
-        querystring = NULL;
     } else {
         fprintf(stderr, "Parse error: %s %s\n", llhttp_errno_name(err),
                 parser.reason);

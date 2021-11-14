@@ -21,7 +21,7 @@ unsigned short count_##name##_handles(name##_id_item_t * name##_handle_map) {   
     unsigned short i = 0;                                                               \
     for (; i < HANDLE_MAP_SIZE; i++) {                                                  \
         if (name##_handle_map[i].handle_id == 0) {                                     \
-            LOG("Handles count - %d, last handle_id is %llu\n", i, name##_handle_map[i].handle_id); \
+            LOG("Handles count - %d, last handle_id is %llu\n", i, name##_handle_map[i-1].handle_id); \
             break;                                                                      \
         }                                                                               \
     }                                                                                   \
@@ -43,7 +43,7 @@ name##_id_item_t * find_##name##_handle(name##_id_item_t * name##_handle_map, un
     }                                                                                    \
 }                                                                                        \
 void remove_##name##_handle(name##_id_item_t * name##_handle_map,unsigned long long handleId) {                                        \
-    name##_id_item_t *tempItems = malloc(1024 * sizeof(name##_id_item_t));               \
+    name##_id_item_t *tempItems = emalloc(HANDLE_MAP_SIZE * sizeof(name##_id_item_t));               \
     unsigned short i = 0;                                                                \
     unsigned short tagret = 0;                                                           \
     for (; i < HANDLE_MAP_SIZE; i++) {                                                   \
@@ -54,7 +54,7 @@ void remove_##name##_handle(name##_id_item_t * name##_handle_map,unsigned long l
         tempItems[tagret] = name##_handle_map[i];                                        \
         tagret++;                                                                        \
     }                                                                                    \
-    memcpy(name##_handle_map, tempItems, 1024 * sizeof( name##_id_item_t));              \
-    free(tempItems);                                                                    \
+    memcpy(name##_handle_map, tempItems, HANDLE_MAP_SIZE * sizeof( name##_id_item_t));              \
+    efree(tempItems);                                                                    \
 }
 #endif //FILEIO_STRUCT_H

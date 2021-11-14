@@ -32,6 +32,11 @@ typedef struct event_handle_item {
     void *handle_data;
 } event_handle_item;
 
+typedef struct {
+    unsigned long long id;
+    bool is_read;
+} request_info;
+
 #define GET_HTTP_SERV_ID()     zval * rv; \
 rv = zend_read_property(FILE_IO_GLOBAL(http_server_class), Z_OBJ_P(ZEND_THIS),"#",sizeof("#")-1, 0, NULL); \
 zend_long cur_id = Z_LVAL_P(rv);
