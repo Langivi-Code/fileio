@@ -4,11 +4,13 @@
 
 #ifndef FILEIO_STRUCT_H
 #define FILEIO_STRUCT_H
+
 #include <zend_API.h>
 #include <uv.h>
 #include "../../constants.h"
 #include "../common/fill_event_handle.h"
 
+//TODO add counter, additiona of handles rework
 #define LOG_TAG "timer_handles"
 #define ADD_HANDLE_TO_STRUCT(name) name##_id_item_t name##_handle_map[HANDLE_MAP_SIZE];
 #define ADD_STRUCT(name, type) typedef struct {                                                                        \
@@ -47,14 +49,17 @@ void remove_##name##_handle(name##_id_item_t * name##_handle_map,unsigned long l
     unsigned short i = 0;                                                                \
     unsigned short tagret = 0;                                                           \
     for (; i < HANDLE_MAP_SIZE; i++) {                                                   \
-        if (name##_handle_map[i].handle_id == handleId) {                                \
+        if (name##_handle_map[i].handle_id == handleId) {                               \
+            memset(name##_handle_map+i,0,sizeof(name##_id_item_t));                        \
             printf("Element #%d with handle_id=%llu was removed\n", i, name##_handle_map[i].handle_id); \
             continue;                                                                    \
-        }                                                                                \
-        tempItems[tagret] = name##_handle_map[i];                                        \
-        tagret++;                                                                        \
+        }                                                                               \
+          printf("Element next #%d  prev is %d  %llu \n", tagret, i, name##_handle_map[i].handle_id); \
+           \
+                                                \
+                                                                            \
     }                                                                                    \
-    memcpy(name##_handle_map, tempItems, HANDLE_MAP_SIZE * sizeof( name##_id_item_t));              \
-    efree(tempItems);                                                                    \
+             \
+                                                                    \
 }
 #endif //FILEIO_STRUCT_H

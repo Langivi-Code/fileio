@@ -20,6 +20,11 @@ struct uri_parsed {
     struct key_value *get_qs;
 };
 
+struct input_data {
+    zval headers;
+    char * qs;
+    char * cur_header;
+};
 void parse(char *headers, size_t len, zend_object *request);
 
 #endif //FILEIO_HEADER_H

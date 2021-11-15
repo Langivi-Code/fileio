@@ -31,7 +31,7 @@ Nothing to send
 END;
     echo "Request details\n";
     echo "Request uri {$req->uri}\n";
-if ($req->uri =="/favicon.ico"){
+if ($req->uri !=="/"){
 echo $fail;
     $res->send($fail);
     return;

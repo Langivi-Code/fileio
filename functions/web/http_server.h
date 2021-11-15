@@ -48,5 +48,13 @@ zend_long cur_id = Z_LVAL_P(rv);
 
 #define GET_HTTP_SERV_ID_FROM_EVENT_HANDLE()  zend_long cur_id;\
 cur_id = ((event_handle_item *)handle->data)->cur_id;
+
 #define PROP(string)  string, sizeof(string) - 1
+
+static void on_listen_server_for_clients(uv_poll_t *handle, int status, int events);
+static void on_ready_to_write(uv_poll_t *handle,  http_client_stream_id_item_t * client, int status, int events);
+static void on_listen_client_event(uv_poll_t *handle, int status, int events);
+
+static void on_ready_to_disconnect(uv_poll_t *handle, http_client_stream_id_item_t * client, int status, int events);
+
 #endif //FILEIO_SERVER_H

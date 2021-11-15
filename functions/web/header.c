@@ -34,20 +34,6 @@ PHP_FUNCTION (send_header) {
 }
 
 
-static int on_info(llhttp_t *p) {
-    printf("some info COMPLITED\n\n");
-    return 0;
-}
-
-
-static int on_cinfo(llhttp_t *p) {
-    printf("PARSE COMPLITED");
-    return 0;
-}
-
-char *header_name = NULL;
-static char *querystring = NULL;
-
 static int on_status(llhttp_t *p, const char *at, size_t length) {
     printf("STATUS IS is %s\n", llhttp_method_name(p->method));
     printf("at %s %d\n", at, length);
@@ -55,35 +41,34 @@ static int on_status(llhttp_t *p, const char *at, size_t length) {
 }
 
 static int on_url(llhttp_t *p, const char *at, size_t length) {
-    if (querystring == NULL) {
-        querystring = emalloc(sizeof(char) * (length + 1));
-    }
-
-    memset(querystring, 0, sizeof(char) * (length + 1));
-    strncpy(querystring, at, length);
-    printf("QS AFTER copy is %zu  %s\n", length, querystring);
+    struct input_data * data = p->data;
+    data->qs = emalloc(sizeof(char) * (length + 1));
+    memset(data->qs , 0, length + 1);
+    strncpy(data->qs , at,  length);
+    printf("QS AFTER copy is %zu  %s\n", length, data->qs);
     return 0;
 }
 
 
 static int on_header_field(llhttp_t *p, const char *at, size_t length) {
-    if (header_name == NULL) {
-        header_name = emalloc(sizeof(char) * (length + 1));
-    } else {
-        header_name = erealloc(header_name, sizeof(char) * (length + 1));
-    }
-    memset(header_name, 0, sizeof(char) * (length + 1));
-    strncpy(header_name, at, length);
-    add_assoc_string((zval *) p->data, header_name, "");
+    struct input_data * data = (struct input_data *) p->data;
+    data->cur_header = emalloc(sizeof(char) * (length + 1));
+    memset(data->cur_header, 0, length + 1);
+    strncpy(data->cur_header, at, length);
+    puts(data->cur_header);
+    add_assoc_string( &data->headers, data->cur_header, "");
+
     return 0;
 }
 
 static int on_header_value(llhttp_t *p, const char *at, size_t length) {
+    struct input_data * data = (struct input_data *) p->data;
     char *value = emalloc(sizeof(char) * (length + 1));
-    memset(value, 0, sizeof(char) * (length + 1));
+    memset(value, 0, (length + 1));
     strncpy(value, at, length);
-    add_assoc_string((zval *) p->data, header_name, value);
+    add_assoc_string(&data->headers, data->cur_header, value);
     efree(value);
+    efree(data->cur_header);
     return 0;
 }
 
@@ -143,15 +128,16 @@ static struct uri_parsed *parse_querystring(char *querystring_arg) {
 void parse(char *headers, size_t len, zend_object *request) {
     llhttp_t parser;
 //    llhttp_settings_init(&settings);
+    struct input_data *  data = emalloc(sizeof( struct input_data));
     zval zv_headers;
+    data->headers = zv_headers;
     zval zv_qs;
-    array_init(&zv_headers); //  zend_read_property(request->ce, request, PROP("headers"), 0, NULL);
-
+    array_init(&data->headers); //  zend_read_property(request->ce, request, PROP("headers"), 0, NULL);
 
     llhttp_settings_t settings = {
             .on_message_begin = NULL,
-            .on_headers_complete = on_info,
-            .on_message_complete = on_cinfo,
+//            .on_headers_complete = on_info,
+//            .on_message_complete = on_cinfo,
             .on_header_field = on_header_field,
             .on_header_value = on_header_value,
             .on_url = on_url,
@@ -160,15 +146,17 @@ void parse(char *headers, size_t len, zend_object *request) {
     };
 
     llhttp_init(&parser, HTTP_REQUEST, &settings);
-    parser.data = &zv_headers;
+    parser.data = data;
+    printf("%p\n", data);
 /* Use `llhttp_set_type(&parser, HTTP_REQUEST);` to override the mode */
 
     enum llhttp_errno err = llhttp_execute(&parser, headers, len);
     if (err == HPE_OK) {
         /* Successfully parsed! */
-
         printf("%s  \n", llhttp_method_name(parser.method));
-        struct uri_parsed *parsed = parse_querystring(querystring);
+        printf("query string is %s\n", data->qs);
+
+        struct uri_parsed *parsed =  parse_querystring(data->qs);
         array_init_size(&zv_qs, parsed->qs_size);
         for (int i = 0; i < parsed->qs_size; ++i) {
             printf("key %s\n", parsed->get_qs[i].key);
@@ -180,15 +168,13 @@ void parse(char *headers, size_t len, zend_object *request) {
         sprintf(version, "%d.%d", parser.http_major, parser.http_minor);
 
         zend_update_property_string(request->ce, request, PROP("method"), llhttp_method_name(parser.method));
-        zend_update_property_string(request->ce, request, PROP("querystring"), querystring);
+        zend_update_property_string(request->ce, request, PROP("querystring"), data->qs);
         zend_update_property_string(request->ce, request, PROP("HttpVersion"), version);
         zend_update_property_string(request->ce, request, PROP("uri"), parsed->uri);
-        zend_update_property(request->ce, request, PROP("headers"), &zv_headers);
+        zend_update_property(request->ce, request, PROP("headers"), &data->headers);
         zend_update_property(request->ce, request, PROP("query"), &zv_qs);
 //        printf("parse finished");
-//        printf("query string is %s %s", querystring, version);
-        efree(header_name);
-        efree(querystring);
+        efree(data);
     } else {
         fprintf(stderr, "Parse error: %s %s\n", llhttp_errno_name(err),
                 parser.reason);
