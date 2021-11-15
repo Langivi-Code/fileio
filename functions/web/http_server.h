@@ -10,6 +10,7 @@ typedef struct {
     int current_fd;
     uv_buf_t write_buf;
     uv_poll_t *client_handle;
+    uv_timer_t * close_timer
 } http_client_type;
 ADD_STRUCT(http_client_stream, http_client_type);
 

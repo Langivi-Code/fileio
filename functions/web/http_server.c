@@ -5,6 +5,7 @@
 #include <zend_API.h>
 
 #include <uv.h>
+#include <stdnoreturn.h>
 #include "../common/fill_event_handle.h"
 #include "../../php_fileio.h"
 #include "ext/standard/file.h"
@@ -310,7 +311,11 @@ static void on_listen_server_for_clients(uv_poll_t *handle, int status, int even
         memset(que_cli_handle, 0, sizeof(http_client_type));
         que_cli_handle->current_stream = clistream;
         clistream = NULL;
+        uv_timer_t * timer_h = emalloc(sizeof(uv_timer_t));
+        uv_timer_init(FILE_IO_GLOBAL(loop), timer_h);
+
         que_cli_handle->current_fd = this_fd;
+        que_cli_handle->close_timer = timer_h;
         que_cli_handle->client_handle = cli_handle;
         this_fd = -1;
         unsigned long long id = add_http_client_stream_handle(php_servers[cur_id].http_client_stream_handle_map,
@@ -321,6 +326,7 @@ static void on_listen_server_for_clients(uv_poll_t *handle, int status, int even
         request_info *requestInfo = emalloc(sizeof(request_info));
         requestInfo->id = id;
         requestInfo->is_read = false;
+        timer_h->data = requestInfo;
         handleItem->cur_id = cur_id;
         handleItem->handle_data = requestInfo;
         handleItem->this = ((event_handle_item *) handle->data)->this;
@@ -332,7 +338,7 @@ static void on_listen_server_for_clients(uv_poll_t *handle, int status, int even
         php_error_docref(NULL, E_ERROR, "Accept failed: %s", errstr ? ZSTR_VAL(errstr) : "Unknown error");
     }
     LOG("Client counts  by handles %d by counter %llu\n",
-        count_http_client_stream_handles(php_servers[cur_id].http_client_stream_handle_map),
+        count_http_client_stream_handles,
         php_servers[cur_id].clients_count);
 //    exit(0);
     zend_long error = 0;
@@ -360,6 +366,14 @@ static void on_listen_server_for_clients(uv_poll_t *handle, int status, int even
 //    php_stream_xport_sendto(clistream, headers, sizeof(headers) - 1, (int) flags, NULL, 0);
 }
 
+ void close_timer_cb(uv_timer_t* timer_h){
+     LOG("Timer fires - setting is_read");
+    request_info * requestInfo = timer_h->data;
+    requestInfo->is_read = true;
+    timer_h->data=NULL;
+    efree(timer_h);
+}
+
 
 static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
     GET_HTTP_SERV_ID_FROM_EVENT_HANDLE();
@@ -385,7 +399,9 @@ static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
 
     if (events & UV_READABLE && clistream) {
         puts("on readable");
-
+        uv_timer_t * timer_h = client->handle->close_timer;
+//        if (handle!=NULL)
+//            uv_timer_stop(handle);
         zend_string * body = NULL;
         zend_string * headers = NULL;
         zval retval;
@@ -431,7 +447,8 @@ static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
             } else {
                 error = -2;
             }
-            requestInfo->is_read = true;
+            uv_timer_start(timer_h, close_timer_cb,3,0);
+
             parse_fci_error(error, "on data");
             closable_zv = zend_read_property(event_handle->this->ce, event_handle->this, CLOSABLE, sizeof(CLOSABLE) - 1,
                                              0,
@@ -445,7 +462,6 @@ static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
     }
 
 }
-
 
 
 

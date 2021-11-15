@@ -198,7 +198,7 @@ void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
         php_error_docref(NULL, E_ERROR, "Accept failed: %s", errstr ? ZSTR_VAL(errstr) : "Unknown error");
     }
     LOG("Client counts  by handles %d by counter %llu\n",
-           count_client_stream_handles(php_servers[cur_id].client_stream_handle_map),
+           count_client_stream_handles,
            php_servers[cur_id].clients_count);
 //    exit(0);
     zend_long error = 0;

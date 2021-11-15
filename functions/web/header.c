@@ -55,7 +55,6 @@ static int on_header_field(llhttp_t *p, const char *at, size_t length) {
     data->cur_header = emalloc(sizeof(char) * (length + 1));
     memset(data->cur_header, 0, length + 1);
     strncpy(data->cur_header, at, length);
-    puts(data->cur_header);
     add_assoc_string( &data->headers, data->cur_header, "");
 
     return 0;
