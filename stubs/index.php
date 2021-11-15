@@ -11,47 +11,30 @@ function test(PromiseStatus $status)
 //               }
 //               );
 // var_dump($serv);
-$file = file_get_contents("./stubs/index.html");
+//$file = file_get_contents("./stubs/index.html");
 $serv1 = new HttpServer(8000, "tcp://0.0.0.0", []);
 
-$serv1->on_request(function (HttpRequest $req, HttpResponse $res) use ($file) {
-$len = strlen($file);
-    $str = <<<END
-HTTP/1.1 200 OK
-content-type: text/html; charset=utf-8
-content-length: $len
-strict-transport-security: max-age=15552000
-x-frame-options: SAMEORIGIN
-
-END;
-    $fail = <<<END
-HTTP/1.1 403 Forbidden
-
-Nothing to send
-END;
-    echo "Request details\n";
-    echo "Request uri {$req->uri}\n";
-if ($req->uri !=="/"){
-echo $fail;
-    $res->send($fail);
-    return;
-}
-
-    $str.="\r\n";
-    $str.= $file;
-//     var_dump($res);
-//     $req->method="strange";
-//     var_dump($req, $req->query);
-    $res->send($str);
-//     $res->end("");
-//      if ($data == "get_cool"){
-
-//    $serv1->write($str);
-//      $serv1->end("");
-//      }
-
-
-    //                $serv1->write(" from php hello");
+$serv1->on_request(function (HttpRequest $req, HttpResponse $res) {
+    var_dump($req);
+//    $len = strlen($file);
+//    echo "Request details\n";
+//    echo "Request uri {$req->uri}\n";
+    //$res->statusCode=2;
+//    var_dump($res);
+//    if ($req->uri !== "/") {
+//        echo "Nothing to send";
+//        $res->setStatusCode(403);
+//         var_dump($res);
+//
+//
+////        $res->setHeader("content-length", "0");
+//        $res->send("\r\nNothing to send");
+//        return;
+//    } else {
+        $res->setHeader("content-length", "5");
+        $res->setHeader("content-type", "text/html; charset=utf-8");
+        $res->send("hello");
+//    }
 });
 // $serv1->write("from php hello");
 // $serv1->write($str);

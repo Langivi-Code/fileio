@@ -40,20 +40,27 @@ ZEND_END_ARG_INFO()
 
 
 ZEND_FUNCTION(use_promise);
+
 ZEND_FUNCTION(enable_event);
+
 ZEND_FUNCTION(set_timeout);
+
 ZEND_FUNCTION(set_interval);
+
 ZEND_FUNCTION(clear_timeout);
+
 ZEND_FUNCTION(clear_interval);
+
 ZEND_FUNCTION(idle);
+
 ZEND_FUNCTION(file_get_contents_async);
+
 ZEND_FUNCTION(file_put_contents_async);
+
 PHP_FUNCTION (send_header);
 
 
-
-
-        static const zend_function_entry file_io_functions[] = {
+static const zend_function_entry file_io_functions[] = {
         ZEND_FE(use_promise, arginfo_use_promise)
         ZEND_FE(set_timeout, arginfo_setTimeout)
         ZEND_FE(clear_timeout, arginfo_clearTimeout)

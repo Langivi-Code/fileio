@@ -38,6 +38,9 @@ typedef struct {
     bool is_read;
 } request_info;
 
+#define SERVER_ID "#"
+#define CLOSABLE "##"
+
 #define GET_HTTP_SERV_ID()     zval * rv; \
 rv = zend_read_property(FILE_IO_GLOBAL(http_server_class), Z_OBJ_P(ZEND_THIS),"#",sizeof("#")-1, 0, NULL); \
 zend_long cur_id = Z_LVAL_P(rv);
@@ -53,9 +56,15 @@ cur_id = ((event_handle_item *)handle->data)->cur_id;
 #define PROP(string)  string, sizeof(string) - 1
 
 static void on_listen_server_for_clients(uv_poll_t *handle, int status, int events);
-static void on_ready_to_write(uv_poll_t *handle,  http_client_stream_id_item_t * client, int status, int events);
+
+static void on_ready_to_write(uv_poll_t *handle, http_client_stream_id_item_t *client, int status, int events);
+
 static void on_listen_client_event(uv_poll_t *handle, int status, int events);
 
-static void on_ready_to_disconnect(uv_poll_t *handle, http_client_stream_id_item_t * client, int status, int events);
+static void on_ready_to_disconnect(uv_poll_t *handle, http_client_stream_id_item_t *client, int status, int events);
+
+CREATE_HANDLE_LIST_HEADERS(http_client_stream, http_client_type);
+
+extern server_type http_php_servers[10];
 
 #endif //FILEIO_SERVER_H

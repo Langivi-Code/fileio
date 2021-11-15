@@ -39,9 +39,11 @@ class HttpRequest {
     public array $query;
 }
 class HttpResponse {
-    public function write(string $data){}
-    public function end(string $data){}
     public int $statusCode;
     public string $body;
-    public array $headers;
+    public function setStatusCode(int $code){}
+    public function setHeader(string $headerName, string $value){}
+    public function write(string $data){}
+    public function end(string $data){}
+
 }

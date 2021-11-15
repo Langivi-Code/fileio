@@ -13,12 +13,11 @@
 #include "http_server.h"
 #include "helpers.h"
 #include "../common/struct.h"
-#include "server_args_info.h"
+#include "http_server_args_info.h"
 #include "header.h"
 
 #define LOG_TAG "HTTP SERVER"
-#define SERVER_ID "#"
-#define CLOSABLE "##"
+
 
 /*          TODO
  * 1. Add header parser
@@ -28,12 +27,12 @@
  * 5. Create Response class
  * 6. Generate Response headers
  * */
+CREATE_HANDLE_LIST(http_client_stream, http_client_type);
+
 zend_class_entry *register_class_HttpRequest(void);
 
 static zend_long server_id = -1;
-static server_type php_servers[10];
-
-CREATE_HANDLE_LIST(http_client_stream, http_client_type);
+server_type http_php_servers[10];
 
 
 static unsigned long long timeout = 100000;
@@ -100,34 +99,34 @@ static PHP_FUNCTION (server) {
 //        GC_ADDREF(context->res);
 //    }
     LOG("Server id is %ld\n", Z_LVAL(id));
-    php_servers[cur_id].server_stream = _php_stream_xport_create(full_host, ret_sz, REPORT_ERRORS,
-                                                                 STREAM_XPORT_SERVER | (int) flags,
+    http_php_servers[cur_id].server_stream = _php_stream_xport_create(full_host, ret_sz, REPORT_ERRORS,
+                                                                      STREAM_XPORT_SERVER | (int) flags,
 
-                                                                 NULL, NULL, NULL, &errstr, &err);
+                                                                      NULL, NULL, NULL, &errstr, &err);
 
-    if (php_servers[cur_id].server_stream == NULL) {
+    if (http_php_servers[cur_id].server_stream == NULL) {
         php_error_docref(NULL, E_WARNING, "Unable to connect  %s\n",
                          errstr == NULL ? "Unknown error" : ZSTR_VAL(errstr));
     }
 
     LOG("Stream errors %d\n", err);
-    int ret = set_non_blocking(php_servers[cur_id].server_stream);
+    int ret = set_non_blocking(http_php_servers[cur_id].server_stream);
     LOG("Set non block result: %d\n", ret);
     zend_result cast_result;
-    php_servers[cur_id].server_fd = cast_to_fd(php_servers[cur_id].server_stream, &cast_result);
-    LOG("Server FD is: %d\n", php_servers[cur_id].server_fd);
-    get_meta_data(php_servers[cur_id].server_stream);
+    http_php_servers[cur_id].server_fd = cast_to_fd(http_php_servers[cur_id].server_stream, &cast_result);
+    LOG("Server FD is: %d\n", http_php_servers[cur_id].server_fd);
+    get_meta_data(http_php_servers[cur_id].server_stream);
 
-    init_cb(&fci, &fcc, &php_servers[cur_id].on_connect);
+    init_cb(&fci, &fcc, &http_php_servers[cur_id].on_connect);
 
-    if (SUCCESS == cast_result && ret == 1 && php_servers[cur_id].server_fd != -1) {
-        uv_poll_init_socket(FILE_IO_GLOBAL(loop), handle, php_servers[cur_id].server_fd);
+    if (SUCCESS == cast_result && ret == 1 && http_php_servers[cur_id].server_fd != -1) {
+        uv_poll_init_socket(FILE_IO_GLOBAL(loop), handle, http_php_servers[cur_id].server_fd);
 //        uv_signal_t *sig_handle = emalloc(sizeof(uv_signal_t)); //TODO FREE on server shutdown
 //        uv_signal_init(FILE_IO_GLOBAL(loop), sig_handle);
 //        uv_cb_type uv = {};
 //        LOG("size of timeout handler %lu, fci  %lu \n\n", sizeof *idle_type, sizeof *fci);
         handle->data = (event_handle_item *) emalloc(sizeof(event_handle_item)); //TODO FREE on server shutdown
-        php_servers[cur_id].clients_count = 0;
+        http_php_servers[cur_id].clients_count = 0;
         event_handle_item handleItem = {.cur_id=cur_id, .this=Z_OBJ_P(ZEND_THIS)};
         memcpy(handle->data, &handleItem, sizeof(event_handle_item));
         uv_poll_start(handle, UV_READABLE, on_listen_server_for_clients);
@@ -147,10 +146,10 @@ static PHP_FUNCTION (server_on_request) {
             Z_PARAM_FUNC(fci, fcc);ZEND_PARSE_PARAMETERS_END();
     GET_HTTP_SERV_ID();
     LOG("Server_on_data  Server id is %lld\n", cur_id);
-    init_cb(&fci, &fcc, &php_servers[cur_id].on_data);
-//    php_servers[cur_id].on_data.fcc.object = php_servers[cur_id].on_data.fci.object = Z_OBJ_P(ZEND_THIS);
-//    php_servers[cur_id].on_data.fcc.called_scope = Z_OBJCE_P(ZEND_THIS);
-//    php_servers[cur_id].on_data.fcc.calling_scope = Z_OBJCE_P(ZEND_THIS);
+    init_cb(&fci, &fcc, &http_php_servers[cur_id].on_data);
+//    http_php_servers[cur_id].on_data.fcc.object = http_php_servers[cur_id].on_data.fci.object = Z_OBJ_P(ZEND_THIS);
+//    http_php_servers[cur_id].on_data.fcc.called_scope = Z_OBJCE_P(ZEND_THIS);
+//    http_php_servers[cur_id].on_data.fcc.calling_scope = Z_OBJCE_P(ZEND_THIS);
     if (!ZEND_FCI_INITIALIZED(fci)) {
         zend_throw_error(NULL, "on data is not initialized");
     }
@@ -163,7 +162,7 @@ static PHP_FUNCTION (server_on_disconnect) {
             Z_PARAM_FUNC(fci, fcc);ZEND_PARSE_PARAMETERS_END();
     GET_HTTP_SERV_ID();
     LOG("Server_on_disconnect  Server id is %ld\n", cur_id);
-    init_cb(&fci, &fcc, &php_servers[cur_id].on_disconnect);
+    init_cb(&fci, &fcc, &http_php_servers[cur_id].on_disconnect);
     if (!ZEND_FCI_INITIALIZED(fci)) {
         zend_throw_error(NULL, "on disconnect is not initialized");
     }
@@ -176,7 +175,7 @@ static PHP_FUNCTION (server_on_connect) {
             Z_PARAM_FUNC(fci, fcc);ZEND_PARSE_PARAMETERS_END();
     GET_HTTP_SERV_ID();
     LOG("Server_on_connect  Server id is %ld\n", cur_id);
-    init_cb(&fci, &fcc, &php_servers[cur_id].on_connect);
+    init_cb(&fci, &fcc, &http_php_servers[cur_id].on_connect);
     if (!ZEND_FCI_INITIALIZED(fci)) {
         zend_throw_error(NULL, "on disconnect is not initialized");
     }
@@ -189,7 +188,7 @@ static PHP_FUNCTION (server_on_error) {
             Z_PARAM_FUNC(fci, fcc);ZEND_PARSE_PARAMETERS_END();
     GET_HTTP_SERV_ID();
     LOG("Server_on_error  Server id is %ld\n", cur_id);
-    init_cb(&fci, &fcc, &php_servers[cur_id].on_error);
+    init_cb(&fci, &fcc, &http_php_servers[cur_id].on_error);
     if (!ZEND_FCI_INITIALIZED(fci)) {
         zend_throw_error(NULL, "on error is not initialized");
     }
@@ -205,83 +204,6 @@ ZEND_METHOD (HttpServer, setReadBufferSize) {
 }
 
 
-PHP_FUNCTION (response_write) {
-    char *data;
-    size_t data_len;
-    ZEND_PARSE_PARAMETERS_START(1, 1)
-            Z_PARAM_STRING(data, data_len)ZEND_PARSE_PARAMETERS_END();
-    GET_HTTP_SERV_ID_FROM_RES();
-    zval rv1;
-    ZVAL_BOOL(&rv1, 0);
-    zval * current_client_zv = zend_read_property(Z_OBJ_P(ZEND_THIS)->ce, Z_OBJ_P(ZEND_THIS), PROP("current_cli"), 0,
-                                                  NULL);
-    zend_update_property(Z_OBJ_P(ZEND_THIS)->ce, Z_OBJ_P(ZEND_THIS), CLOSABLE, sizeof(CLOSABLE) - 1, &rv1);
-    unsigned long long current_client = Z_LVAL_P(current_client_zv);
-    LOG("clID: %lld\n", current_client);
-    zend_update_property(Z_OBJ_P(ZEND_THIS)->ce, Z_OBJ_P(ZEND_THIS), CLOSABLE, sizeof(CLOSABLE) - 1, &rv1);
-    unsigned int len = data_len + 1;
-    //TODO APPEND data if not writeable
-    //TODO prepare headers
-    //TODO format body
-    if (current_client != FAILURE) {
-        http_client_stream_id_item_t *client = find_http_client_stream_handle(
-                php_servers[cur_id].http_client_stream_handle_map,
-                current_client);
-        bool append = !(client->handle->write_buf.len == 0 || client->handle->write_buf.len == 1);
-        if (client->handle->write_buf.len == 0) {
-            client->handle->write_buf = uv_buf_init(emalloc(sizeof(char) * len), len);
-            memset(client->handle->write_buf.base, '\0', len);
-        } else if (client->handle->write_buf.len == 1) {
-            client->handle->write_buf.base = emalloc(sizeof(char) * len);
-            client->handle->write_buf.len = len;
-            memset(client->handle->write_buf.base, '\0', len);
-        } else {
-            client->handle->write_buf.base = erealloc(client->handle->write_buf.base,
-                                                      sizeof(char) * (client->handle->write_buf.len + data_len));
-            client->handle->write_buf.len = client->handle->write_buf.len + data_len;
-        }
-        if (append) {
-            strncat(client->handle->write_buf.base, data, data_len);
-        } else {
-            strncpy(client->handle->write_buf.base, data, data_len);
-        }
-
-        LOG("Data set to buffer: len %zu\n", client->handle->write_buf.len);
-    }
-
-}
-
-
-PHP_FUNCTION (response_end) {
-    char *data;
-    zend_long data_len;
-    ZEND_PARSE_PARAMETERS_START(1, 1)
-            Z_PARAM_STRING(data, data_len)ZEND_PARSE_PARAMETERS_END();
-    GET_HTTP_SERV_ID_FROM_RES();
-    zval closable;
-    zval * current_client_zv = zend_read_property(Z_OBJ_P(ZEND_THIS)->ce, Z_OBJ_P(ZEND_THIS), PROP("current_cli"), 0,
-                                                  NULL);
-    unsigned long long current_client = Z_LVAL_P(current_client_zv);
-    if (current_client != FAILURE) {
-        http_client_stream_id_item_t *client = find_http_client_stream_handle(
-                php_servers[cur_id].http_client_stream_handle_map,
-                current_client);
-//    ZVAL_BOOL(&closable, 1);
-        uv_poll_stop(client->handle->client_handle);
-        php_stream_free(client->handle->current_stream, PHP_STREAM_FREE_KEEP_RSRC |
-                                                        (client->handle->current_stream->is_persistent
-                                                         ? PHP_STREAM_FREE_CLOSE_PERSISTENT
-                                                         : PHP_STREAM_FREE_CLOSE));
-//    php_servers[cur_id].current_client_stream = NULL;
-        zend_update_property(Z_OBJ_P(ZEND_THIS)->ce, Z_OBJ_P(ZEND_THIS), CLOSABLE, sizeof(CLOSABLE) - 1, &closable);
-        remove_http_client_stream_handle(php_servers[cur_id].http_client_stream_handle_map, current_client);
-//        efree(client->handle->client_handle->data);
-//        efree(client->handle->client_handle);
-        efree(client->handle);
-        php_servers[cur_id].clients_count--;
-    }
-
-}
 static void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
     GET_HTTP_SERV_ID_FROM_EVENT_HANDLE();
     parse_uv_event(events, status);
@@ -290,7 +212,7 @@ static void on_listen_server_for_clients(uv_poll_t *handle, int status, int even
     php_stream *clistream = NULL;
 
 
-    php_stream_xport_accept(php_servers[cur_id].server_stream, &clistream, &textaddr, NULL, NULL, NULL, &errstr);
+    php_stream_xport_accept(http_php_servers[cur_id].server_stream, &clistream, &textaddr, NULL, NULL, NULL, &errstr);
 
     if (!clistream) {
         php_error_docref(NULL, E_ERROR, "Accept failed: %s", errstr ? ZSTR_VAL(errstr) : "Unknown error");
@@ -306,7 +228,7 @@ static void on_listen_server_for_clients(uv_poll_t *handle, int status, int even
     LOG("New connection accepted fd is %d\n ", this_fd);
 
     if (cast_result == SUCCESS && ret == SUCCESS) {
-        php_servers[cur_id].clients_count++;
+        http_php_servers[cur_id].clients_count++;
         http_client_type *que_cli_handle = emalloc(sizeof(http_client_type));
         memset(que_cli_handle, 0, sizeof(http_client_type));
         que_cli_handle->current_stream = clistream;
@@ -318,7 +240,7 @@ static void on_listen_server_for_clients(uv_poll_t *handle, int status, int even
         que_cli_handle->close_timer = timer_h;
         que_cli_handle->client_handle = cli_handle;
         this_fd = -1;
-        unsigned long long id = add_http_client_stream_handle(php_servers[cur_id].http_client_stream_handle_map,
+        unsigned long long id = add_http_client_stream_handle(http_php_servers[cur_id].http_client_stream_handle_map,
                                                               que_cli_handle);
         uv_poll_init_socket(FILE_IO_GLOBAL(loop), cli_handle, que_cli_handle->current_fd); // if the same what to do?
 //        event_handle_item handleItem = {.cur_id=cur_id, .handle_data=(void *) id, .this=((event_handle_item *) handle->data)->this};
@@ -339,22 +261,23 @@ static void on_listen_server_for_clients(uv_poll_t *handle, int status, int even
     }
     LOG("Client counts  by handles %d by counter %llu\n",
         count_http_client_stream_handles,
-        php_servers[cur_id].clients_count);
+        http_php_servers[cur_id].clients_count);
 //    exit(0);
     zend_long error = 0;
     zval retval;
     zval obj[1];
     ZVAL_OBJ(&obj[0], ((event_handle_item *) handle->data)->this);
-    php_servers[cur_id].on_connect.fci.params = obj;
-    php_servers[cur_id].on_connect.fci.param_count = 1;
-    php_servers[cur_id].on_connect.fci.object = ((event_handle_item *) handle->data)->this;
-    php_servers[cur_id].on_connect.fcc.object = ((event_handle_item *) handle->data)->this;
-    php_servers[cur_id].on_connect.fcc.called_scope = ((event_handle_item *) handle->data)->this->ce;
-    php_servers[cur_id].on_connect.fcc.calling_scope = ((event_handle_item *) handle->data)->this->ce;
-    php_servers[cur_id].on_connect.fci.retval = &retval;
+    http_php_servers[cur_id].on_connect.fci.params = obj;
+    http_php_servers[cur_id].on_connect.fci.param_count = 1;
+    http_php_servers[cur_id].on_connect.fci.object = ((event_handle_item *) handle->data)->this;
+    http_php_servers[cur_id].on_connect.fcc.object = ((event_handle_item *) handle->data)->this;
+    http_php_servers[cur_id].on_connect.fcc.called_scope = ((event_handle_item *) handle->data)->this->ce;
+    http_php_servers[cur_id].on_connect.fcc.calling_scope = ((event_handle_item *) handle->data)->this->ce;
+    http_php_servers[cur_id].on_connect.fci.retval = &retval;
     //    zend_call_method_with_1_params(NULL, NULL, NULL, "print_r", &retval, &dstr);
-    if (ZEND_FCI_INITIALIZED(php_servers[cur_id].on_connect.fci)) {
-        if (zend_call_function(&php_servers[cur_id].on_connect.fci, &php_servers[cur_id].on_connect.fcc) != SUCCESS) {
+    if (ZEND_FCI_INITIALIZED(http_php_servers[cur_id].on_connect.fci)) {
+        if (zend_call_function(&http_php_servers[cur_id].on_connect.fci, &http_php_servers[cur_id].on_connect.fcc) !=
+            SUCCESS) {
             error = -1;
         }
     } else {
@@ -382,7 +305,7 @@ static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
     request_info *requestInfo = (request_info *) event_handle->handle_data;
     unsigned long long id = requestInfo->id;
     http_client_stream_id_item_t *client = find_http_client_stream_handle(
-            php_servers[cur_id].http_client_stream_handle_map, id);
+            http_php_servers[cur_id].http_client_stream_handle_map, id);
     php_stream *clistream = client->handle->current_stream;
 
     zend_long error = 0;
@@ -398,10 +321,11 @@ static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
     on_ready_to_disconnect(handle, client, status, events);
 
     if (events & UV_READABLE && clistream) {
-        puts("on readable");
-        uv_timer_t * timer_h = client->handle->close_timer;
-        if (handle!=NULL)
-            uv_timer_stop(handle);
+        printf("on readable clistream %d unread %lld is_read %d ", clistream == NULL,
+               clistream->writepos - clistream->readpos, requestInfo->is_read);
+        uv_timer_t *timer_h = client->handle->close_timer;
+        if (timer_h != NULL)
+            uv_timer_stop(timer_h);
         zend_string * body = NULL;
         zend_string * headers = NULL;
         zval retval;
@@ -437,24 +361,20 @@ static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
 //            request = Z_OBJ(resObj);
             ZVAL_COPY(&args[0], &reqObj);
             ZVAL_COPY(&args[1], &resObj);
-            php_servers[cur_id].on_data.fci.param_count = 2;
-            php_servers[cur_id].on_data.fci.params = args;
-            php_servers[cur_id].on_data.fci.retval = &retval;
-            if (ZEND_FCI_INITIALIZED(php_servers[cur_id].on_data.fci)) {
-                if (zend_call_function(&php_servers[cur_id].on_data.fci, &php_servers[cur_id].on_data.fcc) != SUCCESS) {
+            http_php_servers[cur_id].on_data.fci.param_count = 2;
+            http_php_servers[cur_id].on_data.fci.params = args;
+            http_php_servers[cur_id].on_data.fci.retval = &retval;
+            if (ZEND_FCI_INITIALIZED(http_php_servers[cur_id].on_data.fci)) {
+                if (zend_call_function(&http_php_servers[cur_id].on_data.fci, &http_php_servers[cur_id].on_data.fcc) !=
+                    SUCCESS) {
                     error = -1;
                 }
             } else {
                 error = -2;
             }
-            uv_timer_start(timer_h, close_timer_cb,3,0);
-
+            uv_timer_start(timer_h, close_timer_cb, 1, 0);
+            requestInfo->is_read = true;
             parse_fci_error(error, "on data");
-            closable_zv = zend_read_property(event_handle->this->ce, event_handle->this, CLOSABLE, sizeof(CLOSABLE) - 1,
-                                             0,
-                                             NULL);
-            closable = Z_TYPE_INFO_P(closable_zv);
-            LOG("closable %s\n", closable == IS_TRUE ? "true" : "false");
         }
     } else {
 //        puts("no headers are present");
@@ -462,7 +382,6 @@ static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
     }
 
 }
-
 
 
 static void on_ready_to_write(uv_poll_t *handle,  http_client_stream_id_item_t * client, int status, int events) {
@@ -486,21 +405,22 @@ static void on_ready_to_write(uv_poll_t *handle,  http_client_stream_id_item_t *
 
 }
 
-static void on_ready_to_disconnect(uv_poll_t *handle,  http_client_stream_id_item_t * client, int status, int events){
+static void on_ready_to_disconnect(uv_poll_t *handle,  http_client_stream_id_item_t * client, int status, int events) {
     GET_HTTP_SERV_ID_FROM_EVENT_HANDLE();
     php_stream *clistream = client->handle->current_stream;
     event_handle_item *event_handle = (event_handle_item *) handle->data;
     request_info *requestInfo = (request_info *) event_handle->handle_data;
     zend_long error = 0;
     if (events & UV_DISCONNECT)
-        LOG("-------------- READY FOR DISCONNECT(%d)----------\n", events);
+        LOG("-------------- READY FOR DISCONNECT(%d) clients %d----------\n", events, count_http_client_stream_handles);
 
     if (requestInfo->is_read && (php_stream_eof(clistream) || (clistream->writepos - clistream->readpos) >= 0) &&
         client->handle->write_buf.len <= 1) {
 //zend_fcall_info_argn
         uv_poll_stop(handle);
-        if (events == 5 && ZEND_FCI_INITIALIZED(php_servers[cur_id].on_disconnect.fci)) {
-            if (zend_call_function(&php_servers[cur_id].on_disconnect.fci, &php_servers[cur_id].on_disconnect.fcc) !=
+        if (events == 5 && ZEND_FCI_INITIALIZED(http_php_servers[cur_id].on_disconnect.fci)) {
+            if (zend_call_function(&http_php_servers[cur_id].on_disconnect.fci,
+                                   &http_php_servers[cur_id].on_disconnect.fcc) !=
                 SUCCESS) {
                 error = -1;
             }
@@ -511,21 +431,21 @@ static void on_ready_to_disconnect(uv_poll_t *handle,  http_client_stream_id_ite
         php_stream_free(clistream, PHP_STREAM_FREE_KEEP_RSRC |
                                    (clistream->is_persistent ? PHP_STREAM_FREE_CLOSE_PERSISTENT
                                                              : PHP_STREAM_FREE_CLOSE));
-        remove_http_client_stream_handle(php_servers[cur_id].http_client_stream_handle_map, client->handle_id);
+        remove_http_client_stream_handle(http_php_servers[cur_id].http_client_stream_handle_map, client->handle_id);
         efree(client->handle);
         efree(handle->data);
         efree(handle);
-        php_servers[cur_id].clients_count--;
+        http_php_servers[cur_id].clients_count--;
         return;
     }
 }
 
 static const zend_function_entry class_HttpServer_methods[] = {
-        ZEND_ME_MAPPING(__construct, server, arginfo_server, ZEND_ACC_PUBLIC)
-        ZEND_ME_MAPPING(on_request, server_on_request, arginfo_server_event_handler, ZEND_ACC_PUBLIC)
-        ZEND_ME_MAPPING(on_connect, server_on_connect, arginfo_server_event_handler, ZEND_ACC_PUBLIC)
-        ZEND_ME_MAPPING(on_disconnect, server_on_disconnect, arginfo_server_event_handler, ZEND_ACC_PUBLIC)
-        ZEND_ME_MAPPING(on_error, server_on_error, arginfo_server_event_handler, ZEND_ACC_PUBLIC)
+        ZEND_ME_MAPPING(__construct, server, arginfo_http_server, ZEND_ACC_PUBLIC)
+        ZEND_ME_MAPPING(on_request, server_on_request, arginfo_http_server_event_handler, ZEND_ACC_PUBLIC)
+        ZEND_ME_MAPPING(on_connect, server_on_connect, arginfo_http_server_event_handler, ZEND_ACC_PUBLIC)
+        ZEND_ME_MAPPING(on_disconnect, server_on_disconnect, arginfo_http_server_event_handler, ZEND_ACC_PUBLIC)
+        ZEND_ME_MAPPING(on_error, server_on_error, arginfo_http_server_event_handler, ZEND_ACC_PUBLIC)
         PHP_FE_END
 };
 
@@ -559,7 +479,7 @@ static const zend_function_entry class_ServerRequest_methods[] = {
 
 zend_class_entry *register_class_HttpRequest(void) {
     zend_class_entry ce;
-    short flags_pb_ro = ZEND_ACC_READONLY;
+    short flags_pb_ro = ZEND_ACC_PUBLIC | ZEND_ACC_READONLY;
     INIT_CLASS_ENTRY(ce, "HttpRequest", class_ServerRequest_methods);
     FILE_IO_GLOBAL(http_request_class) = zend_register_internal_class_ex(&ce, NULL);
     FILE_IO_GLOBAL(http_request_class)->ce_flags |= ZEND_ACC_NO_DYNAMIC_PROPERTIES;
@@ -574,28 +494,6 @@ zend_class_entry *register_class_HttpRequest(void) {
     zval query;
     ZVAL_EMPTY_ARRAY(&query);//TODO REWRITE ON TYPED PROPERTY
     zend_declare_property(FILE_IO_GLOBAL(http_request_class), PROP("query"), &query, flags_pb_ro);
-
-    return FILE_IO_GLOBAL(http_request_class);
-}
-
-static const zend_function_entry class_ServerResponse_methods[] = {
-        ZEND_ME_MAPPING(send, response_write, arginfo_server_write, ZEND_ACC_PUBLIC)
-        ZEND_ME_MAPPING(end, response_end, arginfo_server_write, ZEND_ACC_PUBLIC)
-        PHP_FE_END
-};
-
-zend_class_entry *register_class_HttpResponse(void) {
-    zend_class_entry ce;
-    short flags_pb_ro = ZEND_ACC_READONLY;
-    INIT_CLASS_ENTRY(ce, "HttpResponse", class_ServerResponse_methods);
-    FILE_IO_GLOBAL(http_response_class) = zend_register_internal_class_ex(&ce, NULL);
-//    FILE_IO_GLOBAL(http_request_class)->ce_flags |= ZEND_ACC_NO_DYNAMIC_PROPERTIES | ZEND_ACC_NOT_SERIALIZABLE;
-    zend_declare_property_string(FILE_IO_GLOBAL(http_response_class), PROP("statusCode"), "", flags_pb_ro);
-    zend_declare_property_string(FILE_IO_GLOBAL(http_response_class), PROP("body"), "", flags_pb_ro);
-    zval ht;
-    ZVAL_EMPTY_ARRAY(&ht);//TODO REWRITE ON TYPED PROPERTY
-    zend_declare_property(FILE_IO_GLOBAL(http_response_class), PROP("headers"), &ht, flags_pb_ro);
-
 
     return FILE_IO_GLOBAL(http_request_class);
 }

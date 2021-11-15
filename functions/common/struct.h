@@ -18,8 +18,14 @@
         type * handle;                                                                  \
     } name##_id_item_t;
 
+#define CREATE_HANDLE_LIST_HEADERS(name, type) extern unsigned short count_##name##_handles; \
+unsigned short find_place_##name##_for_handle(name##_id_item_t * name##_handle_map);                \
+unsigned long long add_##name##_handle(name##_id_item_t * name##_handle_map, type *handle);          \
+void remove_##name##_handle(name##_id_item_t * name##_handle_map,unsigned long long handleId);      \
+name##_id_item_t * find_##name##_handle(name##_id_item_t * name##_handle_map, unsigned long long handleId);   \
+
 #define CREATE_HANDLE_LIST(name, type)     \
-static unsigned short count_##name##_handles = 0;\
+unsigned short count_##name##_handles = 0;\
 unsigned short find_place_##name##_for_handle(name##_id_item_t * name##_handle_map) {                                                        \
     unsigned short i = 0;                                                               \
     for (; i < HANDLE_MAP_SIZE; i++) {                                                  \
@@ -44,7 +50,8 @@ name##_id_item_t * find_##name##_handle(name##_id_item_t * name##_handle_map, un
                                                                                         \
             return &name##_handle_map[i];                                                 \
         }                                                                                \
-    }                                                                                    \
+    }                                      \
+     return NULL; \
 }                                                                                        \
 void remove_##name##_handle(name##_id_item_t * name##_handle_map,unsigned long long handleId) {                                        \
     name##_id_item_t *tempItems = emalloc(HANDLE_MAP_SIZE * sizeof(name##_id_item_t));               \
@@ -52,8 +59,8 @@ void remove_##name##_handle(name##_id_item_t * name##_handle_map,unsigned long l
     unsigned short tagret = 0;                                                           \
     for (; i < HANDLE_MAP_SIZE; i++) {                                                   \
         if (name##_handle_map[i].handle_id == handleId) {                               \
-            memset(name##_handle_map+i,0,sizeof(name##_id_item_t));                        \
             printf("Element #%d with handle_id=%llu was removed\n", i, name##_handle_map[i].handle_id);                                      \
+            memset(name##_handle_map+i,0,sizeof(name##_id_item_t));                        \
             count_##name##_handles--;      \
             break;                                                                    \
         }                                                                               \
