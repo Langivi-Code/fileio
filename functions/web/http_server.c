@@ -104,7 +104,7 @@ static PHP_FUNCTION (server) {
                                                                  STREAM_XPORT_SERVER | (int) flags,
 
                                                                  NULL, NULL, NULL, &errstr, &err);
-    get_meta_data(php_servers[cur_id].server_stream);
+
     if (php_servers[cur_id].server_stream == NULL) {
         php_error_docref(NULL, E_WARNING, "Unable to connect  %s\n",
                          errstr == NULL ? "Unknown error" : ZSTR_VAL(errstr));
@@ -116,7 +116,7 @@ static PHP_FUNCTION (server) {
     zend_result cast_result;
     php_servers[cur_id].server_fd = cast_to_fd(php_servers[cur_id].server_stream, &cast_result);
     LOG("Server FD is: %d\n", php_servers[cur_id].server_fd);
-
+    get_meta_data(php_servers[cur_id].server_stream);
 
     init_cb(&fci, &fcc, &php_servers[cur_id].on_connect);
 
@@ -400,8 +400,8 @@ static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
     if (events & UV_READABLE && clistream) {
         puts("on readable");
         uv_timer_t * timer_h = client->handle->close_timer;
-//        if (handle!=NULL)
-//            uv_timer_stop(handle);
+        if (handle!=NULL)
+            uv_timer_stop(handle);
         zend_string * body = NULL;
         zend_string * headers = NULL;
         zval retval;
@@ -426,7 +426,7 @@ static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
             /// get headers////
             body = php_stream_read_to_str(clistream, data_buf); //TODO RESTORE SIZE TO READ OR USE ANOTHER READ FUCNTION
             int position = php_stream_tell(clistream);
-            get_meta_data(clistream);
+//            get_meta_data(clistream);
             zend_update_property_string(request->ce, request, PROP("body"), ZSTR_VAL(body));
             zval server;
             ZVAL_OBJ(&server, event_handle->this);

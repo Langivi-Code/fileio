@@ -146,7 +146,6 @@ void parse(char *headers, size_t len, zend_object *request) {
 
     llhttp_init(&parser, HTTP_REQUEST, &settings);
     parser.data = data;
-    printf("%p\n", data);
 /* Use `llhttp_set_type(&parser, HTTP_REQUEST);` to override the mode */
 
     enum llhttp_errno err = llhttp_execute(&parser, headers, len);
