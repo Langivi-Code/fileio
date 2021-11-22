@@ -20,18 +20,22 @@ PHP_FUNCTION (response_write) {
             Z_PARAM_STRING(data, data_len)ZEND_PARSE_PARAMETERS_END();
     GET_HTTP_SERV_ID_FROM_RES();
     zend_object * this = Z_OBJ_P(ZEND_THIS);
-    puts("crshed");
+
     zval * current_client_zv = zend_read_property(this->ce, this, PROP("current_cli"), 0, NULL);
     zval * status_code_zv = zend_read_property(this->ce, this, PROP("statusCode"), 0, NULL);
     char message[100] = "\0";
     sprintf(message, "HTTP/1.1 %s\r\n", status_message(Z_LVAL_P(status_code_zv)));
     response_obj *responseObj = responseObj_from_zend_obj(Z_OBJ_P(ZEND_THIS));
     zend_string * headers_first = zend_string_init_fast(message, strlen(message));
+
     zend_string * headers = stringify(responseObj->headers);
-    headers_first = zend_string_concat3(ZSTR_VAL(headers_first), ZSTR_LEN(headers_first), ZSTR_VAL(headers),
+    zend_string *  all_headers = zend_string_concat3(ZSTR_VAL(headers_first), ZSTR_LEN(headers_first), ZSTR_VAL(headers),
                                         ZSTR_LEN(headers), "\r\n", 2);
-    headers_first = zend_string_concat2(ZSTR_VAL(headers_first), ZSTR_LEN(headers_first), data, data_len);
-    printf("headers:\n %s", ZSTR_VAL(headers_first));
+    zend_string *  all_headers_with_data = zend_string_concat2(ZSTR_VAL(all_headers), ZSTR_LEN(all_headers), data, data_len);
+    zend_string_release(headers_first);
+    zend_string_release(headers);
+    zend_string_release(all_headers);
+    printf("headers:\n%s", ZSTR_VAL(all_headers_with_data));
     unsigned long long current_client = Z_LVAL_P(current_client_zv);
     LOG("clID: %lld %lld\n", current_client, cur_id);
 
@@ -44,7 +48,7 @@ PHP_FUNCTION (response_write) {
         http_client_stream_id_item_t *client = find_http_client_stream_handle(
                 http_php_servers[cur_id].http_client_stream_handle_map,
                 current_client);
-        zend_long len = ZSTR_LEN(headers_first) + 1;
+        zend_long len = ZSTR_LEN(all_headers_with_data) + 1;
         bool append = !(client->handle->write_buf.len == 0 || client->handle->write_buf.len == 1);
         if (client->handle->write_buf.len == 0) {
             client->handle->write_buf = uv_buf_init(emalloc(sizeof(char) * len), len);
@@ -60,14 +64,13 @@ PHP_FUNCTION (response_write) {
         }
 
         if (append) {
-            strncat(client->handle->write_buf.base, ZSTR_VAL(headers_first), len);
+            strncat(client->handle->write_buf.base, ZSTR_VAL(all_headers_with_data), len);
         } else {
-            strncpy(client->handle->write_buf.base, ZSTR_VAL(headers_first), len);
+            strncpy(client->handle->write_buf.base, ZSTR_VAL(all_headers_with_data), len);
         }
+        zend_string_release(all_headers_with_data);
 
-        zend_string_release(headers_first);
-        zend_string_release(headers_first);
-        LOG("Data set to buffer: len %zu\n", ZSTR_LEN(headers_first));
+        LOG("Data set to buffer: len %zu\n", ZSTR_LEN(all_headers_with_data));
     }
 
 }

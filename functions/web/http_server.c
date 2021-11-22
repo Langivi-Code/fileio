@@ -5,7 +5,8 @@
 #include <zend_API.h>
 
 #include <uv.h>
-#include <stdnoreturn.h>
+#include <php_variables.h>
+
 #include "../common/fill_event_handle.h"
 #include "../../php_fileio.h"
 #include "ext/standard/file.h"
@@ -309,11 +310,7 @@ static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
     php_stream *clistream = client->handle->current_stream;
 
     zend_long error = 0;
-    zval * closable_zv;
-    long closable;
-    closable_zv = zend_read_property(event_handle->this->ce, event_handle->this, CLOSABLE, sizeof(CLOSABLE) - 1, 0,
-                                     NULL);
-    closable = Z_TYPE_INFO_P(closable_zv);
+
     if (events & UV_WRITABLE) {
         on_ready_to_write(handle,client, status, events);
     }
@@ -328,9 +325,12 @@ static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
             uv_timer_stop(timer_h);
         zend_string * body = NULL;
         zend_string * headers = NULL;
+        zend_off_t data_buf = clistream->writepos - clistream->readpos;
         zval retval;
         zval args[2];
-        LOG("Unread bytes before read %lld\n", clistream->writepos - clistream->readpos);
+        LOG("Unread bytes before read %ld\n", data_buf);
+
+        const long long size = data_buf?data_buf:PHP_SOCK_CHUNK_SIZE;
 //        get_meta_data(clistream);
         /// get headers////
         char len[] = "\r\n\r\n";
@@ -343,22 +343,52 @@ static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
             request = Z_OBJ(reqObj);
             parse(ZSTR_VAL(headers), ZSTR_LEN(headers), request);
 
-            ZVAL_OBJ(&reqObj, request);
-//            php_var_dump(&reqObj, 1);
-            LOG("Unread bytes after read  %lld\n", clistream->writepos - clistream->readpos);
-            zend_off_t data_buf = clistream->writepos - clistream->readpos;
+            data_buf = clistream->writepos - clistream->readpos;
+            LOG("Unread bytes after read  %lld\n", data_buf);
+
             /// get headers////
             body = php_stream_read_to_str(clistream, data_buf); //TODO RESTORE SIZE TO READ OR USE ANOTHER READ FUCNTION
+            ZVAL_OBJ(&reqObj, request);
+            zval * _get = zend_read_property(request->ce, request, PROP("query"),0, NULL);
+            fill_super_global(TRACK_VARS_GET, _get);
+            fill_super_global(TRACK_VARS_GET, _get);
+            /******************************/
+            zval * _headers = zend_read_property(request->ce, request, PROP("headers"),0, NULL);
+            zval * content_type = zend_hash_str_find(Z_ARR_P(_headers), PROP("Content-Type"));
+            if (strcmp(Z_STRVAL_P(content_type), "application/x-www-form-urlencoded")==0){
+                puts(ZSTR_VAL(body));
+                puts("body found");
+                key_value_collection post_query = parse_querystring(ZSTR_VAL(body));
+                printf("POST size %zu", post_query.size);
+                zval zv_post;
+                if (post_query.size>0){
+                    array_init_size(&zv_post, post_query.size);
+                    for (int i = 0; i < post_query.size; ++i) {
+                        printf("key %s\n", post_query.kv[i].key);
+                        printf("value %s\n", post_query.kv[i].value);
+//                        add_assoc_string(&zv_post, post_query.kv[i].key, post_query.kv[i].value);
+                        php_register_variable_safe(post_query.kv[i].key,post_query.kv[i].value, strlen(post_query.kv[i].value), &PG(http_globals)[TRACK_VARS_POST]);
+                    }
+
+//
+                    zend_update_property(request->ce, request, PROP("body"), &PG(http_globals)[TRACK_VARS_POST]);
+
+                }
+
+            }
+
+            /******************************/
             int position = php_stream_tell(clistream);
 //            get_meta_data(clistream);
-            zend_update_property_string(request->ce, request, PROP("body"), ZSTR_VAL(body));
+
+
             zval server;
             ZVAL_OBJ(&server, event_handle->this);
             LOG("Data pointer pos -  %d, Server id is %ld\n", position, cur_id);
             object_init_ex(&resObj, FILE_IO_GLOBAL(http_response_class));
             zend_update_property(Z_OBJ(resObj)->ce, Z_OBJ(resObj), PROP("server"), &server);
             zend_update_property_long(Z_OBJ(resObj)->ce, Z_OBJ(resObj), PROP("current_cli"), id);
-//            request = Z_OBJ(resObj);
+
             ZVAL_COPY(&args[0], &reqObj);
             ZVAL_COPY(&args[1], &resObj);
             http_php_servers[cur_id].on_data.fci.param_count = 2;
@@ -372,6 +402,7 @@ static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
             } else {
                 error = -2;
             }
+            printf("GET pointer %p\n", &PG(http_globals)[TRACK_VARS_GET]);
             uv_timer_start(timer_h, close_timer_cb, 1, 0);
             requestInfo->is_read = true;
             parse_fci_error(error, "on data");
@@ -385,7 +416,6 @@ static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
 
 
 static void on_ready_to_write(uv_poll_t *handle,  http_client_stream_id_item_t * client, int status, int events) {
-    event_handle_item *event_handle = (event_handle_item *) handle->data;
     php_stream *clistream = client->handle->current_stream;
     if (clistream != NULL) {
         if (client->handle->write_buf.len > 1) {
@@ -396,9 +426,6 @@ static void on_ready_to_write(uv_poll_t *handle,  http_client_stream_id_item_t *
             efree(client->handle->write_buf.base);
             client->handle->write_buf.len = 1;
         }
-        zval rv1;
-        ZVAL_BOOL(&rv1, 1);
-        zend_update_property(event_handle->this->ce, event_handle->this, PROP(CLOSABLE), &rv1);
     } else {
         puts("Client handle is empty");
     }
@@ -411,8 +438,11 @@ static void on_ready_to_disconnect(uv_poll_t *handle,  http_client_stream_id_ite
     event_handle_item *event_handle = (event_handle_item *) handle->data;
     request_info *requestInfo = (request_info *) event_handle->handle_data;
     zend_long error = 0;
-    if (events & UV_DISCONNECT)
+    if (events & UV_DISCONNECT){
         LOG("-------------- READY FOR DISCONNECT(%d) clients %d----------\n", events, count_http_client_stream_handles);
+        uv_poll_stop(handle);
+    }
+
 
     if (requestInfo->is_read && (php_stream_eof(clistream) || (clistream->writepos - clistream->readpos) >= 0) &&
         client->handle->write_buf.len <= 1) {

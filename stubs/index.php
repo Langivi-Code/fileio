@@ -12,9 +12,10 @@ function test(PromiseStatus $status)
 //               );
 // var_dump($serv);
 //$file = file_get_contents("./stubs/index.html");
-$serv1 = new HttpServer(8000, "tcp://0.0.0.0", []);
+$serv1 = new HttpServer(8001, "tcp://0.0.0.0", []);
 
 $serv1->on_request(function (HttpRequest $req, HttpResponse $res) {
+// var_dump($_POST, $_GET);
     var_dump($req);
 //    $len = strlen($file);
 //    echo "Request details\n";
@@ -32,7 +33,7 @@ $serv1->on_request(function (HttpRequest $req, HttpResponse $res) {
 //        return;
 //    } else {
         $res->setHeader("content-length", "5");
-        $res->setHeader("content-type", "text/html; charset=utf-8");
+        $res->setHeader("content-type", "text/plain; charset=utf-8");
         $res->send("hello");
 //    }
 });

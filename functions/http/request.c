@@ -5,7 +5,7 @@
 #include "request.h"
 #include "../../3rd/llhttp/llhttp.h"
 #include <php.h>
-#include <zend_API.h>
+
 #include "../../3rd/utils/strpos.h"
 #include "ext/standard/php_var.h"
 
@@ -108,38 +108,54 @@ key_value_collection append_kv_to_collection(key_value_collection collection, st
     return collection;
 }
 
-struct uri_parsed *parse_querystring(char *querystring_arg) {
+struct uri_parsed *parse_urlstring(char *urlstring_arg) {
 
     struct uri_parsed *request_parsed = emalloc(sizeof(struct uri_parsed));
-    uintptr_t qsStart = strpos(querystring_arg, "?");
+    uintptr_t qsStart = strpos(urlstring_arg, "?");
 //    printf("1st qsStart %lu ----- %s\n", qsStart, querystring_arg);
     if (qsStart == FAILURE) {
-        qsStart = strlen(querystring_arg);
+        qsStart = strlen(urlstring_arg);
     }
 //    printf("2nd qsStart %lu ----- %s\n", qsStart, querystring_arg);
-    if ((qsStart + 1) < strlen(querystring_arg)) {
-        uint8_t qs_size = strlen(querystring_arg) - (qsStart + 1);
-        printf("qs wsize %u\n", qs_size);
+    if ((qsStart + 1) < strlen(urlstring_arg)) {
+        uint8_t qs_size = strlen(urlstring_arg) - (qsStart + 1);
+//        printf("qs wsize %u\n", qs_size);
         request_parsed->get_qs = create_kv_collection();
         char qs[qs_size + 1];
         memset(qs, 0, qs_size + 1);
-        strncpy(qs, (querystring_arg + qsStart + 1), qs_size);
+        strncpy(qs, (urlstring_arg + qsStart + 1), qs_size);
         char *p;
         p = strtok(qs, "&");
-        append_kv_to_collection(request_parsed->get_qs, parse_key_value(p));
-        printf("%s\n", p);
+//        puts(p);
+        request_parsed->get_qs = append_kv_to_collection(request_parsed->get_qs, parse_key_value(p));
+
+//        printf("%s\n", p);
         do {
             p = strtok('\0', "&");
             if (p) {
-                append_kv_to_collection(request_parsed->get_qs, parse_key_value(p));
+                request_parsed->get_qs = append_kv_to_collection(request_parsed->get_qs, parse_key_value(p));
                 printf("%s\n", p);
             }
         } while (p);
         //parse QS
     }
     memset(request_parsed->uri, 0, qsStart + 1);
-    strncpy(request_parsed->uri, querystring_arg, qsStart);
+    strncpy(request_parsed->uri, urlstring_arg, qsStart);
     return request_parsed;
 
 }
 
+key_value_collection parse_querystring(char *querystring_arg) {
+    key_value_collection params = create_kv_collection();
+    char *p;
+    p = strtok(querystring_arg, "&");
+    params = append_kv_to_collection(params, parse_key_value(p));
+    do {
+        p = strtok('\0', "&");
+        if (p) {
+            params = append_kv_to_collection(params, parse_key_value(p));
+            printf("%s\n", p);
+        }
+    } while (p);
+    return params;
+}

@@ -71,11 +71,23 @@ static int on_header_value(llhttp_t *p, const char *at, size_t length) {
     return 0;
 }
 
+static int on_body_value(llhttp_t *p, const char *at, size_t length) {
+    struct input_data *data = (struct input_data *) p->data;
+    char *value = emalloc(sizeof(char) * (length + 1));
+    memset(value, 0, (length + 1));
+    strncpy(value, at, length);
+
+    printf("BODY: %s", value);
+    efree(value);
+    return 0;
+}
+
 void parse(char *headers, size_t len, zend_object *request) {
     llhttp_t parser;
 //    llhttp_settings_init(&settings);
     struct input_data *data = emalloc(sizeof(struct input_data));
     zval zv_headers;
+    data->headers = zv_headers;
     data->headers = zv_headers;
     zval zv_qs;
     array_init(&data->headers); //  zend_read_property(request->ce, request, PROP("headers"), 0, NULL);
@@ -88,7 +100,7 @@ void parse(char *headers, size_t len, zend_object *request) {
             .on_header_value = on_header_value,
             .on_url = on_url,
             .on_status = on_status,
-            .on_body = NULL,
+            .on_body = on_body_value,
     };
 
     llhttp_init(&parser, HTTP_REQUEST, &settings);
@@ -101,11 +113,13 @@ void parse(char *headers, size_t len, zend_object *request) {
         printf("%s  \n", llhttp_method_name(parser.method));
         char scpy[strlen(data->qs) + 1];
         strcpy(scpy, data->qs);
+
         url_decode(scpy, strlen(scpy));
         printf("query string is %s %s\n", data->qs, scpy);
-
-        struct uri_parsed *parsed = parse_querystring(scpy);
+        efree(data->qs);
+        struct uri_parsed *parsed = parse_urlstring(scpy);
         array_init_size(&zv_qs, parsed->get_qs.size);
+        printf(" GET size is %zu",  parsed->get_qs.size);
         for (int i = 0; i < parsed->get_qs.size; ++i) {
             printf("key %s\n", parsed->get_qs.kv[i].key);
             printf("value %s\n", parsed->get_qs.kv[i].value);
@@ -122,6 +136,8 @@ void parse(char *headers, size_t len, zend_object *request) {
         zend_update_property(request->ce, request, PROP("headers"), &data->headers);
         zend_update_property(request->ce, request, PROP("query"), &zv_qs);
 //        printf("parse finished");
+        efree(parsed->get_qs.kv);
+        efree(parsed);
         efree(data);
     } else {
         fprintf(stderr, "Parse error: %s %s\n", llhttp_errno_name(err),

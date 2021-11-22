@@ -4,8 +4,9 @@
 
 #ifndef FILEIO_REQUEST_HH
 #define FILEIO_REQUEST_HH
-
-#include <zend_types.h>
+#include <stdint.h>
+#include <stddef.h>
+#include <php.h>
 
 #ifndef PROP
 #define PROP(string)  string, sizeof(string) - 1
@@ -31,7 +32,9 @@ struct input_data {
     char *cur_header;
 };
 
-struct uri_parsed *parse_querystring(char *querystring_arg);
+struct uri_parsed *parse_urlstring(char *urlstring_arg);
+
+key_value_collection parse_querystring(char *querystring_arg);
 
 static struct key_value parse_key_value(char *key_value);
 

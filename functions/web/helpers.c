@@ -117,3 +117,25 @@ int cast_to_fd(php_stream *stream, zend_result *result) {
 int set_non_blocking(php_stream * stream) {
     return stream->ops->set_option(stream, PHP_STREAM_OPTION_BLOCKING, 0, NULL);
 }
+
+bool fill_super_global(const unsigned char name, zval * value){
+    zend_string * numb_var;
+    switch (name) {
+        case TRACK_VARS_GET:
+             numb_var = zend_string_init_interned("_GET", sizeof("_GET")-1, 1);
+            break;
+        case TRACK_VARS_POST:
+             numb_var =  zend_string_init_interned("_POST", sizeof("_POST")-1, 1);
+            break;
+        case TRACK_VARS_COOKIE:
+            numb_var =  zend_string_init_interned("_COOKIE", sizeof("_COOKIE")-1, 1);
+            break;
+        default:
+            return false;
+    }
+
+    ZVAL_COPY_VALUE( &PG(http_globals)[name], value);
+    zend_hash_update(&EG(symbol_table), numb_var, &PG(http_globals)[name]);
+    Z_ADDREF(PG(http_globals)[name]);
+    return true;
+}
