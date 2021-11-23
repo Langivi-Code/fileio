@@ -48,26 +48,17 @@ PHP_FUNCTION (response_write) {
         http_client_stream_id_item_t *client = find_http_client_stream_handle(
                 http_php_servers[cur_id].http_client_stream_handle_map,
                 current_client);
-        zend_long len = ZSTR_LEN(all_headers_with_data) + 1;
-        bool append = !(client->handle->write_buf.len == 0 || client->handle->write_buf.len == 1);
+        zend_long len = ZSTR_LEN(all_headers_with_data);
         if (client->handle->write_buf.len == 0) {
             client->handle->write_buf = uv_buf_init(emalloc(sizeof(char) * len), len);
-            memset(client->handle->write_buf.base, '\0', len);
-        } else if (client->handle->write_buf.len == 1) {
-            client->handle->write_buf.base = emalloc(sizeof(char) * len);
-            client->handle->write_buf.len = len;
-            memset(client->handle->write_buf.base, '\0', len);
+            memset(client->handle->write_buf.base, 0, len);
         } else {
             client->handle->write_buf.base = erealloc(client->handle->write_buf.base,
                                                       sizeof(char) * (client->handle->write_buf.len + len));
             client->handle->write_buf.len = client->handle->write_buf.len + len;
         }
 
-        if (append) {
-            strncat(client->handle->write_buf.base, ZSTR_VAL(all_headers_with_data), len);
-        } else {
-            strncpy(client->handle->write_buf.base, ZSTR_VAL(all_headers_with_data), len);
-        }
+        strncpy(client->handle->write_buf.base, ZSTR_VAL(all_headers_with_data), len);
         zend_string_release(all_headers_with_data);
 
         LOG("Data set to buffer: len %zu\n", ZSTR_LEN(all_headers_with_data));

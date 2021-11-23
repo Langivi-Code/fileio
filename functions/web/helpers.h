@@ -10,4 +10,5 @@ void parse_fci_error(long error, const char *func_name);
 void parse_uv_event(int event, int status);
 int cast_to_fd(php_stream *stream,zend_result *cast_result);
 int set_non_blocking(php_stream * stream);
+bool fill_super_global(const unsigned char name, zval * value);
 #endif //FILEIO_HELPERS_H

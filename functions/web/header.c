@@ -8,6 +8,7 @@
 #include "../../fileio_arginfo.h"
 #include <php.h>
 #include <zend_API.h>
+#include <php_variables.h>
 #include "../http/request.h"
 #include "../../3rd/utils/strpos.h"
 #include "ext/standard/php_var.h"
@@ -89,7 +90,6 @@ void parse(char *headers, size_t len, zend_object *request) {
     zval zv_headers;
     data->headers = zv_headers;
     data->headers = zv_headers;
-    zval zv_qs;
     array_init(&data->headers); //  zend_read_property(request->ce, request, PROP("headers"), 0, NULL);
 
     llhttp_settings_t settings = {
@@ -118,12 +118,11 @@ void parse(char *headers, size_t len, zend_object *request) {
         printf("query string is %s %s\n", data->qs, scpy);
         efree(data->qs);
         struct uri_parsed *parsed = parse_urlstring(scpy);
-        array_init_size(&zv_qs, parsed->get_qs.size);
-        printf(" GET size is %zu",  parsed->get_qs.size);
+        printf(" GET size is %zu\n",  parsed->get_qs.size);
         for (int i = 0; i < parsed->get_qs.size; ++i) {
             printf("key %s\n", parsed->get_qs.kv[i].key);
             printf("value %s\n", parsed->get_qs.kv[i].value);
-            add_assoc_string(&zv_qs, parsed->get_qs.kv[i].key, parsed->get_qs.kv[i].value);
+            php_register_variable_safe(parsed->get_qs.kv[i].key,parsed->get_qs.kv[i].value, strlen(parsed->get_qs.kv[i].value), &PG(http_globals)[TRACK_VARS_GET]);
         }
 
         char version[5] = "\0";
@@ -134,7 +133,7 @@ void parse(char *headers, size_t len, zend_object *request) {
         zend_update_property_string(request->ce, request, PROP("HttpVersion"), version);
         zend_update_property_string(request->ce, request, PROP("uri"), parsed->uri);
         zend_update_property(request->ce, request, PROP("headers"), &data->headers);
-        zend_update_property(request->ce, request, PROP("query"), &zv_qs);
+        zend_update_property(request->ce, request, PROP("query"), &PG(http_globals)[TRACK_VARS_GET]);
 //        printf("parse finished");
         efree(parsed->get_qs.kv);
         efree(parsed);

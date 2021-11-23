@@ -15,8 +15,8 @@ function test(PromiseStatus $status)
 $serv1 = new HttpServer(8001, "tcp://0.0.0.0", []);
 
 $serv1->on_request(function (HttpRequest $req, HttpResponse $res) {
-// var_dump($_POST, $_GET);
-    var_dump($req);
+//  var_dump($_POST);
+//     var_dump($req);
 //    $len = strlen($file);
 //    echo "Request details\n";
 //    echo "Request uri {$req->uri}\n";
@@ -32,9 +32,9 @@ $serv1->on_request(function (HttpRequest $req, HttpResponse $res) {
 //        $res->send("\r\nNothing to send");
 //        return;
 //    } else {
-        $res->setHeader("content-length", "5");
-        $res->setHeader("content-type", "text/plain; charset=utf-8");
-        $res->send("hello");
+        $res->setHeader("content-length", "10");
+        $res->setHeader("Content-Type", "text/plain; charset=utf-8");
+        $res->send("hello\n");
 //    }
 });
 // $serv1->write("from php hello");

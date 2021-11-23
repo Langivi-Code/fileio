@@ -17,5 +17,5 @@
 zend_string *stringify(key_value_collection collection);
 
 void parse(char *headers, size_t len, zend_object *request);
-bool fill_super_global(const unsigned char name, zval * value);
+
 #endif //FILEIO_HEADER_H

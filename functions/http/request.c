@@ -111,6 +111,7 @@ key_value_collection append_kv_to_collection(key_value_collection collection, st
 struct uri_parsed *parse_urlstring(char *urlstring_arg) {
 
     struct uri_parsed *request_parsed = emalloc(sizeof(struct uri_parsed));
+    memset(request_parsed, 0, sizeof(struct uri_parsed));
     uintptr_t qsStart = strpos(urlstring_arg, "?");
 //    printf("1st qsStart %lu ----- %s\n", qsStart, querystring_arg);
     if (qsStart == FAILURE) {
