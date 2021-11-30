@@ -54,7 +54,6 @@ name##_id_item_t * find_##name##_handle(name##_id_item_t * name##_handle_map, un
      return NULL; \
 }                                                                                        \
 void remove_##name##_handle(name##_id_item_t * name##_handle_map,unsigned long long handleId) {                                        \
-    name##_id_item_t *tempItems = emalloc(HANDLE_MAP_SIZE * sizeof(name##_id_item_t));               \
     unsigned short i = 0;                                                                \
     unsigned short tagret = 0;                                                           \
     for (; i < HANDLE_MAP_SIZE; i++) {                                                   \

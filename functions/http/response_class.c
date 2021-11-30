@@ -2,6 +2,7 @@
 // Created by admin on 15.11.2021.
 //
 #include <php.h>
+#include "../common/mem.h"
 #include "response_class.h"
 #include "response.h"
 #include "../../php_fileio.h"
@@ -20,7 +21,7 @@ PHP_FUNCTION (response_write) {
             Z_PARAM_STRING(data, data_len)ZEND_PARSE_PARAMETERS_END();
     GET_HTTP_SERV_ID_FROM_RES();
     zend_object * this = Z_OBJ_P(ZEND_THIS);
-
+    mem("before write");
     zval * current_client_zv = zend_read_property(this->ce, this, PROP("current_cli"), 0, NULL);
     zval * status_code_zv = zend_read_property(this->ce, this, PROP("statusCode"), 0, NULL);
     char message[100] = "\0";
@@ -60,7 +61,7 @@ PHP_FUNCTION (response_write) {
 
         strncpy(client->handle->write_buf.base, ZSTR_VAL(all_headers_with_data), len);
         zend_string_release(all_headers_with_data);
-
+        mem("after write");
         LOG("Data set to buffer: len %zu\n", ZSTR_LEN(all_headers_with_data));
     }
 
@@ -140,6 +141,7 @@ zend_object *create_response_obj(zend_class_entry *class_type) {
 
 void free_response_obj(void *object) {
     response_obj *res = (response_obj *) object;
+    efree(res->headers.kv);
 //    if (res->headers){
 //        efree(res->headers);
 //    }

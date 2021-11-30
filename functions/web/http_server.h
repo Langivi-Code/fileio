@@ -5,12 +5,19 @@
 #ifndef FILEIO_SERVER_H
 #define FILEIO_SERVER_H
 #include "../common/struct.h"
+
+typedef struct pntrs_to_free{
+    u_int8_t size;
+    void * * pointers;
+} pntrs_to_free;
+
 typedef struct {
     php_stream *current_stream;
     int current_fd;
     uv_buf_t write_buf;
     uv_poll_t *client_handle;
-    uv_timer_t * close_timer
+    uv_timer_t * close_timer;
+    pntrs_to_free pointers;
 } http_client_type;
 ADD_STRUCT(http_client_stream, http_client_type);
 
@@ -38,6 +45,7 @@ typedef struct {
     bool is_read;
 } request_info;
 
+
 #define SERVER_ID "#"
 #define CLOSABLE "##"
 
@@ -63,10 +71,10 @@ static void on_ready_to_read(uv_poll_t *handle, http_client_stream_id_item_t *cl
 
 static void on_listen_client_event(uv_poll_t *handle, int status, int events);
 
-static void on_ready_to_disconnect(uv_poll_t *handle, http_client_stream_id_item_t *client, int status, int events);
+static bool on_ready_to_disconnect(uv_poll_t *handle, http_client_stream_id_item_t *client, int status, int events);
 
 CREATE_HANDLE_LIST_HEADERS(http_client_stream, http_client_type);
-
+void add_pntr(pntrs_to_free *pointers_store, void *pointer);
 extern server_type http_php_servers[10];
 
 #endif //FILEIO_SERVER_H

@@ -17,6 +17,7 @@
 #include "../common/struct.h"
 #include "http_server_args_info.h"
 #include "header.h"
+#include "../common/mem.h"
 
 #define LOG_TAG "HTTP SERVER"
 
@@ -251,6 +252,8 @@ static void on_listen_server_for_clients(uv_poll_t *handle, int status, int even
 //        event_handle_item handleItem = {.cur_id=cur_id, .handle_data=(void *) id, .this=((event_handle_item *) handle->data)->this};
         event_handle_item *handleItem = emalloc(sizeof(event_handle_item));
         request_info *requestInfo = emalloc(sizeof(request_info));
+        add_pntr(&que_cli_handle->pointers, handleItem);
+        add_pntr(&que_cli_handle->pointers, requestInfo);
         requestInfo->id = id;
         requestInfo->is_read = false;
 //        timer_h->data = requestInfo;
@@ -318,9 +321,9 @@ static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
         on_ready_to_write(handle, client, status, events);
     }
 
-    on_ready_to_disconnect(handle, client, status, events);
+    bool disconnected = on_ready_to_disconnect(handle, client, status, events);
 
-    if (events & UV_READABLE && clistream != NULL) {
+    if (events & UV_READABLE && clistream != NULL && ! disconnected) {
         on_ready_to_read(handle, client, status, events);
     }
 
@@ -355,11 +358,16 @@ static void on_ready_to_read(uv_poll_t *handle, http_client_stream_id_item_t *cl
     headers = php_stream_get_record(clistream, PHP_SOCK_CHUNK_SIZE, len, strlen(len));
 
     if (headers) {
+        LOG("something strange happening******************");
         object_init_ex(&reqObj, FILE_IO_GLOBAL(http_request_class));
         request = Z_OBJ(reqObj);
+
         parse(ZSTR_VAL(headers), ZSTR_LEN(headers), request);
 
+        zend_string_release(headers);
+//        add_pntr(&que_cli_handle->pointers, requestInfo);
         data_buf = clistream->writepos - clistream->readpos;
+
         LOG("Unread bytes after read  %lld\n", data_buf);
 
     } else {
@@ -457,15 +465,33 @@ static void on_ready_to_write(uv_poll_t *handle, http_client_stream_id_item_t *c
 
 }
 
-static void on_ready_to_disconnect(uv_poll_t *handle, http_client_stream_id_item_t *client, int status, int events) {
+static bool on_ready_to_disconnect(uv_poll_t *handle, http_client_stream_id_item_t *client, int status, int events) {
     GET_HTTP_SERV_ID_FROM_EVENT_HANDLE();
     php_stream *clistream = client->handle->current_stream;
     event_handle_item *event_handle = (event_handle_item *) handle->data;
     request_info *requestInfo = (request_info *) event_handle->handle_data;
     zend_long error = 0;
+
     if (events & UV_DISCONNECT) {
+
         LOG("-------------- READY FOR DISCONNECT(%d) clients %d----------\n", events, count_http_client_stream_handles);
         uv_poll_stop(handle);
+        php_stream_free(clistream, PHP_STREAM_FREE_KEEP_RSRC |
+                                   (clistream->is_persistent ? PHP_STREAM_FREE_CLOSE_PERSISTENT
+                                                             : PHP_STREAM_FREE_CLOSE));
+        remove_http_client_stream_handle(http_php_servers[cur_id].http_client_stream_handle_map, client->handle_id);
+
+        efree(requestInfo);
+        efree(event_handle);
+        efree(handle);
+        http_php_servers[cur_id].clients_count--;
+//        zval_ptr_dtor(client->handle->request_object);
+//        zval_ptr_dtor(client->handle->response_object);
+//        efree(client->handle->write_buf.base);
+
+        efree(client->handle);
+
+        return true;
     }
 
 
@@ -491,7 +517,22 @@ static void on_ready_to_disconnect(uv_poll_t *handle, http_client_stream_id_item
         efree(handle->data);
         efree(handle);
         http_php_servers[cur_id].clients_count--;
-        return;
+
+        return true;
+    }
+    return false;
+}
+
+
+void add_pntr(pntrs_to_free *pointers_store, void *pointer) {
+    if (pointers_store->size == 0) {
+        pointers_store->pointers = emalloc(sizeof(void *));
+        pointers_store->pointers[0] = pointer;
+        pointers_store->size++;
+    } else {
+        pointers_store->pointers = erealloc(pointers_store->pointers, sizeof(void *) * (pointers_store->size + 1));
+        pointers_store->pointers[pointers_store->size] = pointer;
+        pointers_store->size++;
     }
 }
 

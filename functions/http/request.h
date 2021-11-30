@@ -12,8 +12,8 @@
 #define PROP(string)  string, sizeof(string) - 1
 #endif
 struct key_value {
-    char key[UINT16_MAX];
-    char value[UINT16_MAX];
+    char key[UCHAR_MAX];
+    char value[UCHAR_MAX];
 };
 
 typedef struct {
@@ -22,7 +22,7 @@ typedef struct {
 } key_value_collection;
 
 struct uri_parsed {
-    char uri[UINT16_MAX];
+    char uri[UCHAR_MAX];
     key_value_collection get_qs;
 };
 
@@ -47,6 +47,6 @@ key_value_collection create_kv_collection();
 key_value_collection
 append_string_to_kv_collection(key_value_collection collection, const char *key, const char *value);
 
-key_value_collection append_kv_to_collection(key_value_collection collection, struct key_value kv);
+key_value_collection * append_kv_to_collection(key_value_collection * collection, struct key_value kv) ;
 
 #endif //FILEIO_REQUEST_HH

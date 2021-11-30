@@ -12,6 +12,7 @@
 #include "../http/request.h"
 #include "../../3rd/utils/strpos.h"
 #include "ext/standard/php_var.h"
+#include "../common/mem.h"
 
 PHP_FUNCTION (send_header) {
     zend_string * key, *value;
@@ -72,16 +73,6 @@ static int on_header_value(llhttp_t *p, const char *at, size_t length) {
     return 0;
 }
 
-static int on_body_value(llhttp_t *p, const char *at, size_t length) {
-    struct input_data *data = (struct input_data *) p->data;
-    char *value = emalloc(sizeof(char) * (length + 1));
-    memset(value, 0, (length + 1));
-    strncpy(value, at, length);
-
-    printf("BODY: %s", value);
-    efree(value);
-    return 0;
-}
 
 void parse(char *headers, size_t len, zend_object *request) {
     llhttp_t parser;
@@ -91,7 +82,7 @@ void parse(char *headers, size_t len, zend_object *request) {
     data->headers = zv_headers;
     data->headers = zv_headers;
     array_init(&data->headers); //  zend_read_property(request->ce, request, PROP("headers"), 0, NULL);
-
+    mem("before parse headers");
     llhttp_settings_t settings = {
             .on_message_begin = NULL,
 //            .on_headers_complete = on_info,
@@ -100,7 +91,7 @@ void parse(char *headers, size_t len, zend_object *request) {
             .on_header_value = on_header_value,
             .on_url = on_url,
             .on_status = on_status,
-            .on_body = on_body_value,
+            .on_body = NULL,
     };
 
     llhttp_init(&parser, HTTP_REQUEST, &settings);
@@ -116,15 +107,16 @@ void parse(char *headers, size_t len, zend_object *request) {
 
         url_decode(scpy, strlen(scpy));
         printf("query string is %s %s\n", data->qs, scpy);
-        efree(data->qs);
-        struct uri_parsed *parsed = parse_urlstring(scpy);
+        mem("before qs headers");
+        struct uri_parsed * parsed = parse_urlstring(scpy);
+        mem("after qs headers");
         printf(" GET size is %zu\n",  parsed->get_qs.size);
         for (int i = 0; i < parsed->get_qs.size; ++i) {
             printf("key %s\n", parsed->get_qs.kv[i].key);
             printf("value %s\n", parsed->get_qs.kv[i].value);
             php_register_variable_safe(parsed->get_qs.kv[i].key,parsed->get_qs.kv[i].value, strlen(parsed->get_qs.kv[i].value), &PG(http_globals)[TRACK_VARS_GET]);
         }
-
+        mem("after qs assign");
         char version[5] = "\0";
         sprintf(version, "%d.%d", parser.http_major, parser.http_minor);
 
@@ -135,9 +127,11 @@ void parse(char *headers, size_t len, zend_object *request) {
         zend_update_property(request->ce, request, PROP("headers"), &data->headers);
         zend_update_property(request->ce, request, PROP("query"), &PG(http_globals)[TRACK_VARS_GET]);
 //        printf("parse finished");
+        efree(data->qs);
         efree(parsed->get_qs.kv);
         efree(parsed);
         efree(data);
+        mem("after free headers");
     } else {
         fprintf(stderr, "Parse error: %s %s\n", llhttp_errno_name(err),
                 parser.reason);
