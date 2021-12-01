@@ -130,7 +130,7 @@ void on_wr_open(uv_fs_t *req) {
     // function was passed.
     printf("file id is %zd\n", req->result);
 
-    assert(req == &open_req);
+//    assert(req == &open_req);
     if (req->result >= 0) {
         uv_fs_t *write_req = find_fs_handle((unsigned long long) req->data)->open_req;
         file_handle_data *handle = (file_handle_data *) write_req->data;

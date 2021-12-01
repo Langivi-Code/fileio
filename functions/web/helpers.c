@@ -17,14 +17,16 @@ char *create_host(const char *host, size_t host_len, zend_long port, size_t *str
         host = "0.0.0.0";
         host_len = strlen(host);
     }
-    char snum[10];
-    sprintf(snum, "%lld", port);
-    *str_len = host_len + strlen(snum) + 1;
-    char *host_ = emalloc(sizeof(char) * (*str_len));
-    memset(host_, 0, *str_len);
+    char port_str[10]={0};
+    size_t final_len=0;
+    sprintf(port_str, "%ld", port);
+    final_len = host_len + strlen(port_str) + 2;
+    char * host_ = emalloc(sizeof(char) * final_len);
+    memset(host_, 0, final_len);
     strncpy(host_, host, host_len);
-    strcat(host_, ":");
-    strncat(host_, snum, strlen(snum));
+    strncat(host_, ":", 1);
+    strncat(host_, port_str, strlen(port_str));
+    * str_len = final_len;
     return host_;
 }
 

@@ -103,7 +103,7 @@ static PHP_FUNCTION (server) {
     http_php_servers[cur_id].server_stream = _php_stream_xport_create(full_host, ret_sz, REPORT_ERRORS,
                                                                       STREAM_XPORT_SERVER | (int) flags,
 
-                                                                      NULL, NULL, NULL, &errstr, &err);
+                                                                      NULL, NULL, NULL, &errstr, &err, NULL, NULL, NULL,NULL, NULL);
 
     if (http_php_servers[cur_id].server_stream == NULL) {
         php_error_docref(NULL, E_WARNING, "Unable to connect  %s\n",
