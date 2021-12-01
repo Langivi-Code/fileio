@@ -12,8 +12,11 @@ typedef struct _response_obj {
 
     key_value_collection headers;
     unsigned short status_code;
+    bool sent;
     zend_object *server;
+    unsigned long long current_client;
 
 } response_obj;
 
+response_obj *responseObj_from_zend_obj(zend_object *obj);
 #endif //FILEIO_RESPONSE_CLASS_H

@@ -24,11 +24,13 @@ public function setReadBufferSize(long $size):void{}
 }
 
 class HttpServer {
-    public function __construct(int $port, string $host = "0.0.0.0",array $options, callable|null $callback){}
+    public function __construct(int $port, string $host = "0.0.0.0", array $options = [], callable|null $onConnect = null){}
     public function on_connect(callable $callback){}
     public function on_request(callable $callback){}
     public function on_disconnect(callable $callback){}
     public function on_error(callable $callback){}
+
+    public function setPublicPath(string $path){}
 }
 class HttpRequest {
     public string $method;
@@ -42,7 +44,7 @@ class HttpResponse {
     public int $statusCode;
     public string $body;
     public function setStatusCode(int $code){}
-    public function setHeader(string $headerName, string $value){}
+    public function setHeader(string $headerName, string $value):HttpResponse{}
     public function write(string $data){}
     public function end(string $data){}
 

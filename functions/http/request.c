@@ -94,11 +94,11 @@ static void alloc_kv_collection(key_value_collection *collection) {
 }
 
 
-key_value_collection
-append_string_to_kv_collection(key_value_collection collection, const char *key, const char *value) {
-    alloc_kv_collection(&collection);
-    collection.kv[collection.size] = create_kv_pair(key, value);
-    collection.size++;
+key_value_collection *
+append_string_to_kv_collection(key_value_collection *  collection, const char *key, const char *value) {
+    alloc_kv_collection(collection);
+    collection->kv[collection->size] = create_kv_pair(key, value);
+    collection->size++;
     return collection;
 }
 

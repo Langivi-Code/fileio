@@ -7,6 +7,7 @@
 #include <uv.h>
 #include <php_variables.h>
 #include <json/php_json.h>
+#include "../http/response_class.h"
 
 #include "../common/fill_event_handle.h"
 #include "../../php_fileio.h"
@@ -425,14 +426,21 @@ static void on_ready_to_read(uv_poll_t *handle, http_client_stream_id_item_t *cl
     ZVAL_OBJ(&server, event_handle->this);
     LOG("Data pointer pos -  %d, Server id is %ld\n", position, cur_id);
     object_init_ex(&resObj, FILE_IO_GLOBAL(http_response_class));
+
     zend_update_property(Z_OBJ(resObj)->ce, Z_OBJ(resObj), PROP("server"), &server);
-    zend_update_property_long(Z_OBJ(resObj)->ce, Z_OBJ(resObj), PROP("current_cli"), id);
+    responseObj_from_zend_obj(Z_OBJ(resObj))->current_client = id;
+    responseObj_from_zend_obj(Z_OBJ(resObj))->sent = false;
 
     ZVAL_COPY(&args[0], &reqObj);
     ZVAL_COPY(&args[1], &resObj);
     http_php_servers[cur_id].on_data.fci.param_count = 2;
     http_php_servers[cur_id].on_data.fci.params = args;
     http_php_servers[cur_id].on_data.fci.retval = &retval;
+    http_php_servers[cur_id].on_data.fci.object = ((event_handle_item *) handle->data)->this;
+    http_php_servers[cur_id].on_data.fcc.object = ((event_handle_item *) handle->data)->this;
+    http_php_servers[cur_id].on_data.fcc.called_scope = ((event_handle_item *) handle->data)->this->ce;
+    http_php_servers[cur_id].on_data.fcc.calling_scope = ((event_handle_item *) handle->data)->this->ce;
+
     if (ZEND_FCI_INITIALIZED(http_php_servers[cur_id].on_data.fci)) {
         if (zend_call_function(&http_php_servers[cur_id].on_data.fci, &http_php_servers[cur_id].on_data.fcc) !=
             SUCCESS) {
@@ -441,6 +449,7 @@ static void on_ready_to_read(uv_poll_t *handle, http_client_stream_id_item_t *cl
     } else {
         error = -2;
     }
+
 //            uv_timer_start(timer_h, close_timer_cb, 1, 0);
     requestInfo->is_read = true;
     parse_fci_error(error, "on data");
@@ -523,6 +532,16 @@ static bool on_ready_to_disconnect(uv_poll_t *handle, http_client_stream_id_item
     return false;
 }
 
+ZEND_METHOD(HttpServer, setPublicPath){
+    char * public_path;
+    size_t public_path_len;
+    ZEND_PARSE_PARAMETERS_START(1,1)
+            Z_PARAM_STRING(public_path, public_path_len)
+    ZEND_PARSE_PARAMETERS_END();
+    zend_update_property_string(Z_OBJCE_P(ZEND_THIS), Z_OBJ_P(ZEND_THIS), PROP("publicPath"), public_path);
+    RETURN_TRUE;
+}
+
 
 void add_pntr(pntrs_to_free *pointers_store, void *pointer) {
     if (pointers_store->size == 0) {
@@ -542,6 +561,7 @@ static const zend_function_entry class_HttpServer_methods[] = {
         ZEND_ME_MAPPING(on_connect, server_on_connect, arginfo_http_server_event_handler, ZEND_ACC_PUBLIC)
         ZEND_ME_MAPPING(on_disconnect, server_on_disconnect, arginfo_http_server_event_handler, ZEND_ACC_PUBLIC)
         ZEND_ME_MAPPING(on_error, server_on_error, arginfo_http_server_event_handler, ZEND_ACC_PUBLIC)
+        ZEND_ME(HttpServer, setPublicPath, arginfo_http_server_set_public_path, ZEND_ACC_PUBLIC)
         PHP_FE_END
 };
 
@@ -552,18 +572,14 @@ zend_class_entry *register_class_HttpServer(void) {
     FILE_IO_GLOBAL(http_server_class)->ce_flags |= ZEND_ACC_NO_DYNAMIC_PROPERTIES | ZEND_ACC_NOT_SERIALIZABLE;
     zend_declare_property_long(FILE_IO_GLOBAL(http_server_class), PROP(SERVER_ID), server_id,
                                ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
-    zend_declare_property_bool(FILE_IO_GLOBAL(http_server_class), PROP(CLOSABLE), 1,
-                               ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
     zend_declare_property_string(FILE_IO_GLOBAL(http_server_class), PROP("serverAddress"), "",
                                  ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
     zend_declare_property_long(FILE_IO_GLOBAL(http_server_class), PROP("serverPort"), 0,
                                ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
-    zend_declare_property_long(FILE_IO_GLOBAL(http_server_class), PROP("readBufferSize"), 1024,
-                               ZEND_ACC_PUBLIC);
     zend_declare_property_string(FILE_IO_GLOBAL(http_server_class), PROP("clientAddress"), "",
                                  ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
-    zend_declare_property_string(FILE_IO_GLOBAL(http_server_class), PROP("clientAddress2"), "",
-                                 ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
+    zend_declare_property_string(FILE_IO_GLOBAL(http_server_class), PROP("publicPath"), "",
+                                 ZEND_ACC_PUBLIC);
 
     return FILE_IO_GLOBAL(http_server_class);
 }

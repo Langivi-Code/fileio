@@ -44,8 +44,8 @@ size_t url_decode(char *str, size_t len);
 
 key_value_collection create_kv_collection();
 
-key_value_collection
-append_string_to_kv_collection(key_value_collection collection, const char *key, const char *value);
+key_value_collection *
+append_string_to_kv_collection(key_value_collection * collection, const char *key, const char *value);
 
 key_value_collection * append_kv_to_collection(key_value_collection * collection, struct key_value kv) ;
 
