@@ -6,10 +6,13 @@
 #include "../../php_fileio.h"
 #include "../../constants.h"
 
+
+
 #include "../../fileio_arginfo.h"
 #include "idle_interface.h"
 
 #define LOG_TAG "fill_idle_handle_with_data"
+
 void fill_idle_handle_with_data(
         uv_idle_t *idle_type,
         zend_fcall_info *fci,
@@ -39,4 +42,5 @@ PHP_FUNCTION (idle) {
 
     RETURN_NULL();
 }
+
 /* }}}*/

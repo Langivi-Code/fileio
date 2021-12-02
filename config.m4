@@ -1,5 +1,3 @@
-
-
 PHP_ARG_WITH(uv, Whether to include "uv" support,
 [ --with-uv[=DIR]        Include "uv" support])
 
@@ -9,14 +7,37 @@ PHP_ARG_ENABLE(uv-debug, for uv debug support,
 PHP_ARG_ENABLE(dtrace, Whether to enable the "dtrace" debug,
     [ --enable-dtrace         Enable "dtrace" support], no, no)
 
+AX_CHECK_COMPILE_FLAG([-std=c11], [
+  CFLAGS+=" -std=c11"
+], [
+  echo "C compiler cannot compile C11 code"
+  exit -1
+])
 
-if test -z "$PHP_DEBUG"; then
-    AC_ARG_ENABLE(debug,
-    [  --enable-debug          compile with debugging symbols],[
-        PHP_DEBUG=$enableval
-    ],[    PHP_DEBUG=no
-    ])
-fi
+AC_DEFUN([GLOB_DIR],[
+  get_abs_filename() {
+  # $1 : relative filename
+  filename=$1
+  parentdir=$(dirname "${filename}")
+
+  if [[ -d "${filename}" ]]; then
+      echo "$(cd "${filename}" && pwd)"
+  elif [[ -d "${parentdir}" ]]; then
+    echo "$(cd "${parentdir}" && pwd)"
+  fi
+}
+  AC_ARG_VAR([$1][_DIR], [Sources dir])dnl
+  rpath=$(get_abs_filename $2)
+
+  AC_MSG_NOTICE([Searching in $rpath for files...])
+source=""
+for i in $rpath/functions/*/*.c ; do
+  file=$(echo $i | sed -e "s|$rpath/| |g")
+  source="$source $file"
+done
+  $1[]_DIR=$source
+   AC_MSG_NOTICE($source)
+])
 
 if test "$PHP_UV_DEBUG" != "no"; then
     CFLAGS="$CFLAGS -Wall -g -ggdb -O0 -DPHP_UV_DEBUG=1"
@@ -42,12 +63,14 @@ fi
 
 if test $PHP_UV != "no"; then
     SOURCES=""
-    FUNCTIONS="functions"
-    TIMERS="$FUNCTIONS/timers"
-    COMMON="$FUNCTIONS/common"
-    FILES="$FUNCTIONS/files"
-    PHP_NEW_EXTENSION(fileio, fileio.c $COMMON/fill_event_handle.c $COMMON/callback.c $TIMERS/fill_timer_handle_with_data.c $TIMERS/set_timeout.c $TIMERS/set_interval.c $FILES/fs_handle_map.c $FILES/fill_fs_handle_with_data.c $FILES/file_get_contents_async.c $FILES/file_put_contents_async.c $FUNCTIONS/use_promise/use_promise.c $FUNCTIONS/idle/idle.c $SOURCES, $ext_shared)
-
+    # FUNCTIONS="functions"
+    # TIMERS="$FUNCTIONS/timers"
+    # COMMON="$FUNCTIONS/common"
+    # FILES="$FUNCTIONS/files"
+    GLOB_DIR([FILE_IO],[.])
+    echo "$FILE_IO_DIR dir"
+    # PHP_NEW_EXTENSION(fileio, fileio.c $COMMON/fill_event_handle.c $COMMON/callback.c $TIMERS/fill_timer_handle_with_data.c $TIMERS/set_timeout.c $TIMERS/set_interval.c $FILES/fs_handle_map.c $FILES/fill_fs_handle_with_data.c $FILES/file_get_contents_async.c $FILES/file_put_contents_async.c $FUNCTIONS/use_promise/use_promise.c $FUNCTIONS/idle/idle.c $SOURCES, $ext_shared)
+    PHP_NEW_EXTENSION(fileio, fileio.c $FILE_IO_DIR,$ext_shared)
     PHP_ADD_EXTENSION_DEP(uv, fiber, true )
 
     AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
@@ -100,10 +123,10 @@ if test $PHP_UV != "no"; then
     fi
       case $host in
           *linux*)
-              CFLAGS="$CFLAGS -luv"
+              CFLAGS="$CFLAGS -luv -std=c11"
            ;;
            *darwin*)
-              CFLAGS="$CFLAGS -luv"
+              CFLAGS="$CFLAGS -luv -std=c11"
       esac
 	PHP_SUBST([CFLAGS])
     PHP_SUBST(UV_SHARED_LIBADD)

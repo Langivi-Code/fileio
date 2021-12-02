@@ -4,9 +4,66 @@ function test(PromiseStatus $status)
     var_dump($status, $status == PromiseStatus::Pending);
 }
 
-// class pp{
-//     private ?string $ll=null;
+//
+// $serv = new Server(8100, callback:fn()=>1);
+// $serv->on_data(function (...$arg){
+//    var_dump("on_data8100",$arg);
+//               }
+//               );
+// var_dump($serv);
+class HttpServer extends Server
+{
+
+}
+
+$serv1 = new HttpServer(8200, callback: function (Server $obj) {
+    var_dump(123, $this->setReadBufferSize(55), $this->write("geloo"), $this);
+});
+//  $serv1->setReadBufferSize(5);
+$serv1->on_data(function ($data) use (&$serv1) {
+    $str = "HTTP/1.1 200 OK\n\r";
+    var_dump("on_data: " . $data);
+//      if ($data == "get_cool"){
+
+    $serv1->write($str);
+//      $serv1->end("");
+//      }
+
+
+    //                $serv1->write(" from php hello");
+});
+// $serv1->write("from php hello");
+// $serv1->write($str);
+var_dump($serv1);
+
+// idle(fn()=>print_r("hello"));
+// idle(fn()=>print_r("hello2"));
+// idle(fn()=>print_r("hello3"));
+// $serv1 = new Server(8200, callback: fn() => 1);
+// $str = "HTTP/1.1 200 OK\n\r";
+// $serv1->on_data(function ($data) use (&$serv1) {
+//     if ($data == "get_cool")
+//          $serv1->write("cool");
+//     var_dump("on_data8200: " . $data);
+//
+// //                $serv1->write(" from php hello");
+// });
+// $serv1->write("from php hello");
+// $serv1->write($str);
+// var_dump($serv1);
+// $serv2 = new Server(8005,"0.0.0.0", fn()=>var_dump('on_connect'));
+// $serv2->on_data("work");
+// $str = stream_socket_server("tcp://0.0.0.0:8004");
+// $i =0;
+// while (true){
+//    $con = stream_socket_accept($str);
+//    $i++;
+//    echo fread($con, 1024);
+//    stream_socket_sendto($con,"HTTP/1.1 200 OK\n", STREAM_OOB);
+// //    echo  $i."\n";
+//    fclose($con);
 // }
+
 
 //$ret = new Promise(function ($resolve, $reject) {
 //   var_dump($reject("I am rejected prom promise\n") );
@@ -44,7 +101,8 @@ function test(PromiseStatus $status)
 // var_dump("******************************", $arg);
 // }, maxlen:160);
 // idle(fn()=>var_dump(123));
- file_put_contents_async("configure1", "fn(arg)=>file_put_contents(dtad2, arg)", fn()=>var_dump("dtad337"));
+// file_put_contents_async("configure1", "fn(arg)=>file_put_contents(dtad2, arg)", fn()=>var_dump("dtad337"));
+
 
 // setTimeout(fn()=>exit(), 5000);
 
@@ -108,24 +166,25 @@ function test(PromiseStatus $status)
 //$socket = socket_create(AF_INET, SOCK_STREAM, 0);
 //var_dump(stream_get_transports());
 /* Open a server socket to port 1234 on localhost */
-$server = stream_socket_server('tcp://127.0.0.1:1234');
 
-/* Accept a connection */
-$socket = stream_socket_accept($server);
-stream_set_blocking($server, false);
-/* Grab a packet (1500 is a typical MTU size) of OOB data */
-echo "Received Out-Of-Band: '" . stream_socket_recvfrom($socket, 1500, STREAM_OOB) . "'\n";
-
-/* Take a peek at the normal in-band data, but don't consume it. */
-echo "Data1: '" . stream_socket_recvfrom($socket, 1500, STREAM_PEEK) . "'\n";
-
-/* Get the exact same packet again, but remove it from the buffer this time. */
-echo "Data2: '" . stream_socket_recvfrom($socket, 1500) . "'\n";
-$serv= [$server];
-echo stream_select($serv);
-/* Close it up */
-fclose($socket);
-fclose($server);
+//$server = stream_socket_server('tcp://127.0.0.1:1234');
+//
+///* Accept a connection */
+//$socket = stream_socket_accept($server);
+//stream_set_blocking($server, false);
+///* Grab a packet (1500 is a typical MTU size) of OOB data */
+//echo "Received Out-Of-Band: '" . stream_socket_recvfrom($socket, 1500, STREAM_OOB) . "'\n";
+//
+///* Take a peek at the normal in-band data, but don't consume it. */
+//echo "Data1: '" . stream_socket_recvfrom($socket, 1500, STREAM_PEEK) . "'\n";
+//
+///* Get the exact same packet again, but remove it from the buffer this time. */
+//echo "Data2: '" . stream_socket_recvfrom($socket, 1500) . "'\n";
+//$serv= [$server];
+//echo stream_select($serv);
+///* Close it up */
+//fclose($socket);
+//fclose($server);
 
 //file_get_contents_async(
 //    "compile",

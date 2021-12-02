@@ -66,6 +66,7 @@ PHP_METHOD (Promise, __construct) {
     zend_fcall_info_cache fcc = empty_fcall_info_cache;
     ZEND_PARSE_PARAMETERS_START(1, 1)
             Z_PARAM_ZVAL(callback)ZEND_PARSE_PARAMETERS_END();
+
     zend_update_property(FILE_IO_GLOBAL(promise_class), Z_OBJ_P(ZEND_THIS), "closure", sizeof("closure") - 1, callback);
     zend_fcall_info_init(callback, 0, &fci, &fcc, NULL, NULL);
 //    printf("%p, %p, %p\n", rejected, rejecte2d, rejecte3d);
@@ -75,7 +76,6 @@ PHP_METHOD (Promise, __construct) {
     fci.retval = &retavl;
     zval paramsName;
     ZVAL_STRING(&paramsName, "trolo");
-    //TODO fill params
     fci.param_count = 2;
     zend_create_fake_closure(&func, promise_resolve, FILE_IO_GLOBAL(promise_class), FILE_IO_GLOBAL(promise_class),
                              ZEND_THIS);

@@ -1,21 +1,9 @@
-#include <zend_API.h>
-#include <uv.h>
-#include "../../constants.h"
-#include "timers_interface.h"
-#include "../common/fill_event_handle.h"
-void fill_timer_handle_with_data(
-        uv_timer_t *handle,
-        zend_fcall_info *fci,
-        zend_fcall_info_cache *fcc
-) {
-#define LOG_TAG "fill_timer"
-    uv_cb_type uv = {};
-    LOG("size of timeout handler %lu, fci  %lu \n\n", sizeof *handle, sizeof *fci);
-    handle->data = (uv_cb_type *) emalloc(sizeof(uv_cb_type));
-    fill_event_handle(handle, fci, fcc, &uv);
-}
+//
+// Created by admin on 30.10.2021.
+//
 
-#define LOG_TAG "timer_handles"
+#ifndef FILEIO_MAP_H
+#define FILEIO_MAP_H
 handle_id_item_t timer_handle_map[HANDLE_MAP_SIZE];
 
 unsigned short count_handles() {
@@ -31,7 +19,7 @@ unsigned short count_handles() {
 
 unsigned long long add_handle(uv_timer_t *handle) {
     unsigned short handle_count = count_handles();
-    timer_handle_map[handle_count] = (handle_id_item_t){.handle_id=uv_hrtime(), .handle=handle};
+    timer_handle_map[handle_count] = (handle_id_item_t) {uv_now(FILE_IO_GLOBAL(loop)), handle};
     return timer_handle_map[handle_count].handle_id;
 }
 
@@ -60,3 +48,4 @@ void remove_handle(unsigned long long handleId) {
     memcpy(timer_handle_map, tempItems, 1024 * sizeof(handle_id_item_t));
     free(tempItems);
 }
+#endif //FILEIO_MAP_H
