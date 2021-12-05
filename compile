@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+phpize
+ make clean
+./configure --with-uv  --enable-static
+ make -j$(nproc) && sudo make install

@@ -1,27 +1,43 @@
 /* fileio extension for PHP */
 
 #ifdef HAVE_CONFIG_H
+
 # include "config.h"
+
 #endif
 
 #include "php.h"
 #include "php_ini.h"
 #include "ext/standard/info.h"
-#include "ext/standard/file.h"
+#include <TSRM.h>
 #include "php_fileio.h"
 #include "zend_API.h"
+
+#include "zend_closures.h"
+#include "zend_interfaces.h"
 #include "fileio_arginfo.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
 #include <wchar.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include "uv.h"
+#include "functions/timers/timers_interface.h"
+#include "functions/common/callback_interface.h"
+#include "constants.h"
+#include <ext/standard/basic_functions.h>
+#include "./functions//web/server.h"
+#include "./functions/files/file_interface.h"
+
+extern zend_class_entry *create_PromiseStatus_enum(void);
+
+extern zend_class_entry *register_class_Promise(void);
+extern zend_class_entry *register_class_Server(void);
+extern  server_type php_servers[10];
+extern  zend_function * promise_resolve;
+extern  zend_function * promise_reject;
+ZEND_DECLARE_MODULE_GLOBALS(fileio);
 
 
-
+//extern PHP_FIBER_API zend_class_entry *zend_ce_fiber;
 /* For compatibility with older PHP versions */
 #ifndef ZEND_PARSE_PARAMETERS_NONE
 #define ZEND_PARSE_PARAMETERS_NONE() \
@@ -29,210 +45,165 @@
     ZEND_PARSE_PARAMETERS_END()
 #endif
 
-/* {{{ void file_get_contents_async() */
-//PHP_FUNCTION (file_get_contents_async) {
-//    char *filename;
-//    size_t filename_len;
-//    zend_bool use_include_path = 0;
-//    php_stream *stream;
-//    zend_long offset = 0;
-//    zend_long maxlen;
-//    zend_bool maxlen_is_null = 1;
-//    zval * zcontext = NULL;
-//    php_stream_context *context = NULL;
-//    zend_string * contents;
-//    zend_fcall_info fci;
-//    zend_fcall_info_cache fcc;
-//    zval retval;            /* Function return value */
-//    zval arg;                /* Argument to pass to function */
-//    /* Parse arguments */
-//    ZEND_PARSE_PARAMETERS_START(1, 6)
-//            Z_PARAM_PATH(filename, filename_len)
-//            Z_PARAM_FUNC(fci, fcc)
-//            Z_PARAM_OPTIONAL
-//            Z_PARAM_BOOL(use_include_path)
-//            Z_PARAM_RESOURCE_OR_NULL(zcontext)
-//            Z_PARAM_LONG(offset)
-//            Z_PARAM_LONG_OR_NULL(maxlen, maxlen_is_null)ZEND_PARSE_PARAMETERS_END();
-//
-//    if (maxlen_is_null) {
-//        maxlen = (ssize_t) PHP_STREAM_COPY_ALL;
-//    } else if (maxlen < 0) {
-//        zend_argument_value_error(5, "must be greater than or equal to 0");
-//        RETURN_THROWS();
-//    }
-//    int error = uv_fs_open(fileio_globals.loop, (uv_fs_t *) &uv->uv.fs, filename, O_RDONLY, S_IRUSR, php_uv_fs_cb);
-//    if (error) {
-//        PHP_UV_DEINIT_UV(uv);
-//        php_error_docref(NULL, E_WARNING, "uv_open failed");
-//        return;
-//        fci.retval = &retval;
-//        fci.param_count = 1;
-//        fci.params = &arg;
-//        int ret;
-//
-//        //OR
-//        ZVAL_COPY(&arg, zv);
-//        ret = zend_call_function(&fci, &fcc);
-//        i_zval_ptr_dtor(&arg);
-//        if (ret != SUCCESS || Z_TYPE(retval) == IS_UNDEF) {
-//            zend_array_destroy(Z_ARR_P(return_value));
-//            RETURN_NULL();
-//        }
-//
-//        //OR
-//        if (zend_call_function(&fci, &fcc) == SUCCESS && Z_TYPE(retval) != IS_UNDEF) {
-//            if (EXPECTED(Z_TYPE(retval) == IS_STRING)) {
-//                contents = Z_STR(retval);
-//            } else {
-//                contents = zval_get_string_func(&retval);
-//                zval_ptr_dtor(&retval);
-//            }
-//        } else {
-//            if (!EG(exception)) {
-//                php_error_docref(NULL, E_WARNING, "Unable to call custom replacement function");
-//            }
-//        }
-//        context = php_stream_context_from_zval(zcontext, 0);
-//
-//        stream = php_stream_open_wrapper_ex(filename, "rb",
-//                                            (use_include_path ? USE_PATH : 0) | REPORT_ERRORS,
-//                                            NULL, context);
-//        if (!stream) {
-//            RETURN_FALSE;
-//        }
-//
-//        if (offset != 0 && php_stream_seek(stream, offset, ((offset > 0) ? SEEK_SET : SEEK_END)) < 0) {
-//            php_error_docref(NULL, E_WARNING, "Failed to seek to position " ZEND_LONG_FMT " in the stream", offset);
-//            php_stream_close(stream);
-//            RETURN_FALSE;
-//        }
-//
-//        if ((contents = php_stream_copy_to_mem(stream, maxlen, 0)) != NULL) {
-//            RETVAL_STR(contents);
-//        } else {
-//            RETVAL_EMPTY_STRING();
-//        }
-//
-//        php_stream_close(stream);
-//
-//        php_printf("The extension %s is loaded and working!\r\n", "fileio");
-//    }
-//}
 
 /* }}} */
-typedef struct {
-    zend_fcall_info fci;
-    zend_fcall_info_cache fcc;
-} uv_cb_t;
 
-void fn(uv_timer_t *handle) {
-    uv_cb_t * uv = (uv_cb_t *) handle->data;
-    zend_long error;
-    if (ZEND_FCI_INITIALIZED(uv->fci)) {
-        if (zend_call_function(&uv->fci, &uv->fcc) != SUCCESS) {
-            error = -1;
-        }
-        zval_ptr_dtor(&uv->fci.retval);
-    } else {
-        error = -2;
-    }
+
+void print(uv_async_t *handle) {
+    printf(" print thread id: %ld, value is %ld\n", uv_thread_self(), (long) handle->data);
+
 }
 
-void fill_handle_with_data(
-        uv_timer_t *handle,
-        zend_fcall_info *fci,
-        zend_fcall_info_cache *fcc
-) {
-    uv_cb_t uv = {};
-    printf("size %lu\n", sizeof handle->data);
-    printf(" %lu \n", sizeof fci);
-//    uv.fci = (zend_fcall_info *)emalloc(sizeof(zend_fcall_info));
-    handle->data = (uv_cb_t *) emalloc(sizeof(uv_cb_t));
-    memcpy(&uv.fci, fci, sizeof(zend_fcall_info));
-    memcpy(&uv.fcc, fcc, sizeof(zend_fcall_info_cache));
-    memcpy(handle->data, &uv, sizeof(uv_cb_t));
+//void after(uv_work_t *req, int status) {
+//    printf("done, thread id: %ld\n", uv_thread_self());
+//
+//}
+//
+//void run(uv_work_t *req) {
+//    long count = (long) req->data;
+//
+//    for (int index = 0; index < count; index++) {
+//        printf("run thread id: %ld, index: %d\n", uv_thread_self(), index);
+//        async.data = (void *) (long) index;
+////        uv_async_send(&async);
+//        sleep(1);
+//
+//    }
+//
+//}
 
-    if (ZEND_FCI_INITIALIZED(*fci)) {
-        Z_TRY_ADDREF(uv.fci.function_name);
-        if (fci->object) {
-            GC_ADDREF(fci->object);
-        }
-    }
-}
-#define METHOD_CALL(classname,name) ZEND_MN(classname##_##name)
+//_Noreturn int thr(void *loop) {
+//    printf("thred started\n");
+//    uv_timer_t timerHandle;
+//
+//    timerData *td = (timerData *) loop;
+//
+//    fill_timeout_handle_with_data(&timerHandle.data, &td->fci, &td->fcc);
+//    printf("time is in thrd prc %lu  %p\n", td->time, &td->time);
+//    uv_timer_start(&timerHandle, fn, td->time, 0);
+//    printf("\nloop %d, p:=%p\n", uv_loop_alive(FILE_IO_GLOBAL(loop)), FILE_IO_GLOBAL(loop));
+//    printf("Active = %d\n", FILE_IO_GLOBAL(loop)->active_handles);
+//    printf("\nloop run %d\n", uv_run(FILE_IO_GLOBAL(loop), UV_RUN_DEFAULT));
+//    printf("\n after run loop %d, p:=%p\n", uv_loop_alive(FILE_IO_GLOBAL(loop)), FILE_IO_GLOBAL(loop));
+//    while (true);
+////     uv_async_send(&as_h);
+////     while (true){
+////         printf("\nloop %d, p:=%p\n", uv_loop_alive((uv_loop_t*)loop), loop);
+////         printf("Active = %d\n", ((uv_loop_t*)loop)->active_handles);
+////
+////         printf("\nloop run %d\n", uv_run((uv_loop_t *) (loop), UV_RUN_DEFAULT));
+//////
+//////         uv_run((uv_loop_t*)loop, UV_RUN_DEFAULT);
+////         printf("thred finshed");
+////         usleep(20);
+////     }
+//
+//
+//
+//}
+
 /* {{{ string test2( [ string $var ] ) */
-PHP_FUNCTION (setTimeout) {
-    char *var1 = "World";
-    size_t var1_len = sizeof("World") - 1;
-    zend_long var;
-    zend_fcall_info fci;
-    zend_fcall_info_cache fcc;
-    uv_timer_t timerHandle;
-    zval return_val;
-    METHOD_CALL(Fiber,___construct)((execute_data, &return_val));
-    //object_init_ex(retval, pce);
-    //	zend_call_known_instance_method(pce->constructor, Z_OBJ_P(retval), NULL, argc, argv);
-    ZEND_PARSE_PARAMETERS_START(2, 2)
-            Z_PARAM_FUNC(fci, fcc)
-            Z_PARAM_LONG(var)ZEND_PARSE_PARAMETERS_END();
 
-    zval retval;
-    fci.retval = &retval;
-    fci.param_count = 0;
-    uv_timer_init(FILE_IO_GLOBAL(loop), &timerHandle);
-    fill_handle_with_data(&timerHandle, &fci, &fcc);
-
-    uv_timer_start(&timerHandle, fn, var, 0);
-    printf(  " left %d\n",uv_run(FILE_IO_GLOBAL(loop), UV_RUN_NOWAIT));
-    printf("refs %lu\n", uv_loop_alive(FILE_IO_GLOBAL(loop)));
-    RETURN_NULL();
+ZEND_FUNCTION(enable_event) {
+#define LOG_TAG "enable_event"
+    LOG("starting event loop %c", 50);
+    uv_loop_t * loop = FILE_IO_GLOBAL(loop);
+    LOG("size of ev-queue %d(Active = %d), loop address:=%p", uv_loop_alive(loop), loop->active_handles, loop);
+    printf("loop run status: %d\n", uv_run(loop, UV_RUN_DEFAULT));
+    LOG("size of ev-queue after run %d (Active = %d), loop address:=%p", uv_loop_alive(loop), loop->active_handles, loop);
+    uv_loop_close(FILE_IO_GLOBAL(loop));
+//    sleep(10);
+//    uv_async_init(fileio_globals.loop, &as_h, NULL);
+//    uv_loop_fork(fileio_globals.loop);
 }
-/* }}}*/
 
-PHP_FUNCTION (retbool) {
-    RETURN_BOOL(INI_BOOL("file_io.use_promise"));
-}
+
+/**********************************************/
+/***        MODULE SETTINGS SECTION         ***/
+/**********************************************/
 
 PHP_INI_BEGIN()
-                PHP_INI_ENTRY("file_io.use_promise", 0, PHP_INI_ALL, NULL)
+        PHP_INI_ENTRY("file_io.use_promise", 0, PHP_INI_ALL, NULL)
 PHP_INI_END()
+
+/**********************************************/
+/***        MODULE INTIALIZATION SECTION    ***/
+/**********************************************/
 
 /* {{{ PHP_MINIT_FUNCTION */
 PHP_MINIT_FUNCTION (fileio) {
-
-    fileio_globals.loop = uv_default_loop();
-
-
+    FILE_IO_GLOBAL(loop) = uv_default_loop();
+    create_PromiseStatus_enum();
+    register_class_Promise();
+    register_class_Server();
     REGISTER_INI_ENTRIES();
+    promise_resolve = zend_hash_str_find_ptr(&FILE_IO_GLOBAL(promise_class->function_table), "resolve", sizeof("resolve")-1);
+    promise_reject = zend_hash_str_find_ptr(&FILE_IO_GLOBAL(promise_class->function_table), "reject", sizeof("reject")-1);
+
 #if defined(ZTS) && defined(COMPILE_DL_FILEIO)
     ZEND_TSRMLS_CACHE_UPDATE();
 #endif
-//TODO: add init!!
-
     return SUCCESS;
 }
 
-PHP_MSHUTDOWN_FUNCTION (fileio) {
-    UNREGISTER_INI_ENTRIES();
-    uv_loop_close(FILE_IO_GLOBAL(loop));
-//    free(FILE_IO_GLOBAL(loop));
-}
-
-/* }}} */
 /* {{{ PHP_RINIT_FUNCTION */
 PHP_RINIT_FUNCTION (fileio) {
+//    PG(auto_prepend_file)="Promise.php";
+    memset(timer_handle_map,0, HANDLE_MAP_SIZE * sizeof(handle_id_item_t));
+    memset(fstimeout_handle_map,0, HANDLE_MAP_SIZE * sizeof(fs_handles_id_item_t));
+    memset(php_servers, 0, sizeof(struct server_type) * 10);
 #if defined(ZTS) && defined(COMPILE_DL_FILEIO)
     ZEND_TSRMLS_CACHE_UPDATE();
 #endif
+    zend_function * func = zend_hash_str_find_ptr(EG(function_table), "enable_event", strlen("enable_event"));
+    php_shutdown_function_entry shutdown_function_entry = {};
+    zval callable;
+    zval callable2;
+    zend_result result;
+
+    ZVAL_FUNC(&callable2, func);
+//    ZVAL_STRING(&callable2,"var_dump");
+    ZVAL_STRINGL(&callable, "enable_event", strlen("enable_event"));
+//
+////    zval params[1];
+////    ZVAL_COPY_VALUE(&params[0], &callable);
+//
+    result = zend_fcall_info_init(&callable, 0, &shutdown_function_entry.fci,
+                                  &shutdown_function_entry.fci_cache, NULL, NULL);
+    printf("%d\n", result);
+    shutdown_function_entry.fci_cache.function_handler = func;
+    shutdown_function_entry.fci.param_count=0;
+////    shutdown_function_entry.fci.params=&params;
+    append_user_shutdown_function(&shutdown_function_entry);
     return SUCCESS;
 }
+/* }}} */
+
+/* {{{ PHP_MINIT_FUNCTION */
+PHP_RSHUTDOWN_FUNCTION (fileio) {
+//    printf("Call back is ended");
+//   thrd_join(thrd, NULL);
+//   uv_loop_close(FILE_IO_GLOBAL(loop));
+    return SUCCESS;
+}
+
+
+
+/* {{{ PHP_MSHUTDOWN_FUNCTION */
+PHP_MSHUTDOWN_FUNCTION (fileio) {
+    UNREGISTER_INI_ENTRIES();
+//    free(FILE_IO_GLOBAL(loop));
+    return SUCCESS;
+}
+
 /* }}} */
 
 /* {{{ PHP_MINFO_FUNCTION */
 PHP_MINFO_FUNCTION (fileio) {
     php_info_print_table_start();
     php_info_print_table_header(2, "fileio support", "enabled");
+    php_info_print_table_row(2, "timers", "enabled");
+    php_info_print_table_row(2, "idle work", "enabled");
     php_info_print_table_end();
 }
 /* }}} */
@@ -240,12 +211,12 @@ PHP_MINFO_FUNCTION (fileio) {
 /* {{{ fileio_module_entry */
 zend_module_entry fileio_module_entry = {
         STANDARD_MODULE_HEADER,
-        "fileio",                    /* Extension name */
+        "file_io",                    /* Extension name */
         file_io_functions,                    /* zend_function_entry */
         PHP_MINIT(fileio),                            /* PHP_MINIT - Module initialization */
         PHP_MSHUTDOWN(fileio),                            /* PHP_MSHUTDOWN - Module shutdown */
         PHP_RINIT(fileio),            /* PHP_RINIT - Request initialization */
-        NULL,                            /* PHP_RSHUTDOWN - Request shutdown */
+        PHP_RSHUTDOWN(fileio),                            /* PHP_RSHUTDOWN - Request shutdown */
         PHP_MINFO(fileio),            /* PHP_MINFO - Module info */
         PHP_FILEIO_VERSION,        /* Version */
         STANDARD_MODULE_PROPERTIES
@@ -256,5 +227,6 @@ zend_module_entry fileio_module_entry = {
 # ifdef ZTS
 ZEND_TSRMLS_CACHE_DEFINE()
 # endif
-ZEND_GET_MODULE(fileio)
+ZEND_GET_MODULE(fileio);
+
 #endif
