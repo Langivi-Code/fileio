@@ -14,5 +14,5 @@ void parse_uv_event(int event, int status);
 int cast_to_fd(php_stream *stream,zend_result *cast_result);
 int set_non_blocking(php_stream * stream);
 bool fill_super_global(const unsigned char name, zval * value);
-
+void alloc_handles(uv_poll_t *cli_handle, http_client_type *que_cli_handle);
 #endif //FILEIO_HELPERS_H

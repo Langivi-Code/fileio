@@ -146,3 +146,11 @@ bool fill_super_global(const unsigned char name, zval *value) {
     Z_ADDREF(PG(http_globals)[name]);
     return true;
 }
+
+
+void alloc_handles(uv_poll_t *cli_handle, http_client_type *que_cli_handle ){
+    cli_handle = emalloc(sizeof(uv_poll_t));
+    que_cli_handle = emalloc(sizeof(http_client_type));
+    memset(que_cli_handle, 0, sizeof(http_client_type));
+
+};

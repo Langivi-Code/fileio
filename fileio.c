@@ -37,9 +37,7 @@ extern zend_class_entry *register_class_Promise(void);
 extern zend_class_entry *register_class_Server(void);
 extern zend_class_entry *register_class_HttpServer(void);
 extern zend_class_entry *register_class_HttpRequest(void);
-
 extern zend_class_entry *register_class_HttpResponse(void);
-extern  server_type php_servers[10];
 extern  zend_function * promise_resolve;
 extern  zend_function * promise_reject;
 ZEND_DECLARE_MODULE_GLOBALS(fileio);
@@ -192,7 +190,8 @@ PHP_RINIT_FUNCTION (fileio) {
 //    PG(auto_prepend_file)="Promise.php";
     memset(timer_handle_map,0, HANDLE_MAP_SIZE * sizeof(handle_id_item_t));
     memset(fstimeout_handle_map,0, HANDLE_MAP_SIZE * sizeof(fs_handles_id_item_t));
-    memset(php_servers, 0, sizeof(struct server_type) * 10);
+    memset(php_servers, 0, sizeof(server_type) * 10);
+    memset(http_php_servers, 0, sizeof(http_server_type) * 10);
 #if defined(ZTS) && defined(COMPILE_DL_FILEIO)
     ZEND_TSRMLS_CACHE_UPDATE();
 #endif

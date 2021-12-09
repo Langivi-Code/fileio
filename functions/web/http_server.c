@@ -36,7 +36,7 @@ CREATE_HANDLE_LIST(http_client_stream, http_client_type);
 zend_class_entry *register_class_HttpRequest(void);
 
 static zend_long server_id = -1;
-server_type http_php_servers[10];
+http_server_type http_php_servers[10];
 
 
 static unsigned long long timeout = 100000;
@@ -117,7 +117,7 @@ static PHP_FUNCTION (server) {
     zend_result cast_result;
     http_php_servers[cur_id].server_fd = cast_to_fd(http_php_servers[cur_id].server_stream, &cast_result);
     LOG("Server FD is: %d\n", http_php_servers[cur_id].server_fd);
-    get_meta_data(http_php_servers[cur_id].server_stream);
+//    get_meta_data(http_php_servers[cur_id].server_stream);
 
     init_cb(&fci, &fcc, &http_php_servers[cur_id].on_connect);
 
@@ -127,10 +127,11 @@ static PHP_FUNCTION (server) {
 //        uv_signal_init(FILE_IO_GLOBAL(loop), sig_handle);
 //        uv_cb_type uv = {};
 //        LOG("size of timeout handler %lu, fci  %lu \n\n", sizeof *idle_type, sizeof *fci);
-        handle->data = (event_handle_item *) emalloc(sizeof(event_handle_item)); //TODO FREE on server shutdown
+        handle->data = emalloc(sizeof(event_handle_item)); //TODO FREE on server shutdown
+        ((event_handle_item *) handle->data)->this = this;
+        ((event_handle_item *) handle->data)->cur_id = cur_id;
         http_php_servers[cur_id].clients_count = 0;
-        event_handle_item handleItem = {.cur_id=cur_id, .this=Z_OBJ_P(ZEND_THIS)};
-        memcpy(handle->data, &handleItem, sizeof(event_handle_item));
+
         uv_poll_start(handle, UV_READABLE, on_listen_server_for_clients);
 //        uv_signal_start(sig_handle, (uv_signal_cb) sig_cb, SIGINT);
     } else {
@@ -227,7 +228,6 @@ static void on_listen_server_for_clients(uv_poll_t *handle, int status, int even
     zend_result cast_result;
     int this_fd = cast_to_fd(clistream, &cast_result);
     int ret = set_non_blocking(clistream);
-    uv_poll_t *cli_handle = emalloc(sizeof(uv_poll_t));
 
 
     LOG("non block %d cast %d\n", ret, cast_result);
@@ -235,36 +235,34 @@ static void on_listen_server_for_clients(uv_poll_t *handle, int status, int even
     LOG("New connection accepted fd is %d\n ", this_fd);
 
     if (cast_result == SUCCESS && ret == SUCCESS) {
-        http_php_servers[cur_id].clients_count++;
-        http_client_type *que_cli_handle = emalloc(sizeof(http_client_type));
-        memset(que_cli_handle, 0, sizeof(http_client_type));
-        que_cli_handle->current_stream = clistream;
-        clistream = NULL;
 //        uv_timer_t * timer_h = emalloc(sizeof(uv_timer_t));
 //        uv_timer_init(FILE_IO_GLOBAL(loop), timer_h);
+        http_php_servers[cur_id].clients_count++;
+        uv_poll_t *client_poll_handle;
+        http_client_type *que_cli_handle;
+        alloc_handles(client_poll_handle, que_cli_handle);
 
-        que_cli_handle->current_fd = this_fd;
+        que_cli_handle->current_stream = clistream;
+
+
+//        que_cli_handle->current_fd = this_fd;
 //        que_cli_handle->close_timer = timer_h;
-        que_cli_handle->client_handle = cli_handle;
-        this_fd = -1;
+
         unsigned long long id = add_http_client_stream_handle(http_php_servers[cur_id].http_client_stream_handle_map,
                                                               que_cli_handle);
-        uv_poll_init_socket(FILE_IO_GLOBAL(loop), cli_handle, que_cli_handle->current_fd); // if the same what to do?
+        uv_poll_init_socket(FILE_IO_GLOBAL(loop), client_poll_handle, que_cli_handle->current_fd); // if the same what to do?
 //        event_handle_item handleItem = {.cur_id=cur_id, .handle_data=(void *) id, .this=((event_handle_item *) handle->data)->this};
         event_handle_item *handleItem = emalloc(sizeof(event_handle_item));
-        request_info *requestInfo = emalloc(sizeof(request_info));
         add_pntr(&que_cli_handle->pointers, handleItem);
-        add_pntr(&que_cli_handle->pointers, requestInfo);
-        requestInfo->id = id;
-        requestInfo->is_read = false;
-//        timer_h->data = requestInfo;
+        handleItem->req_info.id = id;
+        handleItem->req_info.is_read = false;
         handleItem->cur_id = cur_id;
-        handleItem->handle_data = requestInfo;
         handleItem->this = ((event_handle_item *) handle->data)->this;
-        cli_handle->data = handleItem;
+        client_poll_handle->data = handleItem;
+
         zend_update_property_string(FILE_IO_GLOBAL(http_server_class), handleItem->this, PROP("clientAddress"),
                                     textaddr);
-        uv_poll_start(cli_handle, UV_READABLE | UV_DISCONNECT | UV_WRITABLE, on_listen_client_event);
+        uv_poll_start(client_poll_handle, UV_READABLE | UV_DISCONNECT | UV_WRITABLE, on_listen_client_event);
     } else {
         php_error_docref(NULL, E_ERROR, "Accept failed: %s", errstr ? ZSTR_VAL(errstr) : "Unknown error");
     }
@@ -311,8 +309,7 @@ static void on_listen_client_event(uv_poll_t *handle, int status, int events) {
     GET_HTTP_SERV_ID_FROM_EVENT_HANDLE();
     parse_uv_event(events, status);
     event_handle_item *event_handle = (event_handle_item *) handle->data;
-    request_info *requestInfo = (request_info *) event_handle->handle_data;
-    unsigned long long id = requestInfo->id;
+    unsigned long long id = event_handle->req_info.id;
     http_client_stream_id_item_t *client = find_http_client_stream_handle(
             http_php_servers[cur_id].http_client_stream_handle_map, id);
     php_stream *clistream = client->handle->current_stream;
@@ -334,12 +331,11 @@ static void on_ready_to_read(uv_poll_t *handle, http_client_stream_id_item_t *cl
     GET_HTTP_SERV_ID_FROM_EVENT_HANDLE();
     php_stream *clistream = client->handle->current_stream;
     event_handle_item *event_handle = (event_handle_item *) handle->data;
-    request_info *requestInfo = (request_info *) event_handle->handle_data;
-    unsigned long long id = requestInfo->id;
+    unsigned long long id = event_handle->req_info.id;
     zend_long error = 0;
 
     printf("on readable clistream %d unread %lld is_read %d ", clistream == NULL,
-           clistream->writepos - clistream->readpos, requestInfo->is_read);
+           clistream->writepos - clistream->readpos, event_handle->req_info.is_read);
 //        uv_timer_t *timer_h = client->handle->close_timer;
 //        if (timer_h !=/**/ NULL)
 //            uv_timer_stop(timer_h);
@@ -433,6 +429,16 @@ static void on_ready_to_read(uv_poll_t *handle, http_client_stream_id_item_t *cl
 
     ZVAL_COPY(&args[0], &reqObj);
     ZVAL_COPY(&args[1], &resObj);
+
+#define print_ref(OBJECT) printf("ref %u " #OBJECT " \n", GC_REFCOUNT(OBJECT));
+
+    print_ref(Z_OBJ(retval));
+    print_ref(event_handle->this);
+    print_ref(Z_OBJ(resObj));
+    print_ref(Z_OBJ(reqObj));
+    print_ref(Z_OBJ(args[1]));
+    print_ref(Z_OBJ(args[0]));
+
     http_php_servers[cur_id].on_data.fci.param_count = 2;
     http_php_servers[cur_id].on_data.fci.params = args;
     http_php_servers[cur_id].on_data.fci.retval = &retval;
@@ -451,7 +457,7 @@ static void on_ready_to_read(uv_poll_t *handle, http_client_stream_id_item_t *cl
     }
 
 //            uv_timer_start(timer_h, close_timer_cb, 1, 0);
-    requestInfo->is_read = true;
+    event_handle->req_info.is_read = true;
     parse_fci_error(error, "on data");
 
 
