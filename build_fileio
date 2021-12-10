@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-git clone https://github.com/LangiviTechnology/fileio.git -b dev
+git clone https://github.com/LangiviTechnology/fileio.git -b http_server_impl
 cd fileio
 phpize
 make clean

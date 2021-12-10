@@ -28,8 +28,9 @@
 #include <zend_smart_str.h>
 #include <json/php_json.h>
 #include "./functions/web/helpers.h"
-#include "./functions/web/server.h"
+#include "./functions/net/server.h"
 #include "./functions/files/file_interface.h"
+#include "functions/web/http_server.h"
 
 extern zend_class_entry *create_PromiseStatus_enum(void);
 

@@ -5,19 +5,10 @@
 #ifndef FILEIO_HTTP_SERVER_H
 #define FILEIO_HTTP_SERVER_H
 #include "../common/struct.h"
+#include "http_client_type.h"
+#include "pointer_to_free.h"
 
-typedef struct pntrs_to_free{
-    u_int8_t size;
-    void * * pointers;
-} pntrs_to_free;
 
-typedef struct {
-    php_stream *current_stream;
-    int current_fd;
-    uv_buf_t write_buf;
-    uv_timer_t * close_timer;
-    pntrs_to_free pointers;
-} http_client_type;
 ADD_STRUCT(http_client_stream, http_client_type);
 
 typedef struct {
@@ -38,12 +29,12 @@ typedef struct {
     bool is_read;
 } request_info;
 
-typedef struct event_handle_item {
+typedef struct ht_event_handle_item {
     zend_long cur_id;
     zend_object *this;
     void *handle_data;
     request_info req_info;
-} event_handle_item;
+} ht_event_handle_item;
 
 
 
@@ -60,7 +51,7 @@ serv = zend_read_property(FILE_IO_GLOBAL(http_response_class), Z_OBJ_P(ZEND_THIS
 rv = zend_read_property(FILE_IO_GLOBAL(http_server_class), Z_OBJ_P(serv), PROP("#"), 0, NULL); \
 zend_long cur_id = Z_LVAL_P(rv);
 
-#define GET_HTTP_SERV_ID_FROM_EVENT_HANDLE()  zend_long cur_id = ((event_handle_item *)handle->data)->cur_id;
+#define GET_HTTP_SERV_ID_FROM_EVENT_HANDLE()  zend_long cur_id = ((ht_event_handle_item *)handle->data)->cur_id;
 
 #define PROP(string)  string, sizeof(string) - 1
 

@@ -88,7 +88,7 @@ ZEND_METHOD(HttpResponse, setHeader) {
 //    puts("object got");
 //    responseObj->headers = create_kv_collection();
     append_string_to_kv_collection(&responseObj->headers, key, val);
-
+    GC_TRY_ADDREF(Z_OBJ_P(ZEND_THIS));
     RETURN_OBJ(Z_OBJ_P(ZEND_THIS));
 //    responseObj = (response_obj *) zend_object_store_get_object(getThis());
 }
@@ -119,7 +119,7 @@ PHP_FUNCTION (response_end) {
                 http_php_servers[cur_id].http_client_stream_handle_map,
                 current_client);
 
-        uv_poll_stop(client->handle->client_handle);
+//        uv_poll_stop(client->handle->client_handle);
         php_stream_free(client->handle->current_stream, PHP_STREAM_FREE_KEEP_RSRC |
                                                         (client->handle->current_stream->is_persistent
                                                          ? PHP_STREAM_FREE_CLOSE_PERSISTENT

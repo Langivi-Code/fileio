@@ -1,14 +1,14 @@
 //
 // Created by user on 25.10.21.
 //
-#include <php.h>
-#include <zend_API.h>
+#include "main/php.h"
+#include "Zend/zend_API.h"
 #include <uv.h>
 #include "../common/fill_event_handle.h"
 #include "../../php_fileio.h"
 #include "ext/standard/file.h"
 #include "server.h"
-#include "helpers.h"
+#include "../web/helpers.h"
 #include "../common/struct.h"
 #include "server_args_info.h"
 #define LOG_TAG "TCP SERVER"
@@ -36,7 +36,7 @@ void sig_cb(uv_poll_t *handle, int status, int events) {
 
 }
 
-void on_ready_to_write(uv_poll_t *handle, int status, int events) {
+static void on_ready_to_write(uv_poll_t *handle, int status, int events) {
 
     GET_SERV_ID_FROM_EVENT_HANDLE();
     event_handle_item *event_handle = (event_handle_item *) handle->data;
@@ -278,7 +278,7 @@ PHP_FUNCTION (server) {
     php_servers[cur_id].server_stream = _php_stream_xport_create(full_host, ret_sz, REPORT_ERRORS,
                                                                  STREAM_XPORT_SERVER | (int) flags,
 
-                                                                 NULL, NULL, NULL, &errstr, &err, NULL, NULL, NULL,NULL, NULL);
+                                                                 NULL, NULL, NULL, &errstr, &err);
 //       get_meta_data(php_servers[cur_id].server_stream);
     if (php_servers[cur_id].server_stream == NULL) {
         php_error_docref(NULL, E_WARNING, "Unable to connect  %s\n",

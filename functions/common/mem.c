@@ -3,6 +3,7 @@
 //
 #include <sys/resource.h>
 #include <errno.h>
+#include <stdio.h>
 #include "mem.h"
 void mem(char * tag) {
     errno = 0;

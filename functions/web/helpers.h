@@ -5,7 +5,8 @@
 #ifndef FILEIO_HELPERS_H
 #define FILEIO_HELPERS_H
 
-#include "http_server.h"
+
+#include "http_client_type.h"
 
 char *create_host(const char *host, size_t host_len, zend_long port, size_t *str_len);
 void get_meta_data(php_stream *stream);
