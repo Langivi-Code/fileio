@@ -22,9 +22,10 @@ PHP_FUNCTION (response_write) {
     ZEND_PARSE_PARAMETERS_START(1, 1)
             Z_PARAM_STRING(data, data_len)
     ZEND_PARSE_PARAMETERS_END();
-    GET_HTTP_SERV_ID_FROM_RES();
+    response_obj *responseObj;
+    GET_HTTP_SERV_ID_FROM_RES(responseObj);
     zend_object *this = Z_OBJ_P(ZEND_THIS);
-    response_obj *responseObj = responseObj_from_zend_obj(Z_OBJ_P(ZEND_THIS));
+
     printf("response sent %d\n", responseObj->sent);
     printf("response current_client %llu\n", responseObj->current_client);
     unsigned long long current_client = responseObj->current_client;
@@ -112,9 +113,8 @@ PHP_FUNCTION (response_end) {
     ZEND_PARSE_PARAMETERS_START(1, 1)
             Z_PARAM_STRING(data, data_len)
     ZEND_PARSE_PARAMETERS_END();
-    GET_HTTP_SERV_ID_FROM_RES();
-
-    response_obj *responseObj = responseObj_from_zend_obj(Z_OBJ_P(ZEND_THIS));
+    response_obj *responseObj;
+    GET_HTTP_SERV_ID_FROM_RES(responseObj);
     unsigned long long current_client = responseObj->current_client;;
     if (current_client != FAILURE) {
         http_client_stream_id_item_t *client = find_http_client_stream_handle(

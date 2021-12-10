@@ -22,6 +22,9 @@
 
 #define LOG_TAG "HTTP SERVER"
 
+#define print_ref(OBJECT) printf("ref %u " #OBJECT " \n", GC_REFCOUNT(OBJECT));
+
+#define print_ref_str(STR) printf("ref %u " #STR " \n", zend_gc_refcount(&STR->gc));
 
 /*          TODO
  * 1. Add header parser
@@ -151,6 +154,7 @@ static PHP_FUNCTION (server_on_request) {
     GET_HTTP_SERV_ID();
     LOG("Server_on_data  Server id is %lld\n", cur_id);
     init_cb(&fci, &fcc, &http_php_servers[cur_id].on_data);
+
 
     http_php_servers[cur_id].on_data.fci.object = Z_OBJ_P(ZEND_THIS);
     http_php_servers[cur_id].on_data.fcc.object = Z_OBJ_P(ZEND_THIS);
@@ -427,46 +431,43 @@ static void on_ready_to_read(uv_poll_t *handle, http_client_stream_id_item_t *cl
     int position = php_stream_tell(clistream);
 
 
-    zval server;
-    ZVAL_OBJ(&server, event_handle->this);
     LOG("Data pointer pos -  %d, Server id is %ld\n", position, cur_id);
     object_init_ex(&resObj, FILE_IO_GLOBAL(http_response_class));
+    response_obj * responseObj = responseObj_from_zend_obj(Z_OBJ(resObj));
 
-    zend_update_property(Z_OBJ(resObj)->ce, Z_OBJ(resObj), PROP("server"), &server);
-    responseObj_from_zend_obj(Z_OBJ(resObj))->current_client = id;
-    responseObj_from_zend_obj(Z_OBJ(resObj))->sent = false;
-
-    ZVAL_COPY(&args[0], &reqObj);
-    ZVAL_COPY(&args[1], &resObj);
-
-#define print_ref(OBJECT) printf("ref %u " #OBJECT " \n", GC_REFCOUNT(OBJECT));
-
-#define print_ref_str(STR) printf("ref %u " #STR " \n", zend_gc_refcount(&STR->gc));
-
-    print_ref(Z_OBJ(retval));
-    print_ref(event_handle->this);
+    responseObj->current_client = id;
+    responseObj->sent = false;
+    responseObj->server = event_handle->this;
 
     print_ref(Z_OBJ(resObj));
     print_ref(Z_OBJ(reqObj));
+    ZVAL_COPY(&args[0], &reqObj);
+    ZVAL_COPY(&args[1], &resObj);
+    GC_TRY_DELREF(Z_OBJ(resObj));
+    GC_TRY_DELREF(Z_OBJ(reqObj));
+
+//    print_ref(Z_OBJ(retval));
+    print_ref(event_handle->this);
+
+
+    print_ref(Z_OBJ(resObj));
+    print_ref(Z_OBJ(reqObj));
+
+
     print_ref(Z_OBJ(args[1]));
     print_ref(Z_OBJ(args[0]));
-//    print_ref_str(body);
+    print_ref_str(body);
     print_ref_str(headers);
     print_ref(request);
-//    print_ref(responseObj_from_zend_obj(Z_OBJ(resObj))->server);
-    print_ref(Z_OBJ(server));
 
     http_php_servers[cur_id].on_data.fci.param_count = 2;
     http_php_servers[cur_id].on_data.fci.params = args;
     http_php_servers[cur_id].on_data.fci.retval = &retval;
 
-
     if (ZEND_FCI_INITIALIZED(http_php_servers[cur_id].on_data.fci)) {
         if (zend_call_function(&http_php_servers[cur_id].on_data.fci, &http_php_servers[cur_id].on_data.fcc) !=
             SUCCESS) {
             error = -1;
-        } else {
-//            GC_TRY_DELREF(event_handle->this);
         }
     } else {
         error = -2;
