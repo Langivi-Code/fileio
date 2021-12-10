@@ -1,4 +1,4 @@
-#include <i386/types.h>
+#include <inttypes.h>
 
 //
 // Created by admin on 10.12.2021.
