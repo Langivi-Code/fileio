@@ -11,30 +11,35 @@ function test(PromiseStatus $status)
 //               }
 //               );
 // var_dump($serv);
-class HttpServer extends Server
-{
+//$file = file_get_contents("./stubs/index.html");
+$serv1 = new HttpServer(8001, "tcp://0.0.0.0", []);
 
-}
-
-$serv1 = new HttpServer(8200, callback: function (Server $obj) {
-    var_dump(123, $this->setReadBufferSize(55), $this->write("geloo"), $this);
-});
-//  $serv1->setReadBufferSize(5);
-$serv1->on_data(function ($data) use (&$serv1) {
-    $str = "HTTP/1.1 200 OK\n\r";
-    var_dump("on_data: " . $data);
-//      if ($data == "get_cool"){
-
-    $serv1->write($str);
-//      $serv1->end("");
-//      }
-
-
-    //                $serv1->write(" from php hello");
+$serv1->on_request(function (HttpRequest $req, HttpResponse $res) {
+//  var_dump($_POST);
+//     var_dump($req);
+//    $len = strlen($file);
+//    echo "Request details\n";
+//    echo "Request uri {$req->uri}\n";
+    //$res->statusCode=2;
+//    var_dump($res);
+//    if ($req->uri !== "/") {
+//        echo "Nothing to send";
+//        $res->setStatusCode(403);
+//         var_dump($res);
+//
+//
+////        $res->setHeader("content-length", "0");
+//        $res->send("\r\nNothing to send");
+//        return;
+//    } else {
+        $res->setHeader("content-length", "10");
+        $res->setHeader("Content-Type", "text/plain; charset=utf-8");
+        $res->send("hello\n");
+//    }
 });
 // $serv1->write("from php hello");
 // $serv1->write($str);
-var_dump($serv1);
+// var_dump($serv1);
 
 // idle(fn()=>print_r("hello"));
 // idle(fn()=>print_r("hello2"));

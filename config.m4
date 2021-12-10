@@ -35,6 +35,10 @@ for i in $rpath/functions/*/*.c ; do
   file=$(echo $i | sed -e "s|$rpath/| |g")
   source="$source $file"
 done
+for i in $rpath/3rd/*/*.c ; do
+  file=$(echo $i | sed -e "s|$rpath/| |g")
+  source="$source $file"
+done
   $1[]_DIR=$source
    AC_MSG_NOTICE($source)
 ])
@@ -123,10 +127,10 @@ if test $PHP_UV != "no"; then
     fi
       case $host in
           *linux*)
-              CFLAGS="$CFLAGS -luv -std=c11"
+              CFLAGS="$CFLAGS -luv -std=gnu11"
            ;;
            *darwin*)
-              CFLAGS="$CFLAGS -luv -std=c11"
+              CFLAGS="$CFLAGS -luv -std=gnu11"
       esac
 	PHP_SUBST([CFLAGS])
     PHP_SUBST(UV_SHARED_LIBADD)

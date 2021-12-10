@@ -17,9 +17,9 @@
 // setTimeout(function () {
 //     console.log( "timeout2")
 // }, 0);
-
-const net = require('net');
-const sock = new net.Socket({readable:true, writable:true});
+//
+// const net = require('net');
+// const sock = new net.Socket({readable:true, writable:true});
 
 // sock.connect(8100, '0.0.0.0');
 // sock.on('connect', (...data)=>{console.log('connect', data)
@@ -30,26 +30,26 @@ const sock = new net.Socket({readable:true, writable:true});
 //     console.log('data', data.toString())
 //     // sock.write("another data\n\0")
 //     sock.end("bye from ports 8100")
+// // });
+//
+// sock.connect(8200, '0.0.0.0');
+// sock.on('connect', (...data)=>{console.log('connect', data)
+//     // sock.write("hello from node js 8200\n\0");
+//     // sock.end();
 // });
-
-sock.connect(8200, '0.0.0.0');
-sock.on('connect', (...data)=>{console.log('connect', data)
-    // sock.write("hello from node js 8200\n\0");
-    // sock.end();
-});
-let i=2;
-sock.write("get_coolget_coolget_coolget_coolget_coolget_coolget_coolget_coolget_coolget_coolget_coolget_cool");
-sock.on('data', (...data)=>{
-    console.log('data:', data.toString())
-    if (i>0){
-        sock.write("get_cool");
-        i--;
-    }
-
-
-});
-
-setTimeout(()=>sock.end("bye from ports 8200"),100);
+// let i=2;
+// sock.write("get_coolget_coolget_coolget_coolget_coolget_coolget_coolget_coolget_coolget_coolget_coolget_cool");
+// sock.on('data', (...data)=>{
+//     console.log('data:', data.toString())
+//     if (i>0){
+//         sock.write("get_cool");
+//         i--;
+//     }
+//
+//
+// });
+//
+// setTimeout(()=>sock.end("bye from ports 8200"),100);
 // let i = 0;
 // const serv = net.createServer((socket) => {
 //     // console.log('req', i);
@@ -61,3 +61,10 @@ setTimeout(()=>sock.end("bye from ports 8200"),100);
 // 11410470
 //  1201680
 //   731087
+const net = require("http");
+let serv = net.createServer((req, resp) => {
+    resp.statusCode = 200;
+    resp.write("hello");
+    resp.end();
+})
+serv.listen(8001)

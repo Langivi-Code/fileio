@@ -1,14 +1,14 @@
 //
 // Created by user on 25.10.21.
 //
-#include <php.h>
-#include <zend_API.h>
+#include "main/php.h"
+#include "Zend/zend_API.h"
 #include <uv.h>
 #include "../common/fill_event_handle.h"
 #include "../../php_fileio.h"
 #include "ext/standard/file.h"
 #include "server.h"
-#include "helpers.h"
+#include "../web/helpers.h"
 #include "../common/struct.h"
 #include "server_args_info.h"
 #define LOG_TAG "TCP SERVER"
@@ -36,7 +36,7 @@ void sig_cb(uv_poll_t *handle, int status, int events) {
 
 }
 
-void on_ready_to_write(uv_poll_t *handle, int status, int events) {
+static void on_ready_to_write(uv_poll_t *handle, int status, int events) {
 
     GET_SERV_ID_FROM_EVENT_HANDLE();
     event_handle_item *event_handle = (event_handle_item *) handle->data;
@@ -198,7 +198,7 @@ void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
         php_error_docref(NULL, E_ERROR, "Accept failed: %s", errstr ? ZSTR_VAL(errstr) : "Unknown error");
     }
     LOG("Client counts  by handles %d by counter %llu\n",
-           count_client_stream_handles(php_servers[cur_id].client_stream_handle_map),
+           count_client_stream_handles,
            php_servers[cur_id].clients_count);
 //    exit(0);
     zend_long error = 0;

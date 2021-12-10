@@ -8,22 +8,28 @@
 #include <uv.h>
 #include "../../constants.h"
 #include "helpers.h"
+#include "http_server.h"
+
 #define LOG_TAG "TCP SERVER"
+
 char *create_host(const char *host, size_t host_len, zend_long port, size_t *str_len) {
     if (host == NULL) {
         host = "0.0.0.0";
         host_len = strlen(host);
     }
-    char snum[10];
-    sprintf(snum, "%lld", port);
-    * str_len = host_len + strlen(snum) + 1;
-    char *host_ = emalloc(sizeof(char) * (*str_len));
-    memset(host_, 0, *str_len);
+    char port_str[10]={0};
+    size_t final_len=0;
+    sprintf(port_str, "%ld", port);
+    final_len = host_len + strlen(port_str) + 2;
+    char * host_ = emalloc(sizeof(char) * final_len);
+    memset(host_, 0, final_len);
     strncpy(host_, host, host_len);
-    strcat(host_, ":");
-    strncat(host_, snum, strlen(snum));
-    return  host_;
+    strncat(host_, ":", 1);
+    strncat(host_, port_str, strlen(port_str));
+    * str_len = final_len;
+    return host_;
 }
+
 void parse_fci_error(long error, const char *func_name) {
     LOG("%s - ", func_name);
     switch (error) {
@@ -59,7 +65,7 @@ void parse_uv_event(int event, int status) {
 }
 
 void get_meta_data(php_stream *stream) {
-    zval * return_value;
+    zval *return_value;
     return_value = emalloc(sizeof(zval));
     array_init(return_value);
 
@@ -108,12 +114,43 @@ void get_meta_data(php_stream *stream) {
 
 int cast_to_fd(php_stream *stream, zend_result *result) {
     int fd = -1;
-    (*result) = _php_stream_cast(stream,PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL,(void *) &fd, 1);
+    (*result) = _php_stream_cast(stream, PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL, (void *) &fd, 1);
     if (*result == FAILURE) {
         php_error_docref(NULL, E_ERROR, "Could not get FD of stream");
     }
     return fd;
 }
-int set_non_blocking(php_stream * stream) {
+
+int set_non_blocking(php_stream *stream) {
     return stream->ops->set_option(stream, PHP_STREAM_OPTION_BLOCKING, 0, NULL);
 }
+
+bool fill_super_global(const unsigned char name, zval *value) {
+    zend_string *numb_var;
+    switch (name) {
+        case TRACK_VARS_GET:
+            numb_var = zend_string_init_interned("_GET", sizeof("_GET") - 1, 1);
+            break;
+        case TRACK_VARS_POST:
+            numb_var = zend_string_init_interned("_POST", sizeof("_POST") - 1, 1);
+            break;
+        case TRACK_VARS_COOKIE:
+            numb_var = zend_string_init_interned("_COOKIE", sizeof("_COOKIE") - 1, 1);
+            break;
+        default:
+            return false;
+    }
+
+    ZVAL_COPY_VALUE(&PG(http_globals)[name], value);
+    zend_hash_update(&EG(symbol_table), numb_var, &PG(http_globals)[name]);
+    Z_ADDREF(PG(http_globals)[name]);
+    return true;
+}
+
+
+void alloc_handles(uv_poll_t *cli_handle, http_client_type *que_cli_handle ) {
+    cli_handle = emalloc(sizeof(uv_poll_t));
+    que_cli_handle = emalloc(sizeof(http_client_type));
+    memset(que_cli_handle, 0, sizeof(http_client_type));
+
+};

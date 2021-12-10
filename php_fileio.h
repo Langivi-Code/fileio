@@ -14,6 +14,9 @@ ZEND_BEGIN_MODULE_GLOBALS(fileio)
     uv_loop_t *loop;
     zend_class_entry *promise_class;
     zend_class_entry *server_class;
+    zend_class_entry *http_server_class;
+    zend_class_entry *http_request_class;
+    zend_class_entry *http_response_class;
     zend_class_entry *promise__status_enum;
 //} zend_fileio_globals;
 ZEND_END_MODULE_GLOBALS(fileio)

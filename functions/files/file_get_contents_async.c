@@ -165,7 +165,7 @@ static void on_open(uv_fs_t *req) {
     LOG("file id is %zd\n", req->result);
 
     uv_fs_t *status_req = emalloc(sizeof(uv_fs_t));
-    assert(req == &open_req);
+//    assert(req == &open_req);
     if (req->result >= 0) {
         uv_fs_t *read_req = find_fs_handle((unsigned long long) req->data)->open_req;
         file_handle_data *handle = (file_handle_data *) read_req->data;
