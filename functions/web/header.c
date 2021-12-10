@@ -13,6 +13,7 @@
 #include "../../3rd/utils/strpos.h"
 #include "ext/standard/php_var.h"
 #include "../common/mem.h"
+#include "zend_smart_string.h"
 
 PHP_FUNCTION (send_header) {
     zend_string * key, *value;
@@ -138,23 +139,19 @@ void parse(char *headers, size_t len, zend_object *request) {
     }
 }
 
-zend_string *stringify(key_value_collection collection) {
-    zend_string * res = zend_string_init_fast("", 0);
+smart_string *stringify(key_value_collection collection) {
+    smart_string * res = emalloc(sizeof (smart_string));
+    memset(res, 0, sizeof (smart_string));
+    smart_string_appends(res, "");
     if (collection.size == 0) {
         return res;
     }
 
     for (int i = 0; i < collection.size; i++) {
-        res = zend_string_concat3(
-                ZSTR_VAL(res), ZSTR_LEN(res),
-                collection.kv[i].key, strlen(collection.kv[i].key),
-                ": ", 2
-        );
-        res = zend_string_concat3(
-                ZSTR_VAL(res), ZSTR_LEN(res),
-                collection.kv[i].value, strlen(collection.kv[i].value),
-                "\r\n", 2
-        );
+        smart_string_appends(res, collection.kv[i].key);
+        smart_string_appends(res, ": ");
+        smart_string_appends(res, collection.kv[i].value);
+        smart_string_appends(res, "\r\n");
     }
     return res;
 }

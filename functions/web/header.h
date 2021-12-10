@@ -14,7 +14,7 @@
 #include <zend_types.h>
 #include "../http/request.h"
 
-zend_string *stringify(key_value_collection collection);
+smart_string *stringify(key_value_collection collection);
 
 void parse(char *headers, size_t len, zend_object *request);
 

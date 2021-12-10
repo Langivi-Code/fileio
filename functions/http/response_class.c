@@ -9,6 +9,8 @@
 #include "../web/http_server_args_info.h"
 #include "../web/http_server.h"
 #include "../web/header.h"
+#include "zend_smart_string.h"
+#include "../../constants.h"
 
 response_obj *responseObj_from_zend_obj(zend_object *obj) {
     return (response_obj *) ((char *) (obj) - XtOffsetOf(response_obj, std));
