@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #php  -dextension=fileio -m
-#ENV
-php  -dextension=fileio -dmemory_limit=512M -f ./stubs/index.php
+export ENV="DEV"
+php  -dextension=fileio -dmemory_limit=1024M -f ./stubs/serv.php
 #source=""
 #for i in $(pwd)/functions/*/*.c ; do
 #  file=$(echo $i | sed -e "s|$(pwd)/functions|\$FUNCTIONS|g")

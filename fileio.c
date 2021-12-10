@@ -24,14 +24,21 @@
 #include "functions/common/callback_interface.h"
 #include "constants.h"
 #include <ext/standard/basic_functions.h>
-#include "./functions//web/server.h"
+#include <SAPI.h>
+#include <zend_smart_str.h>
+#include <json/php_json.h>
+#include "./functions/web/helpers.h"
+#include "./functions/net/server.h"
 #include "./functions/files/file_interface.h"
+#include "functions/web/http_server.h"
 
 extern zend_class_entry *create_PromiseStatus_enum(void);
 
 extern zend_class_entry *register_class_Promise(void);
 extern zend_class_entry *register_class_Server(void);
-extern  server_type php_servers[10];
+extern zend_class_entry *register_class_HttpServer(void);
+extern zend_class_entry *register_class_HttpRequest(void);
+extern zend_class_entry *register_class_HttpResponse(void);
 extern  zend_function * promise_resolve;
 extern  zend_function * promise_reject;
 ZEND_DECLARE_MODULE_GLOBALS(fileio);
@@ -125,20 +132,53 @@ ZEND_FUNCTION(enable_event) {
 PHP_INI_BEGIN()
         PHP_INI_ENTRY("file_io.use_promise", 0, PHP_INI_ALL, NULL)
 PHP_INI_END()
+SAPI_API SAPI_POST_HANDLER_FUNC(json_post_handler)
+{
+    zval *arr = (zval *) arg;
+    php_stream *s = SG(request_info).request_body;
+    smart_str buff={0};
 
+    if (s && SUCCESS == php_stream_rewind(s)) {
+        while (!php_stream_eof(s)) {
+            char buf[BUFSIZ] = {0};
+            ssize_t len = php_stream_read(s, buf, BUFSIZ);
+
+            if (len > 0) {
+                smart_str_appendl(&buff, buf, len);
+            }
+
+            if (len != BUFSIZ){
+                break;
+            }
+        }
+        zval ret;
+        zend_long options = 0;
+        options |=  PHP_JSON_OBJECT_AS_ARRAY;
+        if (buff.s) {
+            if(php_json_decode_ex(&ret, ZSTR_VAL(buff.s), buff.a, options, 512)==SUCCESS){
+                fill_super_global(TRACK_VARS_POST, &ret);
+            }
+        }
+    }
+}
 /**********************************************/
 /***        MODULE INTIALIZATION SECTION    ***/
 /**********************************************/
-
+#define JSON_POST_CONTENT_TYPE "application/json"
 /* {{{ PHP_MINIT_FUNCTION */
 PHP_MINIT_FUNCTION (fileio) {
     FILE_IO_GLOBAL(loop) = uv_default_loop();
     create_PromiseStatus_enum();
     register_class_Promise();
+    register_class_HttpServer();
+    register_class_HttpRequest();
+    register_class_HttpResponse();
     register_class_Server();
     REGISTER_INI_ENTRIES();
     promise_resolve = zend_hash_str_find_ptr(&FILE_IO_GLOBAL(promise_class->function_table), "resolve", sizeof("resolve")-1);
     promise_reject = zend_hash_str_find_ptr(&FILE_IO_GLOBAL(promise_class->function_table), "reject", sizeof("reject")-1);
+    static const sapi_post_entry php_post_entries = { JSON_POST_CONTENT_TYPE,    sizeof(JSON_POST_CONTENT_TYPE)-1,    NULL, json_post_handler };
+    sapi_register_post_entry(&php_post_entries);
 
 #if defined(ZTS) && defined(COMPILE_DL_FILEIO)
     ZEND_TSRMLS_CACHE_UPDATE();
@@ -151,7 +191,8 @@ PHP_RINIT_FUNCTION (fileio) {
 //    PG(auto_prepend_file)="Promise.php";
     memset(timer_handle_map,0, HANDLE_MAP_SIZE * sizeof(handle_id_item_t));
     memset(fstimeout_handle_map,0, HANDLE_MAP_SIZE * sizeof(fs_handles_id_item_t));
-    memset(php_servers, 0, sizeof(struct server_type) * 10);
+    memset(php_servers, 0, sizeof(server_type) * 10);
+    memset(http_php_servers, 0, sizeof(http_server_type) * 10);
 #if defined(ZTS) && defined(COMPILE_DL_FILEIO)
     ZEND_TSRMLS_CACHE_UPDATE();
 #endif

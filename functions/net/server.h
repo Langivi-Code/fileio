@@ -13,7 +13,7 @@ typedef struct {
 } client_type;
 ADD_STRUCT(client_stream, client_type);
 
-typedef struct server_type {
+typedef struct {
     php_stream *server_stream;
     int server_fd;
     ADD_HANDLE_TO_STRUCT(client_stream)
@@ -39,4 +39,6 @@ zend_long cur_id = Z_LVAL_P(rv);
 #define GET_SERV_ID_FROM_EVENT_HANDLE()  zend_long cur_id;\
 cur_id = ((event_handle_item *)handle->data)->cur_id;
 #define PROP(string)  string, sizeof(string) - 1
+
+extern  server_type php_servers[10];
 #endif //FILEIO_SERVER_H

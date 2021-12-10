@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-git clone https://github.com/LangiviTechnology/fileio.git -b dev
+git clone https://github.com/LangiviTechnology/fileio.git -b http_server_impl
 cd fileio
 phpize
 make clean
-./configure --with-uv --enable-static=uv
+./configure --with-uv
 make
 make install
 cd ..
