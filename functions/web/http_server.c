@@ -210,17 +210,6 @@ static PHP_FUNCTION (server_on_error) {
     }
 }
 
-ZEND_METHOD (HttpServer, setReadBufferSize) {
-    zend_long size = 1024;
-    ZEND_PARSE_PARAMETERS_START(1, 1)
-            Z_PARAM_LONG(size);
-    ZEND_PARSE_PARAMETERS_END();
-
-    zend_update_property_long(Z_OBJ_P(ZEND_THIS)->ce, Z_OBJ_P(ZEND_THIS), PROP("readBufferSize"), size);
-
-}
-
-
 static void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
     GET_HTTP_SERV_ID_FROM_EVENT_HANDLE();
     parse_uv_event(events, status);
