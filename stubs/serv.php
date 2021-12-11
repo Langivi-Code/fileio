@@ -2,7 +2,7 @@
 $serv1 = new HttpServer(81, "tcp://0.0.0.0");
 $serv1->setPublicPath(__DIR__);
 $serv1->on_request(function (HttpRequest $req, HttpResponse $res) use ($serv1) {
-//    var_dump($req, $res, $this->publicPath);
+   var_dump($req, $res, $this->publicPath);
 
     if (file_exists($serv1->publicPath.$req->uri) && !is_dir($serv1->publicPath.$req->uri)){
 
@@ -23,6 +23,7 @@ $serv1->on_request(function (HttpRequest $req, HttpResponse $res) use ($serv1) {
 
        return;
     }
+    echo "why";
     $res->setHeader("Content-Type", "text/plain; charset=utf-8");
     $res->send("hello\n");
 
