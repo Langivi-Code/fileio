@@ -29,14 +29,15 @@ class HttpServer {
     public function on_request(callable $callback){}
     public function on_disconnect(callable $callback){}
     public function on_error(callable $callback){}
-
     public function setPublicPath(string $path){}
 }
+
 class HttpRequest {
     public string $method;
     public string $HttpVersion;
     public string $uri;
     public string $querystring;
+    public array $body;
     public array $headers;
     public array $query;
 }
