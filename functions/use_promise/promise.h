@@ -7,3 +7,8 @@ typedef struct then_struct {
     zend_object * this;
 } then_t;
 
+enum Promise{
+    Pending,
+    Resolved,
+    Rejected
+};

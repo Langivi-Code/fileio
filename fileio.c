@@ -176,7 +176,7 @@ PHP_MINIT_FUNCTION (fileio) {
     register_class_Server();
     REGISTER_INI_ENTRIES();
     promise_resolve = zend_hash_str_find_ptr(&FILE_IO_GLOBAL(promise_class->function_table), "resolved", sizeof("resolved")-1);
-    promise_reject = zend_hash_str_find_ptr(&FILE_IO_GLOBAL(promise_class->function_table), "reject", sizeof("reject")-1);
+    promise_reject = zend_hash_str_find_ptr(&FILE_IO_GLOBAL(promise_class->function_table), "rejected", sizeof("rejected")-1);
     static const sapi_post_entry php_post_entries = { JSON_POST_CONTENT_TYPE,    sizeof(JSON_POST_CONTENT_TYPE)-1,    NULL, json_post_handler };
     sapi_register_post_entry(&php_post_entries);
 

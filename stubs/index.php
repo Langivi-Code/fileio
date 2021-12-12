@@ -64,14 +64,20 @@ function test(PromiseStatus $status)
 // echo "<br>$timer</br>";
 // //
 
-$timerId = new Promise(function ($resolve, $reject){
-//    $resolve(123);
-    file_get_contents_async("serv.php", $resolve);
-});
-
-$timerId->then(function ($data) {
-    var_dump($data);
-//    var_dump($timerId);
+// $timerId = new Promise(function ($resolve, $reject){
+// //    $resolve(123);
+//     file_get_contents_async("serv.php", $resolve);
+// });
+//
+// $timerId->then(function ($data) {
+//     var_dump($data);
+// //    var_dump($timerId);
+// });
+Promise::resolve(1)->then(function($i){
+                            var_dump($i);
+                            });
+Promise::reject("frsrgrgrrv")->catch(function($i){
+var_dump($i);
 });
 //var_dump($timerId);
 
