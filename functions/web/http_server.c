@@ -226,7 +226,8 @@ static void on_listen_server_for_clients(uv_poll_t *handle, int status, int even
     LOG("non block %d cast %d\n", ret, cast_result);
     LOG("Client address : %s\n", textaddr ? ZSTR_VAL(textaddr) : "no address");
     LOG("New connection accepted fd is %d\n ", this_fd);
-
+    zend_update_property_string(FILE_IO_GLOBAL(http_server_class), ((ht_event_handle_item *) handle->data)->this, PROP("clientAddress"),
+                                ZSTR_VAL(textaddr));
     if (cast_result == SUCCESS && ret == SUCCESS) {
 //        uv_timer_t * timer_h = emalloc(sizeof(uv_timer_t));
 //        uv_timer_init(FILE_IO_GLOBAL(loop), timer_h);
@@ -258,8 +259,6 @@ static void on_listen_server_for_clients(uv_poll_t *handle, int status, int even
         handleItem->this = ((ht_event_handle_item *) handle->data)->this;
         client_poll_handle->data = handleItem;
 
-        zend_update_property_string(FILE_IO_GLOBAL(http_server_class), handleItem->this, PROP("clientAddress"),
-                                    textaddr);
         uv_poll_start(client_poll_handle, UV_READABLE | UV_DISCONNECT | UV_WRITABLE, on_listen_client_event);
     } else {
         php_error_docref(NULL, E_ERROR, "Accept failed: %s", errstr ? ZSTR_VAL(errstr) : "Unknown error");
@@ -448,7 +447,7 @@ static void on_ready_to_read(uv_poll_t *handle, http_client_stream_id_item_t *cl
     http_php_servers[cur_id].on_data.fci.param_count = 2;
     http_php_servers[cur_id].on_data.fci.params = args;
     http_php_servers[cur_id].on_data.fci.retval = &retval;
-    http_php_servers[cur_id].on_data.fcc.function_handler->common.function_name = zend_string_init(PROP("on_data"),1);
+    http_php_servers[cur_id].on_data.fcc.function_handler->common.function_name = zend_string_init(PROP("on_data"), 1);
     if (ZEND_FCI_INITIALIZED(http_php_servers[cur_id].on_data.fci)) {
         if (zend_call_function(&http_php_servers[cur_id].on_data.fci, &http_php_servers[cur_id].on_data.fcc) !=
             SUCCESS) {
@@ -458,7 +457,7 @@ static void on_ready_to_read(uv_poll_t *handle, http_client_stream_id_item_t *cl
                 zend_error_noreturn(E_CORE_ERROR, "Couldn't execute method %s%s%s",
                                     fun->common.scope ? ZSTR_VAL(fun->common.scope->name) : "",
                                     fun->common.scope ? "::" : "", ZSTR_VAL(fun->common.function_name));
-            } else{
+            } else {
                 zend_exception_error(EG(exception), E_WARNING);
                 EG(exception) = NULL;
             }
@@ -571,6 +570,21 @@ void add_pntr(pntrs_to_free *pointers_store, void *pointer) {
         pointers_store->size++;
     }
 }
+inline void register_property(zend_class_entry *ce, char *name, size_t len, zval *def_val, int access_type, int type) {
+    zend_string * property = zend_string_init(name, len, 1);
+    zend_declare_typed_property(ce, property, def_val, access_type, NULL, (zend_type) ZEND_TYPE_INIT_MASK(type));
+    zend_string_release(property);
+}
+
+inline void
+register_class_property(zend_class_entry *ce, char *name, size_t len, zval *def_val, int access_type, char *class_name,
+                        size_t class_len) {
+    zend_string * property = zend_string_init(name, len, 1);
+    zend_string * property_class = zend_string_init(class_name, class_len, 1);
+    zend_declare_typed_property(ce, property, def_val, access_type, NULL,
+                                (zend_type) ZEND_TYPE_INIT_CLASS(property_class, 0, MAY_BE_NULL));
+    zend_string_release(property);
+}
 
 static const zend_function_entry class_HttpServer_methods[] = {
         ZEND_ME_MAPPING(__construct, server, arginfo_http_server, ZEND_ACC_PUBLIC)
@@ -606,27 +620,13 @@ static const zend_function_entry class_ServerRequest_methods[] = {
 };
 
 
-inline void register_property(zend_class_entry *ce, char *name, size_t len, zval *def_val, int access_type, int type) {
-    zend_string * property = zend_string_init(name, len, 1);
-    zend_declare_typed_property(ce, property, def_val, access_type, NULL, (zend_type) ZEND_TYPE_INIT_MASK(type));
-    zend_string_release(property);
-}
-
-inline void
-register_class_property(zend_class_entry *ce, char *name, size_t len, zval *def_val, int access_type, char *class_name,
-                        size_t class_len) {
-    zend_string * property = zend_string_init(name, len, 1);
-    zend_string * property_class = zend_string_init(class_name, class_len, 1);
-    zend_declare_typed_property(ce, property, def_val, access_type, NULL,
-                                (zend_type) ZEND_TYPE_INIT_CLASS(property_class, 0, MAY_BE_NULL));
-    zend_string_release(property);
-}
 
 zend_class_entry *register_class_HttpRequest(void) {
     zend_class_entry ce;
     short flags_pb_ro = ZEND_ACC_PUBLIC | ZEND_ACC_HAS_TYPE_HINTS;
     INIT_CLASS_ENTRY(ce, "HttpRequest", class_ServerRequest_methods);
     FILE_IO_GLOBAL(http_request_class) = zend_register_internal_class_ex(&ce, NULL);
+    FILE_IO_GLOBAL(http_request_class)->ce_flags |= ZEND_ACC_NO_DYNAMIC_PROPERTIES;
 
     zval method;
     ZVAL_UNDEF(&method);
@@ -635,24 +635,39 @@ zend_class_entry *register_class_HttpRequest(void) {
     zval HttpVersion;
     ZVAL_UNDEF(&HttpVersion);
     register_property(FILE_IO_GLOBAL(http_request_class), PROP("HttpVersion"), &HttpVersion,
-                      ZEND_ACC_PUBLIC | ZEND_ACC_READONLY, MAY_BE_STRING);
-//    register_property(FILE_IO_GLOBAL(http_request_class), "method", &method, ZEND_ACC_PUBLIC, MAY_BE_STRING|MAY_BE_NULL);
+                      flags_pb_ro, MAY_BE_STRING);
+    zval uri;
+    ZVAL_UNDEF(&uri);
+    register_property(FILE_IO_GLOBAL(http_request_class), PROP("uri"), &uri,
+                      flags_pb_ro, MAY_BE_STRING);
+    zval querystring;
+    ZVAL_UNDEF(&querystring);
+    register_property(FILE_IO_GLOBAL(http_request_class), PROP("querystring"), &uri,
+                      flags_pb_ro, MAY_BE_STRING);
+    zval body;
+    ZVAL_UNDEF(&body);
+    register_property(FILE_IO_GLOBAL(http_request_class), PROP("body"), &body, flags_pb_ro,
+                      MAY_BE_ARRAY);
+    zval headers;
+    ZVAL_UNDEF(&headers);
+    register_property(FILE_IO_GLOBAL(http_request_class), PROP("headers"), &headers, flags_pb_ro,
+                      MAY_BE_ARRAY);
+    zval query;
+    ZVAL_UNDEF(&query);
+    register_property(FILE_IO_GLOBAL(http_request_class), PROP("query"), &query, flags_pb_ro,
+                      MAY_BE_ARRAY);
 
 
-    FILE_IO_GLOBAL(http_request_class)->ce_flags |= ZEND_ACC_NO_DYNAMIC_PROPERTIES;
 //    zend_declare_property_string(FILE_IO_GLOBAL(http_request_class), PROP("method"), "", flags_pb_ro);
 //    zend_declare_property_string(FILE_IO_GLOBAL(http_request_class), PROP("HttpVersion"), "", flags_pb_ro);
-    zend_declare_property_string(FILE_IO_GLOBAL(http_request_class), PROP("uri"), "", flags_pb_ro);
-    zend_declare_property_string(FILE_IO_GLOBAL(http_request_class), PROP("querystring"), "", flags_pb_ro);
-    zend_declare_property_string(FILE_IO_GLOBAL(http_request_class), PROP("body"), "", flags_pb_ro);
-    zval ht;
-    ZVAL_UNDEF(&ht);//TODO REWRITE ON TYPED PROPERTY
-    register_property(FILE_IO_GLOBAL(http_request_class), PROP("headers"), &ht, ZEND_ACC_PUBLIC | ZEND_ACC_READONLY,
-                      MAY_BE_ARRAY);
+//    zend_declare_property_string(FILE_IO_GLOBAL(http_request_class), PROP("uri"), "", flags_pb_ro);
+//    zend_declare_property_string(FILE_IO_GLOBAL(http_request_class), PROP("querystring"), "", flags_pb_ro);
+//    zend_declare_property_string(FILE_IO_GLOBAL(http_request_class), PROP("body"), "", flags_pb_ro);
+
 //    zend_declare_property(FILE_IO_GLOBAL(http_request_class), PROP("headers"), &ht, flags_pb_ro);
-    zval query;
-    ZVAL_EMPTY_ARRAY(&query);//TODO REWRITE ON TYPED PROPERTY
-    zend_declare_property(FILE_IO_GLOBAL(http_request_class), PROP("query"), &query, flags_pb_ro);
+//    zval query;
+//    ZVAL_EMPTY_ARRAY(&query);
+//    zend_declare_property(FILE_IO_GLOBAL(http_request_class), PROP("query"), &query, flags_pb_ro);
 
     return FILE_IO_GLOBAL(http_request_class);
 }

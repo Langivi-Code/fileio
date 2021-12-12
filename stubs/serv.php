@@ -4,7 +4,7 @@ $serv1->setPublicPath(__DIR__);
 $serv1->on_request(function (HttpRequest $req, HttpResponse $res) use ($serv1) {
 
 
-   var_dump($req, $res, $this->publicPath);
+   var_dump($req, $res, $this);
 
     if (file_exists($serv1->publicPath.$req->uri) && !is_dir($serv1->publicPath.$req->uri)){
 
