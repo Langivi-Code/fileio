@@ -326,7 +326,10 @@ void catch_cb(uv_idle_t *handle) {
     short status_val = Z_LVAL_P(OBJ_PROP_NUM(Z_OBJ_P(status), 1));
     php_var_dump(OBJ_PROP_NUM(Z_OBJ_P(status), 1), 1);
     if (promiseFinalized_bool == IS_TRUE) {
-        printf("setting cb new idle");
+        printf("Promise is finalized already cb new idle");
+        uv_idle_stop(handle);
+        efree(data);
+        efree(handle);
     } else if (status_val == Rejected) {
         printf("runing cb  new idle");
         zval * data_store = zend_read_property(data->this->ce, data->this, PROP("dataStore"), 0,
@@ -338,7 +341,7 @@ void catch_cb(uv_idle_t *handle) {
         data->then_cb.fci.params = data_store;
         data->then_cb.fci.retval = &retval;
         if (ZEND_FCI_INITIALIZED(data->then_cb.fci)) {
-            LOG("Then call back is called");
+            LOG("Catch call back is called");
             if (zend_call_function(&data->then_cb.fci, &data->then_cb.fcc) != SUCCESS) {
                 error = -1;
             }
@@ -352,18 +355,6 @@ void catch_cb(uv_idle_t *handle) {
         efree(data);
         efree(handle);
     }
-//     } else {
-//         uv_idle_t *idleHandle = emalloc(sizeof(uv_idle_t));
-//         uv_idle_init(FILE_IO_GLOBAL(loop), idleHandle);
-//         then_t *  handle_data = emalloc(sizeof(then_t));
-//         init_cb(&fci, &fcc, &handle_data->then_cb);
-//         handle_data->this = Z_OBJ_P(ZEND_THIS);
-////        fill_idle_handle_with_data(idleHandle, &fci, &fcc);
-//         LOG("Setting then idle ...\n");
-//         idleHandle->data = handle_data;
-//         uv_idle_start(idleHandle, then_cb);
-//
-//     }
 }
 PHP_METHOD (Promise, catch) {
     zend_fcall_info fci = empty_fcall_info;
@@ -383,7 +374,7 @@ PHP_METHOD (Promise, catch) {
     short status_val = Z_LVAL_P(OBJ_PROP_NUM(Z_OBJ_P(status), 1));
     php_var_dump(OBJ_PROP_NUM(Z_OBJ_P(status), 1), 1);
     if (promiseFinalized_bool == IS_TRUE) {
-        printf("I am finalized");
+        printf("Promise is finalized already cb new idle");
     } else if (status_val == Rejected) {
         printf("running idle");
         zval * data = zend_read_property(FILE_IO_GLOBAL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("dataStore"), 0,
@@ -392,7 +383,7 @@ PHP_METHOD (Promise, catch) {
         fci.params = data;
         fci.retval = &retval;
         if (ZEND_FCI_INITIALIZED(fci)) {
-            LOG("Then call back is called");
+            LOG("Catch call back is called");
             if (zend_call_function(&fci, &fcc) != SUCCESS) {
                 error = -1;
             }
@@ -409,14 +400,88 @@ PHP_METHOD (Promise, catch) {
 //        fill_idle_handle_with_data(idleHandle, &fci, &fcc);
         LOG("Setting then idle ...\n");
         idleHandle->data = handle_data;
-        uv_idle_start(idleHandle, then_cb);
+        uv_idle_start(idleHandle, catch_cb);
+    }
+
+}
+
+void finally_cb(uv_idle_t *handle) {
+
+    then_t *data = handle->data;
+
+    zval * promiseFinalized = zend_read_property(data->this->ce, data->this, PROP("promiseFinalised"),
+                                          0, NULL);
+    zval * status = zend_read_property(data->this->ce, data->this, PROP("status"), 0,
+                                NULL);
+    short promiseFinalized_bool = Z_TYPE_INFO_P(promiseFinalized);
+    php_var_dump(promiseFinalized, 1);
+    short status_val = Z_LVAL_P(OBJ_PROP_NUM(Z_OBJ_P(status), 1));
+    php_var_dump(OBJ_PROP_NUM(Z_OBJ_P(status), 1), 1);
+
+    if (promiseFinalized_bool == IS_FALSE && status_val != Pending) {
+        printf("I am finalized");
+        zval retval;
+        uv_idle_stop(handle);
+        zend_long error;
+        data->then_cb.fci.param_count = 1;
+        data->then_cb.fci.params = data;
+        data->then_cb.fci.retval = &retval;
+        if (ZEND_FCI_INITIALIZED(data->then_cb.fci)) {
+            LOG("Finally call back is called");
+            if (zend_call_function(&data->then_cb.fci, &data->then_cb.fcc) != SUCCESS) {
+                error = -1;
+            }
+        } else {
+            error = -2;
+        }
+        zend_update_property_bool(data->this->ce, data->this, PROP("promiseFinalised"), 1);
+        uv_idle_stop(handle);
+        efree(data);
+        efree(handle);
     }
 }
 
 PHP_METHOD (Promise, finally) {
-//    return new Promise(function ($res, $rej) use ($data) {
-//             $rej($data);
-//         });
+    zend_fcall_info fci = empty_fcall_info;
+    zend_fcall_info_cache fcc = empty_fcall_info_cache;
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+            Z_PARAM_FUNC(fci, fcc)ZEND_PARSE_PARAMETERS_END();
+    zval * status;
+    zval * promiseFinalized;
+    zval retval;
+    zend_long error;
+    promiseFinalized = zend_read_property(FILE_IO_GLOBAL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("promiseFinalised"),
+                                          0, NULL);
+    status = zend_read_property(FILE_IO_GLOBAL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("status"), 0,
+                                NULL);
+    short promiseFinalized_bool = Z_TYPE_INFO_P(promiseFinalized);
+    php_var_dump(promiseFinalized, 1);
+    short status_val = Z_LVAL_P(OBJ_PROP_NUM(Z_OBJ_P(status), 1));
+    php_var_dump(OBJ_PROP_NUM(Z_OBJ_P(status), 1), 1);
+    if (promiseFinalized_bool == IS_FALSE && status_val != Pending) {
+        printf("I am finalized");
+        fci.param_count = 0;
+        fci.retval = &retval;
+        if (ZEND_FCI_INITIALIZED(fci)) {
+            LOG("Finally call back is called");
+            if (zend_call_function(&fci, &fcc) != SUCCESS) {
+                error = -1;
+            }
+        } else {
+            error = -2;
+        }
+    } else if (status_val == Pending) {
+        printf("setting new idle");
+        uv_idle_t *idleHandle = emalloc(sizeof(uv_idle_t));
+        uv_idle_init(FILE_IO_GLOBAL(loop), idleHandle);
+        then_t *handle_data = emalloc(sizeof(then_t));
+        init_cb(&fci, &fcc, &handle_data->then_cb);
+        handle_data->this = Z_OBJ_P(ZEND_THIS);
+//        fill_idle_handle_with_data(idleHandle, &fci, &fcc);
+        LOG("Setting then idle ...\n");
+        idleHandle->data = handle_data;
+        uv_idle_start(idleHandle, finally_cb);
+    }
 }
 
 
