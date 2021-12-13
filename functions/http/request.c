@@ -11,6 +11,7 @@
 #include "../common/mem.h"
 
 
+
 //TODO REWRITE TO OWN IMPL
 static inline int url_htoi(char *s) {
     int value;
@@ -110,7 +111,7 @@ key_value_collection * append_kv_to_collection(key_value_collection * collection
 }
 
 struct uri_parsed *parse_urlstring(char *urlstring_arg) {
-    mem("before alloc headers");
+//    mem("before alloc headers");
     struct uri_parsed *request_parsed = emalloc(sizeof(struct uri_parsed));
     memset(request_parsed, 0, sizeof(struct uri_parsed));
     uintptr_t qsStart = strpos(urlstring_arg, "?");
@@ -118,7 +119,7 @@ struct uri_parsed *parse_urlstring(char *urlstring_arg) {
     if (qsStart == FAILURE) {
         qsStart = strlen(urlstring_arg);
     }
-    mem("after alloc headers");
+//    mem("after alloc headers");
 //    printf("2nd qsStart %lu ----- %s\n", qsStart, querystring_arg);
     if ((qsStart + 1) < strlen(urlstring_arg)) {
         uint8_t qs_size = strlen(urlstring_arg) - (qsStart + 1);
@@ -144,7 +145,7 @@ struct uri_parsed *parse_urlstring(char *urlstring_arg) {
     }
     memset(request_parsed->uri, 0, qsStart + 1);
     strncpy(request_parsed->uri, urlstring_arg, qsStart);
-    mem("after save headers");
+//    mem("after save headers");
     return request_parsed;
 
 }

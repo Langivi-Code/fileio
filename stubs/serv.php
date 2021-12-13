@@ -2,14 +2,14 @@
 $serv1 = new HttpServer(81, "tcp://0.0.0.0");
 $serv1->setPublicPath(__DIR__);
 $serv1->on_request(function (HttpRequest $req, HttpResponse $res) use ($serv1) {
-   var_dump($req, $res, $this->publicPath);
 
+
+   var_dump($req, $res, $this);
     if (file_exists($serv1->publicPath.$req->uri) && !is_dir($serv1->publicPath.$req->uri)){
 
         echo  "WTF???";
 
         $result = new finfo();
-
          $mimeType = $result->file($serv1->publicPath.$req->uri, FILEINFO_MIME_TYPE);
 
         $file = file_get_contents($serv1->publicPath.$req->uri);

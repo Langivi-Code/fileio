@@ -43,7 +43,7 @@ typedef struct ht_event_handle_item {
 #define CLOSABLE "##"
 
 #define GET_HTTP_SERV_ID()     zval * rv; \
-rv = zend_read_property(FILE_IO_GLOBAL(http_server_class), Z_OBJ_P(ZEND_THIS), PROP("#"), 0, NULL); \
+rv = zend_read_property(MODULE_GL(http_server_class), Z_OBJ_P(ZEND_THIS), PROP("#"), 0, NULL); \
 zend_long cur_id = Z_LVAL_P(rv);
 
 

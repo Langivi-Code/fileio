@@ -12,6 +12,11 @@
 #include "../idle/idle_interface.h"
 #include "zend_enum.h"
 #include "promise.h"
+#include "../http/request.h"
+#include "../common/register_property.h"
+#include "standard/php_var.h"
+#include "../common/fill_event_handle.h"
+#include "../common/call_php_fn.h"
 
 zend_function *promise_resolve;
 zend_function *promise_reject;
@@ -37,7 +42,6 @@ static const zend_function_entry enum_PromiseStatus_methods[] = {
 //}
 
 PHP_FUNCTION (use_promise) {
-    printf("length %d", status_f.length);
 //    zval property___status_default_value;
 //    zval back;
 //    ZVAL_NULL(&back);
@@ -49,12 +53,18 @@ PHP_FUNCTION (use_promise) {
 
 
 zend_class_entry *create_PromiseStatus_enum(void) {
-    FILE_IO_GLOBAL(promise__status_enum) = zend_register_internal_enum("PromiseStatus", IS_UNDEF,
-                                                                       enum_PromiseStatus_methods);
-    zend_enum_add_case_cstr(FILE_IO_GLOBAL(promise__status_enum), "Pending", NULL);
-    zend_enum_add_case_cstr(FILE_IO_GLOBAL(promise__status_enum), "Resolved", NULL);
-    zend_enum_add_case_cstr(FILE_IO_GLOBAL(promise__status_enum), "Rejected", NULL);
-    return FILE_IO_GLOBAL(promise__status_enum);
+    MODULE_GL(promise__status_enum) = zend_register_internal_enum("PromiseStatus", IS_LONG,
+                                                                  enum_PromiseStatus_methods);
+    zval * pending = pemalloc(sizeof(zval), 1);
+    ZVAL_LONG(pending, 0);
+    zval * resolved = pemalloc(sizeof(zval), 1);
+    ZVAL_LONG(resolved, 1);
+    zval * rejected = pemalloc(sizeof(zval), 1);
+    ZVAL_LONG(rejected, 2);
+    zend_enum_add_case_cstr(MODULE_GL(promise__status_enum), "Pending", pending);
+    zend_enum_add_case_cstr(MODULE_GL(promise__status_enum), "Resolved", resolved);
+    zend_enum_add_case_cstr(MODULE_GL(promise__status_enum), "Rejected", rejected);
+    return MODULE_GL(promise__status_enum);
 }
 
 //
@@ -65,67 +75,95 @@ PHP_METHOD (Promise, __construct) {
     zend_fcall_info fci = empty_fcall_info;
     zend_fcall_info_cache fcc = empty_fcall_info_cache;
     ZEND_PARSE_PARAMETERS_START(1, 1)
-            Z_PARAM_ZVAL(callback)ZEND_PARSE_PARAMETERS_END();
+            Z_PARAM_ZVAL(callback)
+    ZEND_PARSE_PARAMETERS_END();
 
-    zend_update_property(FILE_IO_GLOBAL(promise_class), Z_OBJ_P(ZEND_THIS), "closure", sizeof("closure") - 1, callback);
+    zend_update_property(MODULE_GL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("closure"), callback);
     zend_fcall_info_init(callback, 0, &fci, &fcc, NULL, NULL);
-//    printf("%p, %p, %p\n", rejected, rejecte2d, rejecte3d);
+
     zval * params = emalloc(2 * sizeof(zval));
     zval func;
     zval retavl;
     fci.retval = &retavl;
-    zval paramsName;
-    ZVAL_STRING(&paramsName, "trolo");
     fci.param_count = 2;
-    zend_create_fake_closure(&func, promise_resolve, FILE_IO_GLOBAL(promise_class), FILE_IO_GLOBAL(promise_class),
+    zend_create_fake_closure(&func, promise_resolve, MODULE_GL(promise_class), MODULE_GL(promise_class),
                              ZEND_THIS);
     ZVAL_COPY(&params[0], &func);
-    zend_create_fake_closure(&func, promise_reject, FILE_IO_GLOBAL(promise_class), FILE_IO_GLOBAL(promise_class),
+    zend_create_fake_closure(&func, promise_reject, MODULE_GL(promise_class), MODULE_GL(promise_class),
                              ZEND_THIS);
     ZVAL_COPY(&params[1], &func);
     fci.params = params;
 #define LOG_TAG "PROMISE"
     uv_idle_t *idleHandle = emalloc(sizeof(uv_idle_t));
 
-    uv_idle_init(FILE_IO_GLOBAL(loop), idleHandle);
+    uv_idle_init(MODULE_GL(loop), idleHandle);
     fill_idle_handle_with_data(idleHandle, &fci, &fcc);
     LOG("Setting idle ...\n");
     uv_idle_start(idleHandle, fn_idle);
-    zval * status = emalloc(sizeof(zval));
-    zend_object * pending = zend_enum_get_case_cstr(FILE_IO_GLOBAL(promise__status_enum), "Pending");
-    ZVAL_OBJ(status, pending);
-    zend_update_property(FILE_IO_GLOBAL(promise_class), Z_OBJ_P(ZEND_THIS), status_f.name, status_f.length, status);
-//    uv_cb_type * cbs = emalloc(sizeof(uv_cb_type));
-//    memcpy(&cbs->fci, &fci, sizeof(zend_fcall_info));
-//    memcpy(&cbs->fcc, &fcc, sizeof(zend_fcall_info_cache));
+    zval status;
+    zend_object * pending = zend_enum_get_case_cstr(MODULE_GL(promise__status_enum), "Pending");
+    ZVAL_OBJ(&status, pending);
+    zend_update_property(MODULE_GL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("status"), &status);
 
-//    printf("not found %d\n", NULL == promise_resolve);
-//    zval callable3;
-//    zval * callable4;
 //    zend_call_known_function(promise_resolve, NULL, FILE_IO_GLOBAL(promise_class), &callable3, 0, NULL, NULL);
-//    zend_update_property()
-//  $this->handle();
-// //        $this->internalFiber = new Fiber([$this, 'handle']);
-// //        $this->status = $this->internalFiber->start();
-//
+
 }
 
-
 PHP_METHOD (Promise, resolve) {
-    printf("it resolved\n");
     zval * param;
-    zval * status = emalloc(sizeof(zval));
+    zval status, resolved_promise, closure;
     ZEND_PARSE_PARAMETERS_START(1, 1)
             Z_PARAM_ZVAL_OR_NULL(param)ZEND_PARSE_PARAMETERS_END();
-    zend_object * resolved = zend_enum_get_case_cstr(FILE_IO_GLOBAL(promise__status_enum), "Resolved");
-    ZVAL_OBJ(status, resolved);
-    zend_update_property(FILE_IO_GLOBAL(promise_class), Z_OBJ_P(ZEND_THIS), dataStore_f.name, dataStore_f.length,
-                         param);
+    object_init_ex(&resolved_promise, MODULE_GL(promise_class));
+    zend_object * resolved = zend_enum_get_case_cstr(MODULE_GL(promise__status_enum), "Resolved");
+    ZVAL_OBJ(&status, resolved);
+    zend_update_property(MODULE_GL(promise_class), Z_OBJ(resolved_promise), PROP("dataStore"), param);
 
-    zend_update_property(FILE_IO_GLOBAL(promise_class), Z_OBJ_P(ZEND_THIS), status_f.name, status_f.length, status);
+    object_init_ex(&closure, zend_ce_closure);
+
+    zend_update_property(MODULE_GL(promise_class), Z_OBJ(resolved_promise), PROP("closure"), &closure);
+
+    zend_update_property(MODULE_GL(promise_class), Z_OBJ(resolved_promise), PROP("status"), &status);
+    zend_object * obj = Z_OBJ(resolved_promise);
+
+    RETURN_OBJ(obj);
+}
+
+PHP_METHOD (Promise, reject) {
+    zval * param;
+    zval status, rejected_promise, closure;
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+            Z_PARAM_ZVAL_OR_NULL(param)ZEND_PARSE_PARAMETERS_END();
+
+    object_init_ex(&rejected_promise, MODULE_GL(promise_class));
+    zend_object * resolved = zend_enum_get_case_cstr(MODULE_GL(promise__status_enum), "Rejected");
+    ZVAL_OBJ(&status, resolved);
+    zend_update_property(MODULE_GL(promise_class), Z_OBJ(rejected_promise), PROP("dataStore"), param);
+
+    object_init_ex(&closure, zend_ce_closure);
+
+    zend_update_property(MODULE_GL(promise_class), Z_OBJ(rejected_promise), PROP("closure"), &closure);
+
+    zend_update_property(MODULE_GL(promise_class), Z_OBJ(rejected_promise), PROP("status"), &status);
+    zend_object * obj = Z_OBJ(rejected_promise);
+
+    RETURN_OBJ(obj);
+}
+
+PHP_METHOD (Promise, resolved) {
+    printf("it resolved\n");
+    zval * param;
+    zval status;
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+            Z_PARAM_ZVAL_OR_NULL(param)ZEND_PARSE_PARAMETERS_END();
+    zend_object * resolved = zend_enum_get_case_cstr(MODULE_GL(promise__status_enum), "Resolved");
+    ZVAL_OBJ(&status, resolved);
+    zend_update_property(MODULE_GL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("dataStore"), param);
+    zend_update_property(MODULE_GL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("status"), &status);
+
     switch (Z_TYPE_P(param)) {
         case IS_STRING:
-            php_printf("resolved %s val", ZSTR_VAL(Z_STR_P(param)));
+//            php_printf("resolved %s val", ZSTR_VAL(Z_STR_P(param)));
             break;
         case IS_NULL:
             break;
@@ -137,22 +175,21 @@ PHP_METHOD (Promise, resolve) {
 //         });
 }
 
-PHP_METHOD (Promise, reject) {
+PHP_METHOD (Promise, rejected) {
     printf("it rejected\n");
     zval * param;
     zval * status = emalloc(sizeof(zval));
     ZEND_PARSE_PARAMETERS_START(1, 1)
             Z_PARAM_ZVAL_OR_NULL(param)ZEND_PARSE_PARAMETERS_END();
 
-    zend_object * rejecte3d = zend_enum_get_case_cstr(FILE_IO_GLOBAL(promise__status_enum), "Rejected");
-    zend_object * rejected = zend_enum_get_case_cstr(FILE_IO_GLOBAL(promise__status_enum), "Rejected");
+    zend_object * rejected = zend_enum_get_case_cstr(MODULE_GL(promise__status_enum), "Rejected");
 
     ZVAL_OBJ(status, rejected);
-    zend_update_property(FILE_IO_GLOBAL(promise_class), Z_OBJ_P(ZEND_THIS), dataStore_f.name, dataStore_f.length,
-                         param);
+    zend_update_property(MODULE_GL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("dataStore"), param);
     zval rv;
-    zend_update_property(FILE_IO_GLOBAL(promise_class), Z_OBJ_P(ZEND_THIS), status_f.name, status_f.length, status);
-    zend_read_property(FILE_IO_GLOBAL(promise_class), Z_OBJ_P(ZEND_THIS), status_f.name, status_f.length, 0, &rv);
+    zend_update_property(MODULE_GL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("status"), status);
+    zend_read_property(MODULE_GL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("status"), 0, &rv);
+
     printf("%p, %p,\n", rejected, &Z_OBJ(rv));
     switch (Z_TYPE_P(param)) {
         case IS_STRING:
@@ -165,45 +202,194 @@ PHP_METHOD (Promise, reject) {
     RETURN_OBJ(rejected);
 }
 
+void then_cb(uv_idle_t *handle) {
+
+    then_t *data = handle->data;
+
+    zval * promiseFinalized = zend_read_property(data->this->ce, data->this, PROP("promiseFinalised"),  0, NULL);
+
+    zval * status = zend_read_property(data->this->ce, data->this, PROP("status"), 0,  NULL);
+    short promiseFinalized_bool = Z_TYPE_INFO_P(promiseFinalized);
+    short status_val = Z_LVAL_P(OBJ_PROP_NUM(Z_OBJ_P(status), 1));
+
+    if (promiseFinalized_bool == IS_TRUE) {
+        printf("setting cb new idle");
+    } else if (status_val == Resolved) {
+        printf("runing cb  new idle");
+        zval * data_store = zend_read_property(data->this->ce, data->this, PROP("dataStore"), 0,
+                                               NULL);
+        uv_idle_stop(handle);
+        zval retval;
+
+        LOG("Then call back is called");
+        call_php_fn(&data->then_cb, 1, data_store, &retval, "then");
+
+        efree(data);
+        efree(handle);
+    } else if (status_val == Rejected) {
+        uv_idle_stop(handle);
+        efree(data);
+        efree(handle);
+    }
+}
+
 PHP_METHOD (Promise, then) {
     zend_fcall_info fci = empty_fcall_info;
     zend_fcall_info_cache fcc = empty_fcall_info_cache;
     ZEND_PARSE_PARAMETERS_START(1, 1)
             Z_PARAM_FUNC(fci, fcc)ZEND_PARSE_PARAMETERS_END();
-    zval * data = emalloc(sizeof(zval));
-    zval promiseFinalized;
-    zval  retval;
-    zend_long error;
-    zend_read_property(FILE_IO_GLOBAL(promise_class), Z_OBJ_P(ZEND_THIS), promiseFinalized_f.name, promiseFinalized_f.length, 0, &promiseFinalized);
-    zend_read_property(FILE_IO_GLOBAL(promise_class), Z_OBJ_P(ZEND_THIS), dataStore_f.name, dataStore_f.length, 0, data);
-    fci.param_count = 1;
-    fci.params = data;
-    fci.retval = &retval;
-    if (ZEND_FCI_INITIALIZED(fci)) {
-        LOG("Then call back is called");
-        if (zend_call_function(&fci, &fcc) != SUCCESS) {
-            error = -1;
-        }
-    } else {
-        error = -2;
-    }
-//    zend_object * resolved = zend_enum_get_case_cstr(FILE_IO_GLOBAL(promise__status_enum), "Resolved");
 
-//    return new Promise(function ($res, $rej) use ($data) {
-//             $rej($data);
-//         });
+    zval * promiseFinalized = zend_read_property(MODULE_GL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("promiseFinalised"),
+                                          0, NULL);
+    zval * status = zend_read_property(MODULE_GL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("status"), 0, NULL);
+    short promiseFinalized_bool = Z_TYPE_INFO_P(promiseFinalized);
+    short status_val = Z_LVAL_P(OBJ_PROP_NUM(Z_OBJ_P(status), 1));
+
+    if (promiseFinalized_bool == IS_TRUE) {
+        printf("I am finalized");
+    } else if (status_val == Resolved) {
+        zval retval;
+        printf("running idle");
+        zval * data = zend_read_property(MODULE_GL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("dataStore"), 0,  NULL);
+        uv_cb_type then_cb_s = {0};
+        init_cb(&fci, &fcc, &then_cb_s);
+        LOG("Then call back is called");
+        call_php_fn(&then_cb_s, 1, data, &retval, "then");
+
+    } else if (status_val == Pending) {
+        printf("setting new idle");
+        uv_idle_t *idleHandle = emalloc(sizeof(uv_idle_t));
+        uv_idle_init(MODULE_GL(loop), idleHandle);
+        then_t *handle_data = emalloc(sizeof(then_t));
+        init_cb(&fci, &fcc, &handle_data->then_cb);
+        handle_data->this = Z_OBJ_P(ZEND_THIS);
+        LOG("Setting then idle ...\n");
+        idleHandle->data = handle_data;
+        uv_idle_start(idleHandle, then_cb);
+    }
+}
+
+void catch_cb(uv_idle_t *handle) {
+
+    then_t *data = handle->data;
+
+    zval * promiseFinalized = zend_read_property(data->this->ce, data->this, PROP("promiseFinalised"),  0, NULL);
+    zval * status = zend_read_property(data->this->ce, data->this, PROP("status"), 0, NULL);
+    short promiseFinalized_bool = Z_TYPE_INFO_P(promiseFinalized);
+    short status_val = Z_LVAL_P(OBJ_PROP_NUM(Z_OBJ_P(status), 1));
+
+    if (promiseFinalized_bool == IS_TRUE) {
+        printf("Promise is finalized already cb new idle");
+        uv_idle_stop(handle);
+        efree(data);
+        efree(handle);
+    } else if (status_val == Rejected) {
+        printf("runing cb  new idle");
+        zval * data_store = zend_read_property(data->this->ce, data->this, PROP("dataStore"), 0, NULL);
+
+        zval retval;
+        LOG("Catch call back is called");
+        call_php_fn(&data->then_cb, 1, data_store, &retval, "catch");
+        uv_idle_stop(handle);
+        efree(data);
+        efree(handle);
+    } else if (status_val == Resolved) {
+        uv_idle_stop(handle);
+        efree(data);
+        efree(handle);
+    }
 }
 
 PHP_METHOD (Promise, catch) {
-//    return new Promise(function ($res, $rej) use ($data) {
-//             $rej($data);
-//         });
+    zend_fcall_info fci = empty_fcall_info;
+    zend_fcall_info_cache fcc = empty_fcall_info_cache;
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+            Z_PARAM_FUNC(fci, fcc)ZEND_PARSE_PARAMETERS_END();
+
+    zval * promiseFinalized = zend_read_property(MODULE_GL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("promiseFinalised"),
+                                          0, NULL);
+    zval * status = zend_read_property(MODULE_GL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("status"), 0,  NULL);
+    short promiseFinalized_bool = Z_TYPE_INFO_P(promiseFinalized);
+    short status_val = Z_LVAL_P(OBJ_PROP_NUM(Z_OBJ_P(status), 1));
+
+    if (promiseFinalized_bool == IS_TRUE) {
+        printf("Promise is finalized already cb new idle");
+    } else if (status_val == Rejected) {
+        zval retval;
+        printf("running idle");
+        zval * data = zend_read_property(MODULE_GL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("dataStore"), 0,
+                                         NULL);
+        uv_cb_type then_cb_s = {0};
+        init_cb(&fci, &fcc, &then_cb_s);
+        LOG("Catch call back is called");
+        call_php_fn(&then_cb_s, 1, data, &retval, "catch");
+
+    } else if (status_val == Pending) {
+        printf("setting new idle");
+        uv_idle_t *idleHandle = emalloc(sizeof(uv_idle_t));
+        uv_idle_init(MODULE_GL(loop), idleHandle);
+        then_t *handle_data = emalloc(sizeof(then_t));
+        init_cb(&fci, &fcc, &handle_data->then_cb);
+        handle_data->this = Z_OBJ_P(ZEND_THIS);
+        LOG("Setting then idle ...\n");
+        idleHandle->data = handle_data;
+        uv_idle_start(idleHandle, catch_cb);
+    }
+}
+
+void finally_cb(uv_idle_t *handle) {
+
+    then_t *data = handle->data;
+
+    zval * promiseFinalized = zend_read_property(data->this->ce, data->this, PROP("promiseFinalised"),  0, NULL);
+    zval * status = zend_read_property(data->this->ce, data->this, PROP("status"), 0, NULL);
+    short promiseFinalized_bool = Z_TYPE_INFO_P(promiseFinalized);
+    short status_val = Z_LVAL_P(OBJ_PROP_NUM(Z_OBJ_P(status), 1));
+
+    if (promiseFinalized_bool == IS_FALSE && status_val != Pending) {
+        printf("I am finalized");
+        zval retval;
+        call_php_fn(&data->then_cb, 0, NULL, &retval, "finally");
+        zend_update_property_bool(data->this->ce, data->this, PROP("promiseFinalised"), 1);
+        uv_idle_stop(handle);
+        efree(data);
+        efree(handle);
+    }
 }
 
 PHP_METHOD (Promise, finally) {
-//    return new Promise(function ($res, $rej) use ($data) {
-//             $rej($data);
-//         });
+    zend_fcall_info fci = empty_fcall_info;
+    zend_fcall_info_cache fcc = empty_fcall_info_cache;
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+            Z_PARAM_FUNC(fci, fcc)ZEND_PARSE_PARAMETERS_END();
+
+    zval retval;
+
+    zval * promiseFinalized = zend_read_property(MODULE_GL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("promiseFinalised"),
+                                                 0, NULL);
+    zval * status = zend_read_property(MODULE_GL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("status"), 0, NULL);
+    short promiseFinalized_bool = Z_TYPE_INFO_P(promiseFinalized);
+    short status_val = Z_LVAL_P(OBJ_PROP_NUM(Z_OBJ_P(status), 1));
+
+    if (promiseFinalized_bool == IS_FALSE && status_val != Pending) {
+        printf("I am finalized");
+        uv_cb_type then_cb_s = {0};
+        init_cb(&fci, &fcc, &then_cb_s);
+        LOG("Finally call back is called");
+        call_php_fn(&then_cb_s, 0, NULL, &retval, "finally");
+
+    } else if (status_val == Pending) {
+        printf("setting finally idle");
+        uv_idle_t *idleHandle = emalloc(sizeof(uv_idle_t));
+        uv_idle_init(MODULE_GL(loop), idleHandle);
+        then_t *handle_data = emalloc(sizeof(then_t));
+        init_cb(&fci, &fcc, &handle_data->then_cb);
+        handle_data->this = Z_OBJ_P(ZEND_THIS);
+//        fill_idle_handle_with_data(idleHandle, &fci, &fcc);
+        LOG("Setting finally idle ...\n");
+        idleHandle->data = handle_data;
+        uv_idle_start(idleHandle, finally_cb);
+    }
 }
 
 
@@ -221,8 +407,10 @@ ZEND_END_ARG_INFO()
 
 static const zend_function_entry class_Promise_methods[] = {
         ZEND_ME(Promise, __construct, arginfo_promise_construct, ZEND_ACC_PUBLIC)
-        ZEND_ME(Promise, resolve, arginfo_promise_resolve, ZEND_ACC_PUBLIC)
-        ZEND_ME(Promise, reject, arginfo_promise_reject, ZEND_ACC_PUBLIC)
+        ZEND_ME(Promise, resolve, arginfo_promise_resolve, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+        ZEND_ME(Promise, resolved, arginfo_promise_resolve, ZEND_ACC_PRIVATE)
+        ZEND_ME(Promise, reject, arginfo_promise_reject, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+        ZEND_ME(Promise, rejected, arginfo_promise_reject, ZEND_ACC_PRIVATE)
         ZEND_ME(Promise, then, arginfo_promise_construct, ZEND_ACC_PUBLIC)
         ZEND_ME(Promise, catch, arginfo_promise_construct, ZEND_ACC_PUBLIC)
         ZEND_ME(Promise, finally, arginfo_promise_construct, ZEND_ACC_PUBLIC)
@@ -233,7 +421,7 @@ zend_class_entry *register_class_Promise(void) {
     zend_class_entry ce;
 
     INIT_CLASS_ENTRY(ce, "Promise", class_Promise_methods);
-    FILE_IO_GLOBAL(promise_class) = zend_register_internal_class_ex(&ce, NULL);
+    MODULE_GL(promise_class) = zend_register_internal_class_ex(&ce, NULL);
 
 
 //    zend_declare_class_constant_long(promise_class_entry,
@@ -246,43 +434,40 @@ zend_class_entry *register_class_Promise(void) {
 //    zend_declare_property_ex(class_entry, property_service_name, &property_service_default_value, ZEND_ACC_PRIVATE, NULL);
 //    zend_string_release(property_service_name);
 
-    zend_string * property__status_class_PromiseStatus = zend_string_init("PromiseStatus", sizeof("PromiseStatus") - 1,
-                                                                          1);
+//    zend_string * property__status_class_PromiseStatus = zend_string_init("PromiseStatus", sizeof("PromiseStatus") - 1,
+//
+//                                                                          /**   status  **/1);
+//    zend_declare_property_long(FILE_IO_GLOBAL(promise_class), PROP("status"), 0, ZEND_ACC_PRIVATE);
+    /**   $status  **/
     zval property___status_default_value;
     ZVAL_NULL(&property___status_default_value);
-//    zend_enum_new(&property___status_default_value, promise_enum,
-//                  zend_string_init("Pending", sizeof("Pending") - 1, 1), NULL);
-    zend_string * property___status = zend_string_init("status", sizeof("status") - 1, 1);
-    zend_declare_typed_property(FILE_IO_GLOBAL(promise_class), property___status, &property___status_default_value,
-                                ZEND_ACC_PRIVATE, NULL,
-                                (zend_type) ZEND_TYPE_INIT_CLASS(property__status_class_PromiseStatus, 0, MAY_BE_NULL));
+    register_class_property(MODULE_GL(promise_class), PROP("status"), &property___status_default_value,
+                            ZEND_ACC_PRIVATE, PROP("PromiseStatus"));
 
-//    zend_declare_typed_property(class_entry, property___status, &property___status_default_value,
-//                                ZEND_ACC_PRIVATE, NULL,
-//                                (zend_type) ZEND_TYPE_INIT_CLASS(property__status_class_PromiseStatus, 0, MAY_BE_NULL));
-    zend_declare_property_long(FILE_IO_GLOBAL(promise_class),
-                               "status", sizeof("status") - 1, 0, ZEND_ACC_PRIVATE);
-    zend_declare_property_bool(FILE_IO_GLOBAL(promise_class), promiseFinalized_f.name, promiseFinalized_f.length, 0,
+
+    /**   $promiseFinalised  **/
+    zend_declare_property_bool(MODULE_GL(promise_class), PROP("promiseFinalised"), 0,
                                ZEND_ACC_PRIVATE);
 
     /**   $dataStore  **/
     zval property___dataStore_default_value;
     ZVAL_NULL(&property___dataStore_default_value);
-    zend_string * property_dt_store_name = zend_string_init("dataStore", sizeof("dataStore") - 1, 1);
-    zend_declare_property(FILE_IO_GLOBAL(promise_class), "dataStore", sizeof("dataStore") - 1,
-                          &property___dataStore_default_value, ZEND_ACC_PRIVATE);
-    zend_string_release(property_dt_store_name);
+    register_property(MODULE_GL(promise_class), PROP("dataStore"), &property___dataStore_default_value,
+                      ZEND_ACC_PRIVATE, MAY_BE_ANY);
 
     /**   $closure  **/
     zval prop___closure_default_value;
     ZVAL_NULL(&prop___closure_default_value);
-    zend_string * prop__closure_class_Closure = zend_string_init("Closure", sizeof("Closure") - 1, 1);
-    zend_string * prop__closure_name = zend_string_init("closure", sizeof("closure") - 1,
-                                                        1);
-    zend_declare_typed_property(FILE_IO_GLOBAL(promise_class), prop__closure_name, &prop___closure_default_value,
-                                ZEND_ACC_PUBLIC, NULL,
-                                (zend_type) ZEND_TYPE_INIT_CLASS(prop__closure_class_Closure, 0, MAY_BE_CALLABLE));
-    zend_string_release(prop__closure_name);
+    register_class_property(MODULE_GL(promise_class), PROP("closure"), &prop___closure_default_value,
+                            ZEND_ACC_PRIVATE, PROP("Closure"));
 
-    return FILE_IO_GLOBAL(promise_class);
+//    zend_string * prop__closure_class_Closure = zend_string_init("Closure", sizeof("Closure") - 1, 1);
+//    zend_string * prop__closure_name = zend_string_init("closure", sizeof("closure") - 1,
+    //       1);
+//    zend_declare_typed_property(FILE_IO_GLOBAL(promise_class), prop__closure_name, &prop___closure_default_value,
+//                                ZEND_ACC_PUBLIC, NULL,
+//                                (zend_type) ZEND_TYPE_INIT_CLASS(prop__closure_class_Closure, 0, MAY_BE_CALLABLE));
+//    zend_string_release(prop__closure_name);
+
+    return MODULE_GL(promise_class);
 }

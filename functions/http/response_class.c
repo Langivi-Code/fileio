@@ -192,19 +192,19 @@ zend_class_entry *register_class_HttpResponse(void) {
     response_object_handlers.compare = zend_objects_not_comparable;
 
 
-    FILE_IO_GLOBAL(http_response_class) = zend_register_internal_class_ex(&ce, NULL);
+    MODULE_GL(http_response_class) = zend_register_internal_class_ex(&ce, NULL);
 //    FILE_IO_GLOBAL(http_request_class)->ce_flags |= ZEND_ACC_NO_DYNAMIC_PROPERTIES | ZEND_ACC_NOT_SERIALIZABLE;
 //    zval property_statusCode_default_value;
 //    ZVAL_UNDEF(&property_statusCode_default_value);
 //    zend_string *property_statusCode = zend_string_init(PROP("statusCode"), 1);
 //    zend_declare_typed_property(FILE_IO_GLOBAL(http_response_class), property_statusCode, &property_statusCode_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
 //    zend_string_release(property_statusCode);
-    zend_declare_property_long(FILE_IO_GLOBAL(http_response_class), PROP("statusCode"), 200, flags_pb_ro);
-    zend_declare_property_string(FILE_IO_GLOBAL(http_response_class), PROP("body"), "", flags_pb_ro);
+    zend_declare_property_long(MODULE_GL(http_response_class), PROP("statusCode"), 200, flags_pb_ro);
+    zend_declare_property_string(MODULE_GL(http_response_class), PROP("body"), "", flags_pb_ro);
     zval ht;
     ZVAL_EMPTY_ARRAY(&ht);//TODO REWRITE ON TYPED PROPERTY
-    zend_declare_property(FILE_IO_GLOBAL(http_response_class), PROP("headers"), &ht, flags_pb_ro);
+    zend_declare_property(MODULE_GL(http_response_class), PROP("headers"), &ht, flags_pb_ro);
 
 
-    return FILE_IO_GLOBAL(http_request_class);
+    return MODULE_GL(http_request_class);
 }
