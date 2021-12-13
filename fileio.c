@@ -42,7 +42,8 @@ extern zend_class_entry *register_class_HttpResponse(void);
 extern zend_class_entry *register_class_async_fs_exception(void);
 extern  zend_function * promise_resolve;
 extern  zend_function * promise_reject;
-ZEND_DECLARE_MODULE_GLOBALS(fileio);
+extern fs_id_item_t fs_handle_map[1024];
+ZEND_DECLARE_MODULE_GLOBALS(standard_async);
 
 
 //extern PHP_FIBER_API zend_class_entry *zend_ce_fiber;
@@ -192,7 +193,7 @@ PHP_MINIT_FUNCTION (fileio) {
 PHP_RINIT_FUNCTION (fileio) {
 //    PG(auto_prepend_file)="Promise.php";
     memset(timer_handle_map,0, HANDLE_MAP_SIZE * sizeof(handle_id_item_t));
-    memset(fstimeout_handle_map,0, HANDLE_MAP_SIZE * sizeof(fs_handles_id_item_t));
+    memset(fs_handle_map, 0, HANDLE_MAP_SIZE * sizeof(fs_handles_id_item_t));
     memset(php_servers, 0, sizeof(server_type) * 10);
     memset(http_php_servers, 0, sizeof(http_server_type) * 10);
 #if defined(ZTS) && defined(COMPILE_DL_FILEIO)
@@ -244,7 +245,7 @@ PHP_MSHUTDOWN_FUNCTION (fileio) {
 /* {{{ PHP_MINFO_FUNCTION */
 PHP_MINFO_FUNCTION (fileio) {
     php_info_print_table_start();
-    php_info_print_table_header(2, "fileio support", "enabled");
+    php_info_print_table_header(2, "async support", "enabled");
     php_info_print_table_row(2, "timers", "enabled");
     php_info_print_table_row(2, "idle work", "enabled");
     php_info_print_table_end();
@@ -254,7 +255,7 @@ PHP_MINFO_FUNCTION (fileio) {
 /* {{{ fileio_module_entry */
 zend_module_entry fileio_module_entry = {
         STANDARD_MODULE_HEADER,
-        "file_io",                    /* Extension name */
+        "standard_async",                    /* Extension name */
         file_io_functions,                    /* zend_function_entry */
         PHP_MINIT(fileio),                            /* PHP_MINIT - Module initialization */
         PHP_MSHUTDOWN(fileio),                            /* PHP_MSHUTDOWN - Module shutdown */

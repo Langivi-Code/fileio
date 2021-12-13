@@ -73,11 +73,12 @@ function test(PromiseStatus $status)
 //     var_dump($data);
 // //    var_dump($timerId);
 // });
-try{
- file_get_contents_async("./stubs/serv.php1", fn($a)=>1);
-} catch(Exception $e){
-var_dump($e);
-}
+
+ file_put_contents_async("try.php","dat1212a", fn()=>var_dump(1234));
+// } catch(Exception $e){
+// var_dump($e);
+// }
+
 
 // Promise::resolve(1)->then(function($i){
 //                             var_dump($i);
