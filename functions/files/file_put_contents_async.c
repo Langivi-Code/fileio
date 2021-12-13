@@ -131,7 +131,7 @@ void on_wr_open(uv_fs_t *req) {
     // function was passed.
     fs_id_t *fs_id = (fs_id_t *) req->data;
     LOG("file id is %zd\n", req->result);
-    fs_id_item_t * fs_handle = find_fs_handle(fs_handle_map,fs_id->id);
+    fs_id_item_t *fs_handle = find_fs_handle(fs_handle_map, fs_id->id);
     uv_fs_t *write_req = emalloc(sizeof(uv_fs_t));
     write_req->data = fs_id;
     fs_handle->handle->close_requests.write_req = write_req;
@@ -147,7 +147,7 @@ void on_wr_open(uv_fs_t *req) {
 
 void on_write(uv_fs_t *req) {
     fs_id_t *fs_id = (fs_id_t *) req->data;
-    fs_id_item_t * fs_handle = find_fs_handle(fs_handle_map,fs_id->id);
+    fs_id_item_t *fs_handle = find_fs_handle(fs_handle_map, fs_id->id);
     LOG("file idd is %d\n", fs_handle->handle->file);
     uv_fs_t *close_req = emalloc(sizeof(uv_fs_t));
     fs_handle->handle->close_requests.write_req = req;
