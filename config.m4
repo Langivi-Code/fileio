@@ -75,7 +75,7 @@ if test $PHP_UV != "no"; then
     echo "$FILE_IO_DIR dir"
     # PHP_NEW_EXTENSION(fileio, fileio.c $COMMON/fill_event_handle.c $COMMON/callback.c $TIMERS/fill_timer_handle_with_data.c $TIMERS/set_timeout.c $TIMERS/set_interval.c $FILES/fs_handle_map.c $FILES/fill_fs_handle_with_data.c $FILES/file_get_contents_async.c $FILES/file_put_contents_async.c $FUNCTIONS/use_promise/use_promise.c $FUNCTIONS/idle/idle.c $SOURCES, $ext_shared)
     PHP_NEW_EXTENSION(fileio, fileio.c $FILE_IO_DIR,$ext_shared)
-    PHP_ADD_EXTENSION_DEP(uv, fiber, true )
+    PHP_ADD_EXTENSION_DEP(fileio, mysqli)
 
     AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
 

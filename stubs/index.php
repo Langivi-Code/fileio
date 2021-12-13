@@ -74,7 +74,7 @@ function test(PromiseStatus $status)
 // //    var_dump($timerId);
 // });
 
- file_put_contents_async("try.php","dat1212a", fn()=>var_dump(1234));
+//  file_put_contents_async("try.php","dat1212a", fn()=>var_dump(1234));
 // } catch(Exception $e){
 // var_dump($e);
 // }
@@ -138,9 +138,10 @@ function test(PromiseStatus $status)
 //}, 100);
 
 //
-//idle(function () {
+// $mysql = new mysqli_async('localhost', 'my_user', 'my_password', 'my_db');
+// idle(function () {
 //    echo "idle111";
-//});
+// });
 //
 //idle(function () {
 //    echo setTimeout(function () {

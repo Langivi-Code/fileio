@@ -40,6 +40,7 @@ extern zend_class_entry *register_class_HttpServer(void);
 extern zend_class_entry *register_class_HttpRequest(void);
 extern zend_class_entry *register_class_HttpResponse(void);
 extern zend_class_entry *register_class_async_fs_exception(void);
+extern void register_Async_Mysqli(void );
 extern  zend_function * promise_resolve;
 extern  zend_function * promise_reject;
 extern fs_id_item_t fs_handle_map[1024];
@@ -177,6 +178,7 @@ PHP_MINIT_FUNCTION (fileio) {
     register_class_HttpResponse();
     register_class_Server();
     register_class_async_fs_exception();
+    register_Async_Mysqli();
     REGISTER_INI_ENTRIES();
     promise_resolve = zend_hash_str_find_ptr(&MODULE_GL(promise_class->function_table), "resolved", sizeof("resolved") - 1);
     promise_reject = zend_hash_str_find_ptr(&MODULE_GL(promise_class->function_table), "rejected", sizeof("rejected") - 1);
@@ -251,10 +253,15 @@ PHP_MINFO_FUNCTION (fileio) {
     php_info_print_table_end();
 }
 /* }}} */
-
+static const zend_module_dep pdo_mysql_deps[] = {
+        ZEND_MOD_REQUIRED("mysqlnd")
+        ZEND_MOD_REQUIRED("mysqli")
+        ZEND_MOD_END
+};
 /* {{{ fileio_module_entry */
 zend_module_entry fileio_module_entry = {
-        STANDARD_MODULE_HEADER,
+        STANDARD_MODULE_HEADER_EX, NULL,
+        pdo_mysql_deps,
         "standard_async",                    /* Extension name */
         file_io_functions,                    /* zend_function_entry */
         PHP_MINIT(fileio),                            /* PHP_MINIT - Module initialization */
@@ -263,7 +270,8 @@ zend_module_entry fileio_module_entry = {
         PHP_RSHUTDOWN(fileio),                            /* PHP_RSHUTDOWN - Request shutdown */
         PHP_MINFO(fileio),            /* PHP_MINFO - Module info */
         PHP_FILEIO_VERSION,        /* Version */
-        STANDARD_MODULE_PROPERTIES
+        STANDARD_MODULE_PROPERTIES_EX
+
 };
 /* }}} */
 
