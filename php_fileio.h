@@ -18,6 +18,7 @@ ZEND_BEGIN_MODULE_GLOBALS(fileio)
     zend_class_entry *http_request_class;
     zend_class_entry *http_response_class;
     zend_class_entry *promise__status_enum;
+    zend_class_entry *async_fs_exception;
 //} zend_fileio_globals;
 ZEND_END_MODULE_GLOBALS(fileio)
 
@@ -34,7 +35,7 @@ extern zend_module_entry fileio_module_entry;
 #ifdef ZTS
 #define FILE_IO_GLOBAL(v) TSRMG(fileio_globals_id, zend_fileio_globals *, v)
 #else
-#define FILE_IO_GLOBAL(v) fileio_globals.v
+#define MODULE_GL(v) fileio_globals.v
 #endif
 
 

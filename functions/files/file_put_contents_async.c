@@ -53,7 +53,7 @@ PHP_FUNCTION (file_put_contents_async) {
     unsigned long id = add_fs_handle(write_req);
     printf("%lu\n", id);
     open_req->data = (void *) id;
-    int r = uv_fs_open(FILE_IO_GLOBAL(loop), open_req, filename, O_WRONLY | O_CREAT, 0, on_wr_open);
+    int r = uv_fs_open(MODULE_GL(loop), open_req, filename, O_WRONLY | O_CREAT, 0, on_wr_open);
     if (r) {
         fprintf(stderr, "Error at opening file: %s.\n",
                 uv_strerror(r));
@@ -137,7 +137,7 @@ void on_wr_open(uv_fs_t *req) {
         handle->file = req->result;
         handle->handle_id = (unsigned long long) req->data;
         printf("%s\n", handle->buffer.base);
-        uv_fs_write(FILE_IO_GLOBAL(loop), write_req, handle->file, &handle->buffer, 1, -1, on_write);
+        uv_fs_write(MODULE_GL(loop), write_req, handle->file, &handle->buffer, 1, -1, on_write);
     } else {
         fprintf(stderr, "error opening file: %s\n", uv_strerror((int) req->result));
     }
@@ -159,6 +159,6 @@ void on_write(uv_fs_t *req) {
         if (req->result > 0) {
             LOG(" Call back result %llu", fn_fs(req));
         }
-        uv_fs_close(FILE_IO_GLOBAL(loop), &close_req, handle->file, close_cb);
+        uv_fs_close(MODULE_GL(loop), &close_req, handle->file, close_cb);
     }
 }

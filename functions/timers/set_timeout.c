@@ -25,7 +25,7 @@ PHP_FUNCTION (set_timeout) {
     uv_timer_t *timerHandle = emalloc(sizeof(uv_timer_t));
 
 //    printf("Main thread id: %p\n", uv_thread_self());
-    uv_timer_init(FILE_IO_GLOBAL(loop), timerHandle);
+    uv_timer_init(MODULE_GL(loop), timerHandle);
     fill_timer_handle_with_data(timerHandle, &fci, &fcc);
 //    uv_unref((uv_handle_t *) timerHandle);
 //    printf("time is in thrd prc %lld  %p\n", var, &var);

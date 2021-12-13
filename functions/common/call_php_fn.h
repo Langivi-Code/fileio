@@ -6,5 +6,5 @@
 
 #ifndef FILEIO_CALL_PHP_FN_H
 #define FILEIO_CALL_PHP_FN_H
-void call_php_fn(uv_cb_type cb, size_t arg_count, zval * args, zval * retval, char * fun_name);
+void call_php_fn(uv_cb_type * cb, size_t arg_count, zval * args, zval * retval, char * fun_name);
 #endif //FILEIO_CALL_PHP_FN_H

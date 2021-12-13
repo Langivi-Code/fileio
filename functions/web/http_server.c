@@ -94,10 +94,10 @@ static PHP_FUNCTION (server) {
     zval id;
     ZVAL_LONG(&id, server_id);
     zend_object * this = Z_OBJ_P(ZEND_THIS);
-    zend_update_property_long(FILE_IO_GLOBAL(http_server_class), this, PROP("#"), server_id);
-    zend_update_property_string(FILE_IO_GLOBAL(http_server_class), this, PROP("serverAddress"),
+    zend_update_property_long(MODULE_GL(http_server_class), this, PROP("#"), server_id);
+    zend_update_property_string(MODULE_GL(http_server_class), this, PROP("serverAddress"),
                                 host == NULL ? "0.0.0.0" : host);
-    zend_update_property_long(FILE_IO_GLOBAL(http_server_class), this, PROP("serverPort"), port);
+    zend_update_property_long(MODULE_GL(http_server_class), this, PROP("serverPort"), port);
     uv_poll_t *handle = emalloc(sizeof(uv_poll_t));  //TODO FREE on server shutdown
 //    context = php_stream_context_from_zval(NULL, flags & PHP_FILE_NO_DEFAULT_CONTEXT);
 //    if (context) {
@@ -125,7 +125,7 @@ static PHP_FUNCTION (server) {
     init_cb(&fci, &fcc, &http_php_servers[cur_id].on_connect);
 
     if (SUCCESS == cast_result && ret == 1 && http_php_servers[cur_id].server_fd != -1) {
-        uv_poll_init_socket(FILE_IO_GLOBAL(loop), handle, http_php_servers[cur_id].server_fd);
+        uv_poll_init_socket(MODULE_GL(loop), handle, http_php_servers[cur_id].server_fd);
 //        uv_signal_t *sig_handle = emalloc(sizeof(uv_signal_t)); //TODO FREE on server shutdown
 //        uv_signal_init(FILE_IO_GLOBAL(loop), sig_handle);
 //        uv_cb_type uv = {};
@@ -227,7 +227,7 @@ static void on_listen_server_for_clients(uv_poll_t *handle, int status, int even
     LOG("non block %d cast %d\n", ret, cast_result);
     LOG("Client address : %s\n", textaddr ? ZSTR_VAL(textaddr) : "no address");
     LOG("New connection accepted fd is %d\n ", this_fd);
-    zend_update_property_string(FILE_IO_GLOBAL(http_server_class), ((ht_event_handle_item *) handle->data)->this,
+    zend_update_property_string(MODULE_GL(http_server_class), ((ht_event_handle_item *) handle->data)->this,
                                 PROP("clientAddress"),
                                 ZSTR_VAL(textaddr));
     if (cast_result == SUCCESS && ret == SUCCESS) {
@@ -250,7 +250,7 @@ static void on_listen_server_for_clients(uv_poll_t *handle, int status, int even
 
         unsigned long long id = add_http_client_stream_handle(http_php_servers[cur_id].http_client_stream_handle_map,
                                                               que_cli_handle);
-        uv_poll_init_socket(FILE_IO_GLOBAL(loop), client_poll_handle,
+        uv_poll_init_socket(MODULE_GL(loop), client_poll_handle,
                             que_cli_handle->current_fd); // if the same what to do?
 //        ht_event_handle_item handleItem = {.cur_id=cur_id, .handle_data=(void *) id, .this=((ht_event_handle_item *) handle->data)->this};
         ht_event_handle_item *handleItem = emalloc(sizeof(ht_event_handle_item));
@@ -355,7 +355,7 @@ static void on_ready_to_read(uv_poll_t *handle, http_client_stream_id_item_t *cl
 
     if (headers) {
 //        LOG("something strange happening******************");
-        object_init_ex(&reqObj, FILE_IO_GLOBAL(http_request_class));
+        object_init_ex(&reqObj, MODULE_GL(http_request_class));
         request = Z_OBJ(reqObj);
 
         parse(ZSTR_VAL(headers), ZSTR_LEN(headers), request);
@@ -418,7 +418,7 @@ static void on_ready_to_read(uv_poll_t *handle, http_client_stream_id_item_t *cl
 
 
     LOG("Data pointer pos -  %d, Server id is %ld\n", position, cur_id);
-    object_init_ex(&resObj, FILE_IO_GLOBAL(http_response_class));
+    object_init_ex(&resObj, MODULE_GL(http_response_class));
     response_obj *responseObj = responseObj_from_zend_obj(Z_OBJ(resObj));
 
     responseObj->current_client = id;
@@ -586,27 +586,27 @@ static const zend_function_entry class_HttpServer_methods[] = {
 zend_class_entry *register_class_HttpServer(void) {
     zend_class_entry ce;
     INIT_CLASS_ENTRY(ce, "HttpServer", class_HttpServer_methods);
-    FILE_IO_GLOBAL(http_server_class) = zend_register_internal_class_ex(&ce, NULL);
-    FILE_IO_GLOBAL(http_server_class)->ce_flags |= ZEND_ACC_NO_DYNAMIC_PROPERTIES | ZEND_ACC_NOT_SERIALIZABLE;
+    MODULE_GL(http_server_class) = zend_register_internal_class_ex(&ce, NULL);
+    MODULE_GL(http_server_class)->ce_flags |= ZEND_ACC_NO_DYNAMIC_PROPERTIES | ZEND_ACC_NOT_SERIALIZABLE;
     zval SERVER;
     ZVAL_UNDEF(&SERVER);
-    register_property(FILE_IO_GLOBAL(http_server_class), PROP(SERVER_ID), &SERVER,
-                      ZEND_ACC_PUBLIC | ZEND_ACC_READONLY,MAY_BE_LONG);
+    register_property(MODULE_GL(http_server_class), PROP(SERVER_ID), &SERVER,
+                      ZEND_ACC_PUBLIC | ZEND_ACC_READONLY, MAY_BE_LONG);
     zval serverAddress;
     ZVAL_UNDEF(&serverAddress);
-    register_property(FILE_IO_GLOBAL(http_server_class), PROP("serverAddress"), &serverAddress,
+    register_property(MODULE_GL(http_server_class), PROP("serverAddress"), &serverAddress,
                       ZEND_ACC_PUBLIC | ZEND_ACC_READONLY, MAY_BE_STRING);
     zval serverPort;
     ZVAL_UNDEF(&serverPort);
-    register_property(FILE_IO_GLOBAL(http_server_class), PROP("serverPort"), &serverPort,
-                      ZEND_ACC_PUBLIC | ZEND_ACC_READONLY,MAY_BE_LONG);
+    register_property(MODULE_GL(http_server_class), PROP("serverPort"), &serverPort,
+                      ZEND_ACC_PUBLIC | ZEND_ACC_READONLY, MAY_BE_LONG);
     zval clientAddress;
     ZVAL_UNDEF(&clientAddress);
-    register_property(FILE_IO_GLOBAL(http_server_class), PROP("clientAddress"), &clientAddress,
+    register_property(MODULE_GL(http_server_class), PROP("clientAddress"), &clientAddress,
                       ZEND_ACC_PRIVATE, MAY_BE_STRING);
     zval publicPath;
     ZVAL_UNDEF(&publicPath);
-    register_property(FILE_IO_GLOBAL(http_server_class), PROP("publicPath"), &clientAddress,
+    register_property(MODULE_GL(http_server_class), PROP("publicPath"), &clientAddress,
                       ZEND_ACC_PUBLIC | ZEND_ACC_READONLY, MAY_BE_STRING);
 //    zend_declare_property_long(FILE_IO_GLOBAL(http_server_class), PROP(SERVER_ID), server_id,
 //                               ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
@@ -620,6 +620,6 @@ zend_class_entry *register_class_HttpServer(void) {
 //    zend_declare_property_string(FILE_IO_GLOBAL(http_server_class), PROP("publicPath"), "",
 //                                 ZEND_ACC_PUBLIC);
 
-    return FILE_IO_GLOBAL(http_server_class);
+    return MODULE_GL(http_server_class);
 }
 

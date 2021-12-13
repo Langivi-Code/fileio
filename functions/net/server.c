@@ -185,14 +185,14 @@ void on_listen_server_for_clients(uv_poll_t *handle, int status, int events) {
         que_cli_handle->client_handle = cli_handle;
         this_fd = -1;
         unsigned long long id = add_client_stream_handle(php_servers[cur_id].client_stream_handle_map, que_cli_handle);
-        uv_poll_init_socket(FILE_IO_GLOBAL(loop), cli_handle, que_cli_handle->current_fd); // if the same what to do?
+        uv_poll_init_socket(MODULE_GL(loop), cli_handle, que_cli_handle->current_fd); // if the same what to do?
 //        event_handle_item handleItem = {.cur_id=cur_id, .handle_data=(void *) id, .this=((event_handle_item *) handle->data)->this};
         event_handle_item *handleItem = emalloc(sizeof(event_handle_item));
         handleItem->cur_id = cur_id;
         handleItem->handle_data = (void *) id;
         handleItem->this = ((event_handle_item *) handle->data)->this;
         cli_handle->data = handleItem;
-        zend_update_property_string(FILE_IO_GLOBAL(server_class), handleItem->this, PROP("clientAddress"), textaddr);
+        zend_update_property_string(MODULE_GL(server_class), handleItem->this, PROP("clientAddress"), textaddr);
         uv_poll_start(cli_handle, UV_READABLE | UV_DISCONNECT | UV_WRITABLE, on_listen_client_event);
     } else {
         php_error_docref(NULL, E_ERROR, "Accept failed: %s", errstr ? ZSTR_VAL(errstr) : "Unknown error");
@@ -265,10 +265,10 @@ PHP_FUNCTION (server) {
     zval id;
     ZVAL_LONG(&id, server_id);
     zend_object * this = Z_OBJ_P(ZEND_THIS);
-    zend_update_property_long(FILE_IO_GLOBAL(server_class), this, PROP("#"), server_id);
-    zend_update_property_string(FILE_IO_GLOBAL(server_class), this, PROP("serverAddress"),
+    zend_update_property_long(MODULE_GL(server_class), this, PROP("#"), server_id);
+    zend_update_property_string(MODULE_GL(server_class), this, PROP("serverAddress"),
                                 host == NULL ? "0.0.0.0" : host);
-    zend_update_property_long(FILE_IO_GLOBAL(server_class), this, PROP("serverPort"), port);
+    zend_update_property_long(MODULE_GL(server_class), this, PROP("serverPort"), port);
     uv_poll_t *handle = emalloc(sizeof(uv_poll_t));  //TODO FREE on server shutdown
 //    context = php_stream_context_from_zval(NULL, flags & PHP_FILE_NO_DEFAULT_CONTEXT);
 //    if (context) {
@@ -296,7 +296,7 @@ PHP_FUNCTION (server) {
     init_cb(&fci, &fcc, &php_servers[cur_id].on_connect);
 
     if (SUCCESS == cast_result && ret == 1 && php_servers[cur_id].server_fd != -1) {
-        uv_poll_init_socket(FILE_IO_GLOBAL(loop), handle, php_servers[cur_id].server_fd);
+        uv_poll_init_socket(MODULE_GL(loop), handle, php_servers[cur_id].server_fd);
 //        uv_signal_t *sig_handle = emalloc(sizeof(uv_signal_t)); //TODO FREE on server shutdown
 //        uv_signal_init(FILE_IO_GLOBAL(loop), sig_handle);
 //        uv_cb_type uv = {};
@@ -471,18 +471,18 @@ static const zend_function_entry class_Server_methods[] = {
 zend_class_entry *register_class_Server(void) {
     zend_class_entry ce;
     INIT_CLASS_ENTRY(ce, "Server", class_Server_methods);
-    FILE_IO_GLOBAL(server_class) = zend_register_internal_class_ex(&ce, NULL);
-    FILE_IO_GLOBAL(server_class)->ce_flags |= ZEND_ACC_NO_DYNAMIC_PROPERTIES | ZEND_ACC_NOT_SERIALIZABLE;
-    zend_declare_property_long(FILE_IO_GLOBAL(server_class), PROP(SERVER_ID), server_id,
+    MODULE_GL(server_class) = zend_register_internal_class_ex(&ce, NULL);
+    MODULE_GL(server_class)->ce_flags |= ZEND_ACC_NO_DYNAMIC_PROPERTIES | ZEND_ACC_NOT_SERIALIZABLE;
+    zend_declare_property_long(MODULE_GL(server_class), PROP(SERVER_ID), server_id,
                                ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
-    zend_declare_property_bool(FILE_IO_GLOBAL(server_class), PROP(CLOSABLE), 1, ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
-    zend_declare_property_string(FILE_IO_GLOBAL(server_class), PROP("serverAddress"), "",
+    zend_declare_property_bool(MODULE_GL(server_class), PROP(CLOSABLE), 1, ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
+    zend_declare_property_string(MODULE_GL(server_class), PROP("serverAddress"), "",
                                  ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
-    zend_declare_property_long(FILE_IO_GLOBAL(server_class), PROP("serverPort"), 0,
+    zend_declare_property_long(MODULE_GL(server_class), PROP("serverPort"), 0,
                                ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
-    zend_declare_property_long(FILE_IO_GLOBAL(server_class), PROP("readBufferSize"), 1024,
+    zend_declare_property_long(MODULE_GL(server_class), PROP("readBufferSize"), 1024,
                                ZEND_ACC_PUBLIC);
-    zend_declare_property_string(FILE_IO_GLOBAL(server_class), PROP("clientAddress"), "",
+    zend_declare_property_string(MODULE_GL(server_class), PROP("clientAddress"), "",
                                  ZEND_ACC_PUBLIC | ZEND_ACC_READONLY);
-    return FILE_IO_GLOBAL(server_class);
+    return MODULE_GL(server_class);
 }

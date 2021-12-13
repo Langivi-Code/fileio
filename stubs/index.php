@@ -66,19 +66,25 @@ function test(PromiseStatus $status)
 
 // $timerId = new Promise(function ($resolve, $reject){
 // //    $resolve(123);
-//     file_get_contents_async("serv.php", $resolve);
+//     file_get_contents_async("./stubs/serv.php1", $resolve);
 // });
-//
+// //
 // $timerId->then(function ($data) {
 //     var_dump($data);
 // //    var_dump($timerId);
 // });
-Promise::resolve(1)->then(function($i){
-                            var_dump($i);
-                            });
-Promise::reject("frsrgrgrrv")->catch(function($i){
-var_dump($i);
-});
+try{
+ file_get_contents_async("./stubs/serv.php1", fn($a)=>1);
+} catch(Exception $e){
+var_dump($e);
+}
+
+// Promise::resolve(1)->then(function($i){
+//                             var_dump($i);
+//                             });
+// Promise::reject("frsrgrgrrv")->catch(function($i){
+// var_dump($i);
+// });
 //var_dump($timerId);
 
 

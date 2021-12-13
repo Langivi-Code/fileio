@@ -35,7 +35,7 @@ PHP_FUNCTION (idle) {
     fci.param_count = 0;
     uv_idle_t *idleHandle = emalloc(sizeof(uv_idle_t));
 
-    uv_idle_init(FILE_IO_GLOBAL(loop), idleHandle);
+    uv_idle_init(MODULE_GL(loop), idleHandle);
     fill_idle_handle_with_data(idleHandle, &fci, &fcc);
     LOG("Setting idle ...\n");
     uv_idle_start(idleHandle, fn_idle);

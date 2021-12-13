@@ -5,12 +5,15 @@
 #include <uv.h>
 #include <assert.h>
 #include <php.h>
-#include "stdio.h"
+#include <stdio.h>
 #include <zend_API.h>
-
 #include "../common/callback_interface.h"
 #include "../../php_fileio.h"
 #include "file_interface.h"
+#include "zend_exceptions.h"
+#include "../common/register_property.h"
+#include "../http/request.h"
+
 
 #define LOG_TAG "file_get_contents_async"
 
@@ -32,7 +35,6 @@ PHP_FUNCTION (file_get_contents_async) {
 
 //TODO add check on file existance
 
-//    zend_string * contents;
     /* Function return value */
 //    zval arg;                /* Argument to pass to function */
 //    /* Parse arguments */
@@ -70,10 +72,10 @@ PHP_FUNCTION (file_get_contents_async) {
 
     LOG("Handle time id %lu\n", id);
     open_req->data = (void *) id;
-    int r = uv_fs_open(FILE_IO_GLOBAL(loop), open_req, filename, O_RDONLY, 0, on_open);
-    if (r) {
-        fprintf(stderr, "Error at opening file: %s.\n",
-                uv_strerror(r));
+    int r = uv_fs_open(MODULE_GL(loop), open_req, filename, O_RDONLY, 0, on_open);
+    if (!r) {
+        LOG("Error opening file: %s\n", filename);
+//        RETURN_THROWS();
     }
 
     RETURN_BOOL(1);
@@ -149,33 +151,39 @@ void on_status(uv_fs_t *req) {
         if (handle->file_size == 0) {
             handle->file_size = req->statbuf.st_size;
         }
-        LOG("file size is %lu %lu\n", handle->file_size, req->statbuf.st_size);
-
+        LOG("file size is %llu %llu\n", handle->file_size, req->statbuf.st_size);
         LOG("starting reading ... %d\n", handle->file);
-        handle->buffer = uv_buf_init(malloc(sizeof(char) * (handle->file_size + 1)), handle->file_size + 1);
-        memset(handle->buffer.base, '\0', handle->file_size + 1);
-        uv_fs_read(FILE_IO_GLOBAL(loop), read_req, handle->file,
+        size_t buf_size = handle->file_size + 1;
+        handle->buffer = uv_buf_init(emalloc(sizeof(char) * buf_size), buf_size);
+        memset(handle->buffer.base, 0, buf_size);
+        uv_fs_read(MODULE_GL(loop), read_req, handle->file,
                    &handle->buffer, 1, -1, on_read);
     }
 }
 
-static void on_open(uv_fs_t *req) {
+static void on_op%lluuv_fs_t *req) {
     // The request passed to the callback is the same as the one the call setup
     // function was passed.
     LOG("file id is %zd\n", req->result);
-
+    uv_fs_t *read_req = find_fs_handle((unsigned long long) req->data)->open_req;
+    file_handle_data *handle = (file_handle_data *) read_req->data;
     uv_fs_t *status_req = emalloc(sizeof(uv_fs_t));
 //    assert(req == &open_req);
     if (req->result >= 0) {
-        uv_fs_t *read_req = find_fs_handle((unsigned long long) req->data)->open_req;
-        file_handle_data *handle = (file_handle_data *) read_req->data;
         handle->file = req->result;
         handle->handle_id = (unsigned long long) req->data;
         status_req->data = req->data;
         handle->open_req = req;
-        uv_fs_fstat(FILE_IO_GLOBAL(loop), status_req, req->result, on_status);
+        uv_fs_fstat(MODULE_GL(loop), status_req, req->result, on_status);
     } else {
-        fprintf(stderr, "error opening file: %s\n", uv_strerror((int) req->result));
+        zval exception;
+        object_init_ex(&exception, MODULE_GL(async_fs_exception));
+        char error_text[60]={0};
+        sprintf(error_text,  "Error at opening file: %s.\n", uv_strerror((int) req->result));
+        zend_update_property_string(MODULE_GL(async_fs_exception), Z_OBJ(exception), PROP("filename"),  handle->filename);
+        zend_update_property_string(MODULE_GL(async_fs_exception), Z_OBJ(exception), PROP("message"), error_text);
+        zend_throw_exception_object(&exception);
+        LOG("Error opening file: %s\n", uv_strerror((int) req->result));
     }
 }
 
@@ -197,4 +205,23 @@ static void on_read(uv_fs_t *req) {
     }
 
 
+}
+static const zend_function_entry class_async_fs_exception_methods[] = {
+        ZEND_FE_END
+};
+
+zend_class_entry *register_class_async_fs_exception()
+{
+    zend_class_entry ce, *class_entry;
+
+    INIT_CLASS_ENTRY(ce, "AsyncFsException", class_async_fs_exception_methods);
+    MODULE_GL(async_fs_exception) = zend_register_internal_class_ex(&ce, zend_ce_exception);
+    MODULE_GL(async_fs_exception)->ce_flags |= ZEND_ACC_FINAL;
+         /** $filename **/
+    zval property_filename_default_value;
+    ZVAL_UNDEF(&property_filename_default_value);
+
+    register_property(MODULE_GL(async_fs_exception), PROP("filename"),&property_filename_default_value,ZEND_ACC_PUBLIC | ZEND_ACC_READONLY, MAY_BE_STRING);
+
+    return MODULE_GL(async_fs_exception);
 }
