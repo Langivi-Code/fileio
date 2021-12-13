@@ -41,7 +41,4 @@ extern fs_id_item_t fs_handle_map[HANDLE_MAP_SIZE];
 CREATE_HANDLE_LIST_HEADERS(fs, file_handle_data);
 
 void close_cb(uv_fs_t* req);
-void fill_file_handle(file_handle_data *handleData, char *filename,
-                      zend_fcall_info *fci,
-                      zend_fcall_info_cache *fcc);
 #endif //FILEIO_FILE_INTERFACE_H

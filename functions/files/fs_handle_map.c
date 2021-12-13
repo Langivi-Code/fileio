@@ -43,6 +43,7 @@ void close_cb(uv_fs_t *req) {
         remove_fs_handle(fs_handle_map, fs_handle->handle_id);
         efree(fs_handle->handle);
         efree(req);
+        efree(fs_id);
         printf("Close CB: Successfuly closed file.\n");
     }
 }
@@ -60,23 +61,3 @@ void close_cb(uv_fs_t *req) {
         pfci_dst = NULL;                                                                         \
         pfcc_dst = NULL;                                                                         \
     }
-
-void fill_file_handle(file_handle_data *handleData, char *filename,
-                      zend_fcall_info *fci,
-                      zend_fcall_info_cache *fcc) {
-    handleData->filename = filename;
-    uv_cb_type tt = {};
-//    handleData->php_cb_data = {};//emalloc(sizeof(uv_cb_type));
-    LOG("fill_file_handle %p %p %s\n", &handleData->php_cb_data.fci, &fci, filename);
-    if (ZEND_FCI_INITIALIZED(*fci)) {
-        memcpy(&tt.fci, fci, sizeof(zend_fcall_info));
-        memcpy(&tt.fcc, fcc, sizeof(zend_fcall_info_cache));
-        Z_ADDREF_P(&tt.fci.function_name);
-        if (fci->object) {
-            GC_ADDREF(fci->object);
-        }
-    }
-
-    memcpy(&handleData->php_cb_data, &tt, sizeof(uv_cb_type));
-
-}

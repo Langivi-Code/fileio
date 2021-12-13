@@ -6,6 +6,7 @@
 #include "../../php_fileio.h"
 #include "../../fileio_arginfo.h"
 #include "timers_interface.h"
+#include "../common/fill_event_handle.h"
 #include <string.h>
 
 
@@ -13,9 +14,7 @@ PHP_FUNCTION (set_timeout) {
     zend_long var;
     zend_fcall_info fci;
     zend_fcall_info_cache fcc;
-    zval * callable;
     zval return_val;
-    zval retval;
     //    object_init_ex(&fiber, zend_ce_fiber);
     ZEND_PARSE_PARAMETERS_START(2, 2)
             Z_PARAM_FUNC(fci, fcc)
@@ -26,7 +25,7 @@ PHP_FUNCTION (set_timeout) {
 
 //    printf("Main thread id: %p\n", uv_thread_self());
     uv_timer_init(MODULE_GL(loop), timerHandle);
-    fill_timer_handle_with_data(timerHandle, &fci, &fcc);
+    fill_event_handle(timerHandle, &fci, &fcc);
 //    uv_unref((uv_handle_t *) timerHandle);
 //    printf("time is in thrd prc %lld  %p\n", var, &var);
     unsigned long id = add_handle(timerHandle);

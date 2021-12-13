@@ -97,7 +97,7 @@ PHP_METHOD (Promise, __construct) {
     uv_idle_t *idleHandle = emalloc(sizeof(uv_idle_t));
 
     uv_idle_init(MODULE_GL(loop), idleHandle);
-    fill_idle_handle_with_data(idleHandle, &fci, &fcc);
+    fill_event_handle(idleHandle, &fci, &fcc);
     LOG("Setting idle ...\n");
     uv_idle_start(idleHandle, fn_idle);
     zval status;

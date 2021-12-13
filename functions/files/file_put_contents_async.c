@@ -38,7 +38,9 @@ PHP_FUNCTION (file_put_contents_async) {
     fs_id_t *fs_id = emalloc(sizeof(fs_id_t));
     printf("File name to write: %s\n", filename);
 
-    fill_file_handle(file_data_handle, filename, &fci, &fcc);
+    init_cb(&fci, &fcc, &file_data_handle->php_cb_data);
+
+    file_data_handle->filename = filename;
     if (Z_TYPE_P(data) == IS_STRING) {
         size_t data_size = Z_STRLEN_P(data);
         file_data_handle->buffer = uv_buf_init(emalloc(sizeof(char) * data_size), data_size);
@@ -127,8 +129,10 @@ PHP_FUNCTION (file_put_contents_async) {
 }
 
 void on_wr_open(uv_fs_t *req) {
+
     // The request passed to the callback is the same as the one the call setup
     // function was passed.
+
     fs_id_t *fs_id = (fs_id_t *) req->data;
     LOG("file id is %zd\n", req->result);
     fs_id_item_t *fs_handle = find_fs_handle(fs_handle_map, fs_id->id);
