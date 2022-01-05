@@ -21,7 +21,7 @@ static void on_read(uv_fs_t *req);
 
 static void on_open(uv_fs_t *req);
 
-\
+ADD_HANDLE_TO_STRUCT(fs);
 
 /* {{{ void file() */
 PHP_FUNCTION (file_get_contents_async) {
@@ -44,39 +44,34 @@ PHP_FUNCTION (file_get_contents_async) {
             Z_PARAM_OPTIONAL
             Z_PARAM_LONG(offset)
             Z_PARAM_LONG_OR_NULL(maxlen, maxlen_is_null)ZEND_PARSE_PARAMETERS_END();
-    file_handle_data *handleData = emalloc(sizeof(file_handle_data));
+    file_handle_data *file_data_handle = emalloc(sizeof(file_handle_data));
+    memset(file_data_handle, 0, sizeof(file_handle_data));
     uv_fs_t *open_req = emalloc(sizeof(uv_fs_t));
-    uv_fs_t *read_req = emalloc(sizeof(uv_fs_t));
-    LOG("File name to read: %s %p %p\n", filename, &fci, handleData);
+    fs_id_t *fs_id  = emalloc(sizeof(fs_id_t));
+    LOG("File name to read: %s %p %p\n", filename, &fci, file_data_handle);
+    init_cb(&fci, &fcc, &file_data_handle->php_cb_data);
 
-    fill_file_handle(handleData, filename, &fci, &fcc);
-    fill_fs_handle_with_data(read_req, handleData);
+    file_data_handle->filename = filename;
     if (!maxlen_is_null) {
-        handleData->file_size = maxlen;
+        file_data_handle->file_size = maxlen;
     } else {
-        handleData->file_size = 0;
+        file_data_handle->file_size = 0;
     }
-    handleData->read = true;
+    file_data_handle->read = true;
+    file_data_handle->close_requests.open_req = open_req;
 
-    unsigned short handle_count = count_fs_handles();
-    unsigned long id = add_fs_handle(read_req);
-    if (handle_count > 0) {
-        LOG("ADD HANDLE %u\n", memcmp(&fstimeout_handle_map[handle_count - 1], &fstimeout_handle_map[handle_count],
-                                      sizeof(fs_handles_id_item_t)));
-        LOG("ADD FD HANDLE %u\n", memcmp(&
-                                                 (
-                                                         (file_handle_data *) fstimeout_handle_map[handle_count -
-                                                                                                   1].open_req->data
-                                                 )->php_cb_data.fci, &fci, sizeof(zend_fcall_info)));
-    }
 
-    LOG("Handle time id %lu\n", id);
-    open_req->data = (void *) id;
+    fs_id->id = add_fs_handle(fs_handle_map, file_data_handle);
+
+    LOG("Handle time id %llu\n", fs_id->id);
+    open_req->data = fs_id;
     int r = uv_fs_open(MODULE_GL(loop), open_req, filename, O_RDONLY, 0, on_open);
     if (!r) {
         LOG("Error opening file: %s\n", filename);
 //        RETURN_THROWS();
     }
+//    uv_ref((uv_handle_t *) open_req);
+    printf("alive handles %d\n", uv_loop_alive(MODULE_GL(loop)));
 
     RETURN_BOOL(1);
 //    if (maxlen_is_null) {
@@ -145,42 +140,51 @@ PHP_FUNCTION (file_get_contents_async) {
 }
 
 void on_status(uv_fs_t *req) {
+    fs_id_t *fs_id = (fs_id_t *) req->data;
+    LOG("file id is %zd\n", req->result);
+
     if (req->result == 0) {
-        uv_fs_t *read_req = find_fs_handle((unsigned long long) req->data)->open_req;
-        file_handle_data *handle = (file_handle_data *) read_req->data;
-        if (handle->file_size == 0) {
-            handle->file_size = req->statbuf.st_size;
+        fs_id_item_t * fs_handle = find_fs_handle(fs_handle_map,fs_id->id);
+        if (fs_handle->handle->file_size == 0) {
+            fs_handle->handle->file_size = req->statbuf.st_size;
         }
-        LOG("file size is %llu %llu\n", handle->file_size, req->statbuf.st_size);
-        LOG("starting reading ... %d\n", handle->file);
-        size_t buf_size = handle->file_size + 1;
-        handle->buffer = uv_buf_init(emalloc(sizeof(char) * buf_size), buf_size);
-        memset(handle->buffer.base, 0, buf_size);
-        uv_fs_read(MODULE_GL(loop), read_req, handle->file,
-                   &handle->buffer, 1, -1, on_read);
+        uv_fs_t *read_req = emalloc(sizeof(uv_fs_t));
+        read_req->data = fs_id;
+        fs_handle->handle->close_requests.read_req = read_req;
+        LOG("file size is %llu %llu\n", fs_handle->handle->file_size, req->statbuf.st_size);
+        LOG("starting reading ... %d\n", fs_handle->handle->file);
+        size_t buf_size = fs_handle->handle->file_size + 1;
+        fs_handle->handle->buffer = uv_buf_init(emalloc(sizeof(char) * buf_size), buf_size);
+
+        memset(fs_handle->handle->buffer.base, 0, buf_size);
+        uv_fs_read(MODULE_GL(loop), read_req, fs_handle->handle->file,
+                   &fs_handle->handle->buffer, 1, -1, on_read);
+
     }
 }
 
-static void on_op%lluuv_fs_t *req) {
+static void on_open(uv_fs_t *req) {
     // The request passed to the callback is the same as the one the call setup
     // function was passed.
+    fs_id_t *fs_id = (fs_id_t *) req->data;
     LOG("file id is %zd\n", req->result);
-    uv_fs_t *read_req = find_fs_handle((unsigned long long) req->data)->open_req;
-    file_handle_data *handle = (file_handle_data *) read_req->data;
+
+    fs_id_item_t * fs_handle = find_fs_handle(fs_handle_map,fs_id->id);
     uv_fs_t *status_req = emalloc(sizeof(uv_fs_t));
-//    assert(req == &open_req);
+    fs_handle->handle->close_requests.open_req = req;
+    fs_handle->handle->close_requests.status_req = status_req;
+    assert(req == fs_handle->handle->close_requests.open_req);
     if (req->result >= 0) {
-        handle->file = req->result;
-        handle->handle_id = (unsigned long long) req->data;
-        status_req->data = req->data;
-        handle->open_req = req;
-        uv_fs_fstat(MODULE_GL(loop), status_req, req->result, on_status);
+        fs_handle->handle->file = req->result;
+        fs_handle->handle->handle_id = fs_id->id;
+        status_req->data = fs_id;
+        uv_fs_fstat(MODULE_GL(loop), status_req, fs_handle->handle->file, on_status);
     } else {
         zval exception;
         object_init_ex(&exception, MODULE_GL(async_fs_exception));
         char error_text[60]={0};
         sprintf(error_text,  "Error at opening file: %s.\n", uv_strerror((int) req->result));
-        zend_update_property_string(MODULE_GL(async_fs_exception), Z_OBJ(exception), PROP("filename"),  handle->filename);
+        zend_update_property_string(MODULE_GL(async_fs_exception), Z_OBJ(exception), PROP("filename"),  fs_handle->handle->filename);
         zend_update_property_string(MODULE_GL(async_fs_exception), Z_OBJ(exception), PROP("message"), error_text);
         zend_throw_exception_object(&exception);
         LOG("Error opening file: %s\n", uv_strerror((int) req->result));
@@ -188,13 +192,14 @@ static void on_op%lluuv_fs_t *req) {
 }
 
 static void on_read(uv_fs_t *req) {
-    uv_fs_t close_req;
-    file_handle_data *handle = (file_handle_data *) req->data;
-    fs_close_reqs_t *requests = emalloc(sizeof(fs_close_reqs_t));
-    requests->write_req = NULL;
-    requests->open_req = handle->open_req;
-    requests->read_req = req;
-    close_req.data = (void *) requests;
+    puts("Ffffff");
+    fs_id_t *fs_id = (fs_id_t *) req->data;
+    LOG("file id is %zd\n", req->result);
+    fs_id_item_t * fs_handle = find_fs_handle(fs_handle_map,fs_id->id);
+//    uv_fs_t *close_req = emalloc(sizeof(uv_fs_t));
+    fs_handle->handle->close_requests.write_req = NULL;
+    fs_handle->handle->close_requests.read_req = req;
+
 //    uv_fs_close(FILE_IO_GLOBAL(loop), &close_req, handle->file, close_cb);
     if (req->result < 0) {
         fprintf(stderr, "Read error: %s\n", uv_strerror(req->result));

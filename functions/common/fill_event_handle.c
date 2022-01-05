@@ -5,8 +5,7 @@
 #include <memory.h>
 #include "fill_event_handle.h"
 
-void fill_event_handle(void *handle_data, const zend_fcall_info *fci, const zend_fcall_info_cache *fcc, uv_cb_type *uv) {
-
+void fill_event_handle(void *handle_data, const zend_fcall_info *fci, const zend_fcall_info_cache *fcc) {
     memcpy(((uv_handle_t *)handle_data)->data, init_cb_p(fci, fcc), sizeof(uv_cb_type));
 }
 

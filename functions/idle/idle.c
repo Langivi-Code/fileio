@@ -11,19 +11,7 @@
 #include "../../fileio_arginfo.h"
 #include "idle_interface.h"
 
-#define LOG_TAG "fill_idle_handle_with_data"
-
-void fill_idle_handle_with_data(
-        uv_idle_t *idle_type,
-        zend_fcall_info *fci,
-        zend_fcall_info_cache *fcc
-) {
-    uv_cb_type uv = {};
-    LOG("size of timeout handler %lu, fci  %lu \n\n", sizeof *idle_type, sizeof *fci);
-    idle_type->data = (uv_cb_type *) emalloc(sizeof(uv_cb_type));
-    fill_event_handle(idle_type, fci, fcc, &uv);
-}
-
+#define LOG_TAG "idle"
 
 PHP_FUNCTION (idle) {
     zend_fcall_info fci;
@@ -36,7 +24,7 @@ PHP_FUNCTION (idle) {
     uv_idle_t *idleHandle = emalloc(sizeof(uv_idle_t));
 
     uv_idle_init(MODULE_GL(loop), idleHandle);
-    fill_idle_handle_with_data(idleHandle, &fci, &fcc);
+    fill_event_handle(idleHandle, &fci, &fcc);
     LOG("Setting idle ...\n");
     uv_idle_start(idleHandle, fn_idle);
 
