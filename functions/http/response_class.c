@@ -25,36 +25,27 @@ PHP_FUNCTION (response_write) {
     response_obj *responseObj;
     GET_HTTP_SERV_ID_FROM_RES(responseObj);
     zend_object *this = Z_OBJ_P(ZEND_THIS);
-
-    printf("response sent %d\n", responseObj->sent);
+    LOG("response sent %d", responseObj->sent);
     printf("response current_client %llu\n", responseObj->current_client);
     unsigned long long current_client = responseObj->current_client;
     LOG("clID: %lld %lld\n", current_client, cur_id);
+
     if (responseObj->sent != 1 && current_client != FAILURE){
         zval *status_code_zv = zend_read_property(this->ce, this, PROP("statusCode"), 0, NULL);
         char message[100] = "\0";
         sprintf(message, "HTTP/1.1 %s\r\n", status_message(Z_LVAL_P(status_code_zv)));
-        zend_string *headers_first = zend_string_init_fast(message, strlen(message));
-        puts("3");
-        zend_string *headers = stringify(responseObj->headers);
-        puts(ZSTR_VAL(headers_first));
-        puts(ZSTR_VAL(headers));
-        puts("4");
-        zend_string *all_headers = zend_string_concat3(ZSTR_VAL(headers_first), ZSTR_LEN(headers_first),
-                                                       ZSTR_VAL(headers),
-                                                       ZSTR_LEN(headers), "\r\n", 2);
-        puts("32");
-        zend_string *all_headers_with_data = zend_string_concat2(ZSTR_VAL(all_headers), ZSTR_LEN(all_headers), data,
-                                                                 data_len);
+        smart_string all_headers_with_data ={0};
+        smart_string_appends(&all_headers_with_data, message);
+        smart_string *headers = stringify(responseObj->headers);
+        smart_string_appendl(&all_headers_with_data, headers->c, headers->len);
+        smart_string_appendl(&all_headers_with_data, "\r\n", 2);
+        smart_string_appendl(&all_headers_with_data, data, data_len);
 
-        zend_string_release(headers_first);
-        zend_string_release(headers);
-        zend_string_release(all_headers);
-        puts("i am here");
         http_client_stream_id_item_t *client = find_http_client_stream_handle(
                 http_php_servers[cur_id].http_client_stream_handle_map,
                 current_client);
-        zend_long len = ZSTR_LEN(all_headers_with_data);
+
+        zend_long len = all_headers_with_data.len;
         if (client->handle->write_buf.len == 0) {
             client->handle->write_buf = uv_buf_init(emalloc(sizeof(char) * len), len);
             memset(client->handle->write_buf.base, 0, len);
@@ -64,15 +55,16 @@ PHP_FUNCTION (response_write) {
             client->handle->write_buf.len = client->handle->write_buf.len + len;
         }
         // @tips memcpy for copy of binary data
-        memcpy(client->handle->write_buf.base, ZSTR_VAL(all_headers_with_data), len);
+        memcpy(client->handle->write_buf.base, all_headers_with_data.c, len);
 
-        LOG("Data set to buffer: len %zu\n", ZSTR_LEN(all_headers_with_data));
+        LOG("Data(%zu) set to buffer", all_headers_with_data.len);
 
         responseObj->sent = true;
-        printf("response sent after %d\n", responseObj->sent);
-        zend_string_release(all_headers_with_data);
+        LOG("Response sent after %d", responseObj->sent);
+        smart_string_free(headers);
+        efree(headers);
+        smart_string_free(&all_headers_with_data);
     } else {
-        printf("trololo\n");
         zend_throw_error(NULL, "Response is already sent");
     }
 
@@ -200,19 +192,19 @@ zend_class_entry *register_class_HttpResponse(void) {
     response_object_handlers.compare = zend_objects_not_comparable;
 
 
-    FILE_IO_GLOBAL(http_response_class) = zend_register_internal_class_ex(&ce, NULL);
+    MODULE_GL(http_response_class) = zend_register_internal_class_ex(&ce, NULL);
 //    FILE_IO_GLOBAL(http_request_class)->ce_flags |= ZEND_ACC_NO_DYNAMIC_PROPERTIES | ZEND_ACC_NOT_SERIALIZABLE;
 //    zval property_statusCode_default_value;
 //    ZVAL_UNDEF(&property_statusCode_default_value);
 //    zend_string *property_statusCode = zend_string_init(PROP("statusCode"), 1);
 //    zend_declare_typed_property(FILE_IO_GLOBAL(http_response_class), property_statusCode, &property_statusCode_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
 //    zend_string_release(property_statusCode);
-    zend_declare_property_long(FILE_IO_GLOBAL(http_response_class), PROP("statusCode"), 200, flags_pb_ro);
-    zend_declare_property_string(FILE_IO_GLOBAL(http_response_class), PROP("body"), "", flags_pb_ro);
+    zend_declare_property_long(MODULE_GL(http_response_class), PROP("statusCode"), 200, flags_pb_ro);
+    zend_declare_property_string(MODULE_GL(http_response_class), PROP("body"), "", flags_pb_ro);
     zval ht;
     ZVAL_EMPTY_ARRAY(&ht);//TODO REWRITE ON TYPED PROPERTY
-    zend_declare_property(FILE_IO_GLOBAL(http_response_class), PROP("headers"), &ht, flags_pb_ro);
+    zend_declare_property(MODULE_GL(http_response_class), PROP("headers"), &ht, flags_pb_ro);
 
 
-    return FILE_IO_GLOBAL(http_request_class);
+    return MODULE_GL(http_request_class);
 }

@@ -33,7 +33,7 @@ typedef struct event_handle_item {
 } event_handle_item;
 
 #define GET_SERV_ID()     zval * rv; \
-rv = zend_read_property(FILE_IO_GLOBAL(server_class), Z_OBJ_P(ZEND_THIS),"#",sizeof("#")-1, 0, NULL); \
+rv = zend_read_property(MODULE_GL(server_class), Z_OBJ_P(ZEND_THIS),"#",sizeof("#")-1, 0, NULL); \
 zend_long cur_id = Z_LVAL_P(rv);
 
 #define GET_SERV_ID_FROM_EVENT_HANDLE()  zend_long cur_id;\

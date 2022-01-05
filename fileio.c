@@ -39,9 +39,11 @@ extern zend_class_entry *register_class_Server(void);
 extern zend_class_entry *register_class_HttpServer(void);
 extern zend_class_entry *register_class_HttpRequest(void);
 extern zend_class_entry *register_class_HttpResponse(void);
+extern zend_class_entry *register_class_async_fs_exception(void);
 extern  zend_function * promise_resolve;
 extern  zend_function * promise_reject;
-ZEND_DECLARE_MODULE_GLOBALS(fileio);
+extern fs_id_item_t fs_handle_map[1024];
+ZEND_DECLARE_MODULE_GLOBALS(standard_async);
 
 
 //extern PHP_FIBER_API zend_class_entry *zend_ce_fiber;
@@ -114,11 +116,11 @@ void print(uv_async_t *handle) {
 ZEND_FUNCTION(enable_event) {
 #define LOG_TAG "enable_event"
     LOG("starting event loop %c", 50);
-    uv_loop_t * loop = FILE_IO_GLOBAL(loop);
+    uv_loop_t * loop = MODULE_GL(loop);
     LOG("size of ev-queue %d(Active = %d), loop address:=%p", uv_loop_alive(loop), loop->active_handles, loop);
     printf("loop run status: %d\n", uv_run(loop, UV_RUN_DEFAULT));
     LOG("size of ev-queue after run %d (Active = %d), loop address:=%p", uv_loop_alive(loop), loop->active_handles, loop);
-    uv_loop_close(FILE_IO_GLOBAL(loop));
+    uv_loop_close(MODULE_GL(loop));
 //    sleep(10);
 //    uv_async_init(fileio_globals.loop, &as_h, NULL);
 //    uv_loop_fork(fileio_globals.loop);
@@ -167,16 +169,17 @@ SAPI_API SAPI_POST_HANDLER_FUNC(json_post_handler)
 #define JSON_POST_CONTENT_TYPE "application/json"
 /* {{{ PHP_MINIT_FUNCTION */
 PHP_MINIT_FUNCTION (fileio) {
-    FILE_IO_GLOBAL(loop) = uv_default_loop();
+    MODULE_GL(loop) = uv_default_loop();
     create_PromiseStatus_enum();
     register_class_Promise();
     register_class_HttpServer();
     register_class_HttpRequest();
     register_class_HttpResponse();
     register_class_Server();
+    register_class_async_fs_exception();
     REGISTER_INI_ENTRIES();
-    promise_resolve = zend_hash_str_find_ptr(&FILE_IO_GLOBAL(promise_class->function_table), "resolve", sizeof("resolve")-1);
-    promise_reject = zend_hash_str_find_ptr(&FILE_IO_GLOBAL(promise_class->function_table), "reject", sizeof("reject")-1);
+    promise_resolve = zend_hash_str_find_ptr(&MODULE_GL(promise_class->function_table), "resolved", sizeof("resolved") - 1);
+    promise_reject = zend_hash_str_find_ptr(&MODULE_GL(promise_class->function_table), "rejected", sizeof("rejected") - 1);
     static const sapi_post_entry php_post_entries = { JSON_POST_CONTENT_TYPE,    sizeof(JSON_POST_CONTENT_TYPE)-1,    NULL, json_post_handler };
     sapi_register_post_entry(&php_post_entries);
 
@@ -190,7 +193,7 @@ PHP_MINIT_FUNCTION (fileio) {
 PHP_RINIT_FUNCTION (fileio) {
 //    PG(auto_prepend_file)="Promise.php";
     memset(timer_handle_map,0, HANDLE_MAP_SIZE * sizeof(handle_id_item_t));
-    memset(fstimeout_handle_map,0, HANDLE_MAP_SIZE * sizeof(fs_handles_id_item_t));
+    memset(fs_handle_map, 0, HANDLE_MAP_SIZE * sizeof(fs_handles_id_item_t));
     memset(php_servers, 0, sizeof(server_type) * 10);
     memset(http_php_servers, 0, sizeof(http_server_type) * 10);
 #if defined(ZTS) && defined(COMPILE_DL_FILEIO)
@@ -242,7 +245,7 @@ PHP_MSHUTDOWN_FUNCTION (fileio) {
 /* {{{ PHP_MINFO_FUNCTION */
 PHP_MINFO_FUNCTION (fileio) {
     php_info_print_table_start();
-    php_info_print_table_header(2, "fileio support", "enabled");
+    php_info_print_table_header(2, "async support", "enabled");
     php_info_print_table_row(2, "timers", "enabled");
     php_info_print_table_row(2, "idle work", "enabled");
     php_info_print_table_end();
@@ -252,7 +255,7 @@ PHP_MINFO_FUNCTION (fileio) {
 /* {{{ fileio_module_entry */
 zend_module_entry fileio_module_entry = {
         STANDARD_MODULE_HEADER,
-        "file_io",                    /* Extension name */
+        "standard_async",                    /* Extension name */
         file_io_functions,                    /* zend_function_entry */
         PHP_MINIT(fileio),                            /* PHP_MINIT - Module initialization */
         PHP_MSHUTDOWN(fileio),                            /* PHP_MSHUTDOWN - Module shutdown */

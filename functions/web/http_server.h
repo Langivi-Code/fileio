@@ -22,11 +22,13 @@ typedef struct {
     uv_cb_type on_disconnect;
     uv_cb_type on_error;
     uv_buf_t write_buf;
+    unsigned int active_handles;
 } http_server_type;
 
 typedef struct {
     unsigned long long id;
     bool is_read;
+    bool is_written;
 } request_info;
 
 typedef struct ht_event_handle_item {
@@ -43,7 +45,7 @@ typedef struct ht_event_handle_item {
 #define CLOSABLE "##"
 
 #define GET_HTTP_SERV_ID()     zval * rv; \
-rv = zend_read_property(FILE_IO_GLOBAL(http_server_class), Z_OBJ_P(ZEND_THIS), PROP("#"), 0, NULL); \
+rv = zend_read_property(MODULE_GL(http_server_class), Z_OBJ_P(ZEND_THIS), PROP("#"), 0, NULL); \
 zend_long cur_id = Z_LVAL_P(rv);
 
 

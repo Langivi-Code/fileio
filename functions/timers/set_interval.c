@@ -6,6 +6,7 @@
 #include "../../php_fileio.h"
 #include "../../fileio_arginfo.h"
 #include "timers_interface.h"
+#include "../common/fill_event_handle.h"
 #include <string.h>
 
 
@@ -25,8 +26,8 @@ PHP_FUNCTION (set_interval) {
     uv_timer_t *timerHandle = emalloc(sizeof(uv_timer_t));
 
 //    printf("Main thread id: %p\n", uv_thread_self());
-    uv_timer_init(FILE_IO_GLOBAL(loop), timerHandle);
-    fill_timer_handle_with_data(timerHandle, &fci, &fcc);
+    uv_timer_init(MODULE_GL(loop), timerHandle);
+    fill_event_handle(timerHandle, &fci, &fcc);
 //    printf("time is in thrd prc %lld  %p\n", var, &var);
     unsigned long id = add_handle(timerHandle);
     uv_timer_start(timerHandle, fn_interval, var, var);

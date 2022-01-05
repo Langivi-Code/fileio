@@ -10,6 +10,7 @@
 #include "file_interface.h"
 
 #define LOG_TAG "file_put_contents_async * "
+
 void on_write(uv_fs_t *req);
 
 void on_wr_open(uv_fs_t *req);
@@ -18,7 +19,7 @@ void on_wr_open(uv_fs_t *req);
 PHP_FUNCTION (file_put_contents_async) {
     char *filename;
     size_t filename_len;
-    zval *data;
+    zval * data;
     zend_fcall_info fci;
     zend_fcall_info_cache fcc;
     zend_long flags = 0;
@@ -29,31 +30,33 @@ PHP_FUNCTION (file_put_contents_async) {
             Z_PARAM_ZVAL(data)
             Z_PARAM_OPTIONAL
             Z_PARAM_FUNC(fci, fcc)
-            Z_PARAM_LONG(flags)
-    ZEND_PARSE_PARAMETERS_END();
+            Z_PARAM_LONG(flags)ZEND_PARSE_PARAMETERS_END();
 
+    file_handle_data *file_data_handle = emalloc(sizeof(file_handle_data));
+    memset(file_data_handle, 0, sizeof(file_handle_data));
     uv_fs_t *open_req = emalloc(sizeof(uv_fs_t));
-    uv_fs_t *write_req = emalloc(sizeof(uv_fs_t));
+    fs_id_t *fs_id = emalloc(sizeof(fs_id_t));
     printf("File name to write: %s\n", filename);
-    file_handle_data *handleData = emalloc(sizeof(file_handle_data));
-    fill_file_handle(handleData, filename, &fci, &fcc);
+
+    init_cb(&fci, &fcc, &file_data_handle->php_cb_data);
+
+    file_data_handle->filename = filename;
     if (Z_TYPE_P(data) == IS_STRING) {
         size_t data_size = Z_STRLEN_P(data);
-        handleData->buffer = uv_buf_init(malloc(sizeof(char) * (data_size+1)), data_size+1);
-        memset(handleData->buffer.base, '\0', data_size + 1);
-        strncpy(handleData->buffer.base, ZSTR_VAL(Z_STR_P(data)), data_size);
-        handleData->file_size = data_size;
-    } else{
+        file_data_handle->buffer = uv_buf_init(emalloc(sizeof(char) * data_size), data_size);
+        memset(file_data_handle->buffer.base, 0, data_size);
+        strncpy(file_data_handle->buffer.base, ZSTR_VAL(Z_STR_P(data)), data_size);
+        file_data_handle->file_size = data_size;
+    } else {
         zend_argument_value_error(2, "must be a string");
         RETURN_THROWS();
     }
-    handleData->read = false;
-
-    fill_fs_handle_with_data(write_req, handleData);
-    unsigned long id = add_fs_handle(write_req);
-    printf("%lu\n", id);
-    open_req->data = (void *) id;
-    int r = uv_fs_open(FILE_IO_GLOBAL(loop), open_req, filename, O_WRONLY | O_CREAT, 0, on_wr_open);
+    file_data_handle->read = false;
+    fs_id->id = add_fs_handle(fs_handle_map, file_data_handle);
+    file_data_handle->close_requests.open_req = open_req;
+    printf("%llu\n", fs_id->id);
+    open_req->data = fs_id;
+    int r = uv_fs_open(MODULE_GL(loop), open_req, filename, O_WRONLY | O_CREAT, S_IRWXU, on_wr_open);
     if (r) {
         fprintf(stderr, "Error at opening file: %s.\n",
                 uv_strerror(r));
@@ -126,32 +129,35 @@ PHP_FUNCTION (file_put_contents_async) {
 }
 
 void on_wr_open(uv_fs_t *req) {
+
     // The request passed to the callback is the same as the one the call setup
     // function was passed.
-    printf("file id is %zd\n", req->result);
 
-//    assert(req == &open_req);
+    fs_id_t *fs_id = (fs_id_t *) req->data;
+    LOG("file id is %zd\n", req->result);
+    fs_id_item_t *fs_handle = find_fs_handle(fs_handle_map, fs_id->id);
+    uv_fs_t *write_req = emalloc(sizeof(uv_fs_t));
+    write_req->data = fs_id;
+    fs_handle->handle->close_requests.write_req = write_req;
+    assert(req == fs_handle->handle->close_requests.open_req);
     if (req->result >= 0) {
-        uv_fs_t *write_req = find_fs_handle((unsigned long long) req->data)->open_req;
-        file_handle_data *handle = (file_handle_data *) write_req->data;
-        handle->file = req->result;
-        handle->handle_id = (unsigned long long) req->data;
-        printf("%s\n", handle->buffer.base);
-        uv_fs_write(FILE_IO_GLOBAL(loop), write_req, handle->file, &handle->buffer, 1, -1, on_write);
+        fs_handle->handle->file = req->result;
+        printf("%s\n", fs_handle->handle->buffer.base);
+        uv_fs_write(MODULE_GL(loop), write_req, fs_handle->handle->file, &fs_handle->handle->buffer, 1, 0, on_write);
     } else {
         fprintf(stderr, "error opening file: %s\n", uv_strerror((int) req->result));
     }
-    uv_fs_req_cleanup(req);
 }
 
 void on_write(uv_fs_t *req) {
-    file_handle_data *handle = (file_handle_data *) req->data;
-    uv_fs_t close_req;
-    fs_close_reqs_t *requests = emalloc(sizeof(fs_close_reqs_t));
-    requests->write_req = req;
-    requests->open_req = handle->open_req;
-    requests->read_req = NULL;
-    close_req.data = (void *) requests;
+    fs_id_t *fs_id = (fs_id_t *) req->data;
+    fs_id_item_t *fs_handle = find_fs_handle(fs_handle_map, fs_id->id);
+    LOG("file idd is %d\n", fs_handle->handle->file);
+    uv_fs_t *close_req = emalloc(sizeof(uv_fs_t));
+    fs_handle->handle->close_requests.write_req = req;
+    fs_handle->handle->close_requests.read_req = NULL;
+    fs_handle->handle->close_requests.status_req = NULL;
+    close_req->data = fs_id;
 
     if (req->result < 0) {
         fprintf(stderr, "Write error: %s\n", uv_strerror((int) req->result));
@@ -159,6 +165,6 @@ void on_write(uv_fs_t *req) {
         if (req->result > 0) {
             LOG(" Call back result %llu", fn_fs(req));
         }
-        uv_fs_close(FILE_IO_GLOBAL(loop), &close_req, handle->file, close_cb);
+        uv_fs_close(MODULE_GL(loop), close_req, fs_handle->handle->file, close_cb);
     }
 }
