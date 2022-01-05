@@ -117,6 +117,7 @@ zend_long fn_fs(uv_fs_t *handle) {
 
     if (file_handle->read == true) {
         char output_text[file_handle->buffer.len];
+        memset(output_text,0,file_handle->buffer.len);
 //        strcat(dd, data);
         strncat(output_text, file_handle->buffer.base, file_handle->buffer.len);
         ZVAL_STRING(&args[0], &output_text);
