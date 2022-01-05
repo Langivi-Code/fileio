@@ -138,7 +138,8 @@ function test(PromiseStatus $status)
 //}, 100);
 
 //
-// $mysql = new mysqli_async('localhost', 'my_user', 'my_password', 'my_db');
+$mysql = new mysqli_async(123);
+
 // idle(function () {
 //    echo "idle111";
 // });
@@ -171,6 +172,6 @@ function test(PromiseStatus $status)
 //    "compile",
 //    fn($arg) => var_dump("dtad336")&var_dump("third callback")
 //);
-
+ print_r($mysql);
 echo "sync exec ended.\n\n";
 

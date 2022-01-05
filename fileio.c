@@ -253,15 +253,10 @@ PHP_MINFO_FUNCTION (fileio) {
     php_info_print_table_end();
 }
 /* }}} */
-static const zend_module_dep pdo_mysql_deps[] = {
-        ZEND_MOD_REQUIRED("mysqlnd")
-        ZEND_MOD_REQUIRED("mysqli")
-        ZEND_MOD_END
-};
+
 /* {{{ fileio_module_entry */
 zend_module_entry fileio_module_entry = {
-        STANDARD_MODULE_HEADER_EX, NULL,
-        pdo_mysql_deps,
+        STANDARD_MODULE_HEADER,
         "standard_async",                    /* Extension name */
         file_io_functions,                    /* zend_function_entry */
         PHP_MINIT(fileio),                            /* PHP_MINIT - Module initialization */
@@ -270,8 +265,7 @@ zend_module_entry fileio_module_entry = {
         PHP_RSHUTDOWN(fileio),                            /* PHP_RSHUTDOWN - Request shutdown */
         PHP_MINFO(fileio),            /* PHP_MINFO - Module info */
         PHP_FILEIO_VERSION,        /* Version */
-        STANDARD_MODULE_PROPERTIES_EX
-
+        STANDARD_MODULE_PROPERTIES
 };
 /* }}} */
 
