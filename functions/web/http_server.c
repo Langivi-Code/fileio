@@ -167,19 +167,6 @@ static PHP_FUNCTION (server_on_request) {
     }
 }
 
-static PHP_FUNCTION (server_on_disconnect) {
-    zend_fcall_info_cache fcc = empty_fcall_info_cache;
-    zend_fcall_info fci = empty_fcall_info;
-    ZEND_PARSE_PARAMETERS_START(1, 1)
-            Z_PARAM_FUNC(fci, fcc);ZEND_PARSE_PARAMETERS_END();
-    GET_HTTP_SERV_ID();
-    LOG("Server_on_disconnect  Server id is %ld\n", cur_id);
-    init_cb(&fci, &fcc, &http_php_servers[cur_id].on_disconnect);
-    if (!ZEND_FCI_INITIALIZED(fci)) {
-        zend_throw_error(NULL, "on disconnect is not initialized");
-    }
-}
-
 static PHP_FUNCTION (server_on_connect) {
     zend_fcall_info_cache fcc = empty_fcall_info_cache;
     zend_fcall_info fci = empty_fcall_info;
@@ -189,6 +176,19 @@ static PHP_FUNCTION (server_on_connect) {
     LOG("Server_on_connect  Server id is %ld\n", cur_id);
     init_cb(&fci, &fcc, &http_php_servers[cur_id].on_connect);
     if (!ZEND_FCI_INITIALIZED(fci)) {
+        zend_throw_error(NULL, "on connect is not initialized");
+    }
+}
+
+static PHP_FUNCTION (server_on_disconnect) {
+    zend_fcall_info_cache fcc = empty_fcall_info_cache;
+    zend_fcall_info fci = empty_fcall_info;
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+            Z_PARAM_FUNC(fci, fcc);ZEND_PARSE_PARAMETERS_END();
+    GET_HTTP_SERV_ID();
+    LOG("Server_on_disconnect  Server id is %ld\n", cur_id);
+    init_cb(&fci, &fcc, &http_php_servers[cur_id].on_disconnect);
+    if (!ZEND_FCI_INITIALIZED(http_php_servers[cur_id].on_disconnect.fci)) {
         zend_throw_error(NULL, "on disconnect is not initialized");
     }
 }
@@ -450,6 +450,8 @@ static void on_ready_to_read(uv_poll_t *handle, http_client_stream_id_item_t *cl
     http_php_servers[cur_id].on_data.fci.params = args;
     http_php_servers[cur_id].on_data.fci.retval = &retval;
     http_php_servers[cur_id].on_data.fcc.function_handler->common.function_name = zend_string_init(PROP("on_data"), 1);
+    LOG("size of ev-queue %d(Active = %d), loop address:=%p", uv_loop_alive(MODULE_GL(loop)), MODULE_GL(loop)->active_handles, MODULE_GL(loop));
+    http_php_servers[cur_id].active_handles = MODULE_GL(loop)->active_handles;
     if (ZEND_FCI_INITIALIZED(http_php_servers[cur_id].on_data.fci)) {
         if (zend_call_function(&http_php_servers[cur_id].on_data.fci, &http_php_servers[cur_id].on_data.fcc) !=
             SUCCESS) {
@@ -497,11 +499,33 @@ static bool on_ready_to_disconnect(uv_poll_t *handle, http_client_stream_id_item
     GET_HTTP_SERV_ID_FROM_EVENT_HANDLE();
     php_stream *clistream = client->handle->current_stream;
     ht_event_handle_item *event_handle = (ht_event_handle_item *) handle->data;
-
+    zval retval;
+    zval obj[1];
+    ZVAL_OBJ(&obj[0], ((ht_event_handle_item *) handle->data)->this);
+    printf("disconnect alive handles %d\n", uv_loop_alive(MODULE_GL(loop)));
+   unsigned int should_wait = MODULE_GL(loop)->active_handles - http_php_servers[cur_id].active_handles;
+    LOG("size of ev-queue %d(Active = %d), loop address:=%p", uv_loop_alive(MODULE_GL(loop)), MODULE_GL(loop)->active_handles, MODULE_GL(loop));
+    printf("alive reqs %d\n", MODULE_GL(loop)->active_reqs.count);
+    http_php_servers[cur_id].on_disconnect.fci.params = NULL;
+    http_php_servers[cur_id].on_disconnect.fci.param_count = 0;
+//    http_php_servers[cur_id].on_disconnect.fci.object = ((ht_event_handle_item *) handle->data)->this;
+//    http_php_servers[cur_id].on_disconnect.fcc.object = ((ht_event_handle_item *) handle->data)->this;
+//    http_php_servers[cur_id].on_disconnect.fcc.called_scope = ((ht_event_handle_item *) handle->data)->this->ce;
+//    http_php_servers[cur_id].on_disconnect.fcc.calling_scope = ((ht_event_handle_item *) handle->data)->this->ce;
+    http_php_servers[cur_id].on_disconnect.fci.retval = &retval;
     zend_long error = 0;
 
     if (events & UV_DISCONNECT) {
-
+        puts("Disconnect 1");
+        if (ZEND_FCI_INITIALIZED(http_php_servers[cur_id].on_disconnect.fci)) {
+            if (zend_call_function(&http_php_servers[cur_id].on_disconnect.fci,
+                                   &http_php_servers[cur_id].on_disconnect.fcc) !=
+                SUCCESS) {
+                error = -1;
+            }
+        } else {
+            error = -2;
+        }
         LOG("-------------- READY FOR DISCONNECT(%d) clients %d----------\n", events, count_http_client_stream_handles);
         uv_poll_stop(handle);
         php_stream_free(clistream, PHP_STREAM_FREE_KEEP_RSRC |
@@ -524,10 +548,11 @@ static bool on_ready_to_disconnect(uv_poll_t *handle, http_client_stream_id_item
 
     if (event_handle->req_info.is_read &&
         (php_stream_eof(clistream) || (clistream->writepos - clistream->readpos) >= 0) &&
-        client->handle->write_buf.len <= 1) {
+        client->handle->write_buf.len <= 1 && MODULE_GL(loop)->active_reqs.count==0 && ! should_wait) {
+        puts("Disconnect 2");
 //zend_fcall_info_argn
-        uv_poll_stop(handle);
-        if (events == 5 && ZEND_FCI_INITIALIZED(http_php_servers[cur_id].on_disconnect.fci)) {
+        uv_poll_stop(handle); puts("Disconnect 21");
+        if (ZEND_FCI_INITIALIZED(http_php_servers[cur_id].on_disconnect.fci)) {
             if (zend_call_function(&http_php_servers[cur_id].on_disconnect.fci,
                                    &http_php_servers[cur_id].on_disconnect.fcc) !=
                 SUCCESS) {
@@ -536,6 +561,7 @@ static bool on_ready_to_disconnect(uv_poll_t *handle, http_client_stream_id_item
         } else {
             error = -2;
         }
+        puts("Disconnect 22");
         parse_fci_error(error, "on disconnect");
         php_stream_free(clistream, PHP_STREAM_FREE_KEEP_RSRC |
                                    (clistream->is_persistent ? PHP_STREAM_FREE_CLOSE_PERSISTENT

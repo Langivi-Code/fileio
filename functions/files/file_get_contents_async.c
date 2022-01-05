@@ -70,6 +70,8 @@ PHP_FUNCTION (file_get_contents_async) {
         LOG("Error opening file: %s\n", filename);
 //        RETURN_THROWS();
     }
+//    uv_ref((uv_handle_t *) open_req);
+    printf("alive handles %d\n", uv_loop_alive(MODULE_GL(loop)));
 
     RETURN_BOOL(1);
 //    if (maxlen_is_null) {

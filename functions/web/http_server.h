@@ -22,6 +22,7 @@ typedef struct {
     uv_cb_type on_disconnect;
     uv_cb_type on_error;
     uv_buf_t write_buf;
+    unsigned int active_handles;
 } http_server_type;
 
 typedef struct {
