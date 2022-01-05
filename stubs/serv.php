@@ -23,11 +23,19 @@ $serv1->on_request(function (HttpRequest $req, HttpResponse $res) use ($serv1) {
 //        $res->send("hello\n");
 //     }
 //     );
+echo "first\n";
 set_timeout(function() use ($res){
 //  $res->setHeader("Content-Type", "text/plain; charset=utf-8");
 //        $res->send("hello\n");
-echo "TIMEOUT";
+
+set_timeout(function()use ($res){
+//  $res->setHeader("Content-Type", "text/plain; charset=utf-8");
+//        $res->send("hello\n");
+echo "TIMEOUT2";
 }, 2000);
+echo "TIMEOUT1";
+}, 2000);
+echo "first2\n";
     echo "why\n\n";
          $res->setHeader("Content-Type", "text/plain; charset=utf-8");
             $res->send("hello\n");

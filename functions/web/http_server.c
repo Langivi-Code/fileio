@@ -257,6 +257,7 @@ static void on_listen_server_for_clients(uv_poll_t *handle, int status, int even
         add_pntr(&que_cli_handle->pointers, handleItem);
         handleItem->req_info.id = id;
         handleItem->req_info.is_read = false;
+        handleItem->req_info.is_written = false;
         handleItem->cur_id = cur_id;
         handleItem->this = ((ht_event_handle_item *) handle->data)->this;
         client_poll_handle->data = handleItem;
@@ -452,6 +453,7 @@ static void on_ready_to_read(uv_poll_t *handle, http_client_stream_id_item_t *cl
     http_php_servers[cur_id].on_data.fcc.function_handler->common.function_name = zend_string_init(PROP("on_data"), 1);
     LOG("size of ev-queue %d(Active = %d), loop address:=%p", uv_loop_alive(MODULE_GL(loop)), MODULE_GL(loop)->active_handles, MODULE_GL(loop));
     http_php_servers[cur_id].active_handles = MODULE_GL(loop)->active_handles;
+
     if (ZEND_FCI_INITIALIZED(http_php_servers[cur_id].on_data.fci)) {
         if (zend_call_function(&http_php_servers[cur_id].on_data.fci, &http_php_servers[cur_id].on_data.fcc) !=
             SUCCESS) {
@@ -470,7 +472,7 @@ static void on_ready_to_read(uv_poll_t *handle, http_client_stream_id_item_t *cl
     } else {
         error = -2;
     }
-
+    puts("somethis strainge");
 //            uv_timer_start(timer_h, close_timer_cb, 1, 0);
     event_handle->req_info.is_read = true;
     parse_fci_error(error, "on data");
@@ -480,12 +482,15 @@ static void on_ready_to_read(uv_poll_t *handle, http_client_stream_id_item_t *cl
 
 static void on_ready_to_write(uv_poll_t *handle, http_client_stream_id_item_t *client, int status, int events) {
     php_stream *clistream = client->handle->current_stream;
+    ht_event_handle_item *event_handle = (ht_event_handle_item *) handle->data;
+
     if (clistream != NULL) {
         if (client->handle->write_buf.len > 1) {
             LOG("**Data get from buffer TO CLIENT %lld:  sz:%zu**\n", client->handle_id,
                 client->handle->write_buf.len);
             php_stream_write(clistream, client->handle->write_buf.base,
                              client->handle->write_buf.len);
+            event_handle->req_info.is_written = true;
             efree(client->handle->write_buf.base);
             client->handle->write_buf.len = 0;
         }
@@ -503,7 +508,11 @@ static bool on_ready_to_disconnect(uv_poll_t *handle, http_client_stream_id_item
     zval obj[1];
     ZVAL_OBJ(&obj[0], ((ht_event_handle_item *) handle->data)->this);
     printf("disconnect alive handles %d\n", uv_loop_alive(MODULE_GL(loop)));
-   unsigned int should_wait = MODULE_GL(loop)->active_handles - http_php_servers[cur_id].active_handles;
+   unsigned int active_handles = MODULE_GL(loop)->active_handles - http_php_servers[cur_id].active_handles;
+    bool should_wait = false;
+    if (!event_handle->req_info.is_written && active_handles){
+        should_wait = true;
+    }
     LOG("size of ev-queue %d(Active = %d), loop address:=%p", uv_loop_alive(MODULE_GL(loop)), MODULE_GL(loop)->active_handles, MODULE_GL(loop));
     printf("alive reqs %d\n", MODULE_GL(loop)->active_reqs.count);
     http_php_servers[cur_id].on_disconnect.fci.params = NULL;
@@ -548,8 +557,11 @@ static bool on_ready_to_disconnect(uv_poll_t *handle, http_client_stream_id_item
 
     if (event_handle->req_info.is_read &&
         (php_stream_eof(clistream) || (clistream->writepos - clistream->readpos) >= 0) &&
-        client->handle->write_buf.len <= 1 && MODULE_GL(loop)->active_reqs.count==0 && ! should_wait) {
+            (client->handle->write_buf.len <= 1) && MODULE_GL(loop)->active_reqs.count==0 &&
+           ! should_wait
+            ) {
         puts("Disconnect 2");
+        http_php_servers[cur_id].active_handles = MODULE_GL(loop)->active_handles;
 //zend_fcall_info_argn
         uv_poll_stop(handle); puts("Disconnect 21");
         if (ZEND_FCI_INITIALIZED(http_php_servers[cur_id].on_disconnect.fci)) {

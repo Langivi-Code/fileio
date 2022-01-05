@@ -28,6 +28,7 @@ typedef struct {
 typedef struct {
     unsigned long long id;
     bool is_read;
+    bool is_written;
 } request_info;
 
 typedef struct ht_event_handle_item {

@@ -9,6 +9,7 @@
 #include "callback_interface.h"
 #include "call_php_fn.h"
 #include "../../php_fileio.h"
+#include "../timers/timers_interface.h"
 
 void clean_cb(uv_cb_type *cb) {
     if (ZEND_FCI_INITIALIZED(cb->fci)) {
@@ -35,17 +36,17 @@ ZVAL_COPY(&uv->fs_fd, zstream); \
 
 void fn(uv_timer_t *handle) {
 #define LOG_TAG "fn"
-    uv_cb_type *uv = (uv_cb_type *) handle->data;
-    printf(" %lu \n", sizeof uv->fci);
+    timerData *timer_data = (timerData *) handle->data;
+    printf(" %lu \n", sizeof timer_data->cb.fci);
     //    memcpy(&uv, (uv_cb_t *) handle->data, sizeof(uv_cb_t));
     zend_long error;
     zval retval;
     zval dstr;
     ZVAL_STRING(&dstr, "callback fn");
     //    zend_call_method_with_1_params(NULL, NULL, NULL, "print_r", &retval, &dstr);
-    if (ZEND_FCI_INITIALIZED(uv->fci)) {
+    if (ZEND_FCI_INITIALIZED(timer_data->cb.fci)) {
         LOG("Timeout call back is called\n");
-        if (zend_call_function(&uv->fci, &uv->fcc) != SUCCESS) {
+        if (zend_call_function(&timer_data->cb.fci, &timer_data->cb.fcc) != SUCCESS) {
             error = -1;
         }
 
@@ -53,6 +54,8 @@ void fn(uv_timer_t *handle) {
         error = -2;
     }
     efree(handle);
+    remove_handle(timer_data->handle_id);
+    efree(timer_data);
 }
 
 void fn_idle(uv_idle_t *handle) {
