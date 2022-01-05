@@ -38,7 +38,7 @@ void close_cb(uv_fs_t *req) {
         }
         if (requests_to_close->read_req != NULL) {
             uv_fs_req_cleanup(requests_to_close->read_req);
-            efree(fs_handle->handle->buffer);
+            efree(&fs_handle->handle->buffer);
             efree(requests_to_close->read_req);
         }
         remove_fs_handle(fs_handle_map, fs_handle->handle_id);
