@@ -192,9 +192,9 @@ static void on_open(uv_fs_t *req) {
 }
 
 static void on_read(uv_fs_t *req) {
-    puts("Ffffff");
     fs_id_t *fs_id = (fs_id_t *) req->data;
-    LOG("file id is %zd\n", req->result);
+    printf("file id is %zd\n", req->result);
+
     fs_id_item_t * fs_handle = find_fs_handle(fs_handle_map,fs_id->id);
 //    uv_fs_t *close_req = emalloc(sizeof(uv_fs_t));
     fs_handle->handle->close_requests.write_req = NULL;
