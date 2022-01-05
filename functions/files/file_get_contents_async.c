@@ -151,7 +151,7 @@ void on_status(uv_fs_t *req) {
         uv_fs_t *read_req = emalloc(sizeof(uv_fs_t));
         read_req->data = fs_id;
         fs_handle->handle->close_requests.read_req = read_req;
-        LOG("file size is %llu %llu\n", fs_handle->handle->file_size, req->statbuf.st_size);
+        printf("file size is %llu %llu\n", fs_handle->handle->file_size, req->statbuf.st_size);
         LOG("starting reading ... %d\n", fs_handle->handle->file);
         size_t buf_size = fs_handle->handle->file_size + 1;
         fs_handle->handle->buffer = uv_buf_init(emalloc(sizeof(char) * buf_size), buf_size);
