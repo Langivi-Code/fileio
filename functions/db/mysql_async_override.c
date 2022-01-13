@@ -92,7 +92,7 @@ ZEND_FUNCTION(mysqli_wait) {
 }
 
 ZEND_FUNCTION(pg_wait) {
-    
+
 }
 ZEND_BEGIN_ARG_INFO(arginfo_promise_construct, 0)
                 ZEND_ARG_TYPE_INFO(0, closure, IS_CALLABLE, 0)
