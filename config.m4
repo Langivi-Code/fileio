@@ -73,7 +73,7 @@ if test $PHP_UV != "no"; then
     # FILES="$FUNCTIONS/files"
     GLOB_DIR([FILE_IO],[.])
     echo "$FILE_IO_DIR dir"
-     PHP_EXPAND_PATH($PGSQL_INCLUDE, PGSQL_INCLUDE)
+    PHP_EXPAND_PATH($PGSQL_INCLUDE, PGSQL_INCLUDE)
     PHP_ADD_INCLUDE($PGSQL_INCLUDE)
     # PHP_NEW_EXTENSION(fileio, fileio.c $COMMON/fill_event_handle.c $COMMON/callback.c $TIMERS/fill_timer_handle_with_data.c $TIMERS/set_timeout.c $TIMERS/set_interval.c $FILES/fs_handle_map.c $FILES/fill_fs_handle_with_data.c $FILES/file_get_contents_async.c $FILES/file_put_contents_async.c $FUNCTIONS/use_promise/use_promise.c $FUNCTIONS/idle/idle.c $SOURCES, $ext_shared)
     PHP_NEW_EXTENSION(fileio, fileio.c $FILE_IO_DIR,$ext_shared)
@@ -82,7 +82,8 @@ if test $PHP_UV != "no"; then
     AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
 
     AC_MSG_CHECKING(for libuv)
-
+    LIBPQ_INCLINE = `$PKG_CONFIG libpq --cflags`
+    PHP_EVAL_INCLINE($LIBPQ_INCLINE)
     if test $PHP_UV == "yes" && test -x "$PKG_CONFIG" && $PKG_CONFIG --exists libuv; then
       if $PKG_CONFIG libuv --atleast-version 1.0.0; then
         LIBUV_INCLINE=`$PKG_CONFIG libuv --cflags`
