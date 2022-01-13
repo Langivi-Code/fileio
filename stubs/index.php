@@ -25,15 +25,15 @@ function query(\PgSql\Connection $coonection, string $query)
 {
     pg_send_query($coonection, $query);
 
-    return new Promise(function ($res, $rej) use ($coonection) {
-        echo "test";
-        pg_wait($coonection, fn($connection) => $res($connection));
-    }); //TODO rework to promise
+    return new Promise(fn($res, $rej) => pg_wait($coonection, fn($connection) => $res($connection))); //TODO rework to promise
 }
 
-$promsie =query($pg, "select 1 as int");
+$promsie = query($pg, "select 1 as int");
 var_dump($promsie);
-var_dump($promsie->then(fn($arg)=>var_dump($arg)));
+var_dump($promsie->then(function (\PgSql\Result $arg) {
+    var_dump($arg);
+    var_dump(pg_fetch_all($arg));
+}));
 
 //pg_send_query($pg, "select 1 as int");
 //
