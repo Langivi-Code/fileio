@@ -65,6 +65,7 @@ ZEND_FUNCTION(file_put_contents_async);
 PHP_FUNCTION (send_header);
 
 ZEND_FUNCTION(mysqli_wait);
+ZEND_FUNCTION(pg_wait);
 
 static const zend_function_entry file_io_functions[] = {
         ZEND_FE(use_promise, arginfo_use_promise)
@@ -77,5 +78,6 @@ static const zend_function_entry file_io_functions[] = {
         ZEND_FE(file_get_contents_async, arginfo_file_get_contents_async)
         ZEND_FE(file_put_contents_async, arginfo_file_put_contents_async)
         ZEND_FE(mysqli_wait, arginfo_mysqla_query)
+        ZEND_FE(pg_wait, arginfo_mysqla_query)
         ZEND_FE_END
 };

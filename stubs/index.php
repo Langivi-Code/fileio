@@ -4,12 +4,23 @@ function test(PromiseStatus $status)
     var_dump($status, $status == PromiseStatus::Pending);
 }
 
-$db = mysqli_connect("raspis00.mysql.tools", "raspis00_bd", "Of!@4hjO17", "raspis00_bd");
+//$db = mysqli_connect("raspis00.mysql.tools", "raspis00_bd", "Of!@4hjO17", "raspis00_bd");
+//
+//mysqli_wait($db, function (){
+//
+//}); //TODO rework to promise
 
-mysqla_query($db, function (){
+$pg = pg_connect("host=0.0.0.0 user=root password=password");
 
-}); //TODO rework to promise
-mysqli_query($db, "select 1", MYSQLI_ASYNC | MYSQLI_STORE_RESULT);
+//pg_send_query($pg, "select 1");
+
+pg_wait($pg, function () {
+
+});
+
+var_dump($pg);
+
+//mysqli_query($db, "select 1", MYSQLI_ASYNC | MYSQLI_STORE_RESULT);
 //$file = file_get_contents("./stubs/index.html");
 //$serv1 = new HttpServer(8001, "tcp://0.0.0.0", []);
 
@@ -178,6 +189,6 @@ mysqli_query($db, "select 1", MYSQLI_ASYNC | MYSQLI_STORE_RESULT);
 //    "compile",
 //    fn($arg) => var_dump("dtad336")&var_dump("third callback")
 //);
- print_r($db);
+// print_r($db);
 echo "sync exec ended.\n\n";
 

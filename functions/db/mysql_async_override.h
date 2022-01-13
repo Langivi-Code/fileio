@@ -1,8 +1,0 @@
-//
-// Created by admin on 13.12.2021.
-//
-
-#ifndef FILEIO_MYSQL_ASYNC_OVERRIDE_H
-#define FILEIO_MYSQL_ASYNC_OVERRIDE_H
-
-#endif //FILEIO_MYSQL_ASYNC_OVERRIDE_H
