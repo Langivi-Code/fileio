@@ -4,6 +4,12 @@ function test(PromiseStatus $status)
     var_dump($status, $status == PromiseStatus::Pending);
 }
 
+$db = mysqli_connect("raspis00.mysql.tools", "raspis00_bd", "Of!@4hjO17", "raspis00_bd");
+
+mysqla_query($db, function (){
+
+}); //TODO rework to promise
+mysqli_query($db, "select 1", MYSQLI_ASYNC | MYSQLI_STORE_RESULT);
 //$file = file_get_contents("./stubs/index.html");
 //$serv1 = new HttpServer(8001, "tcp://0.0.0.0", []);
 
@@ -138,7 +144,7 @@ function test(PromiseStatus $status)
 //}, 100);
 
 //
-$mysql = new mysqli_async(123);
+//$mysql = mysqla_query(123);
 
 // idle(function () {
 //    echo "idle111";
@@ -172,6 +178,6 @@ $mysql = new mysqli_async(123);
 //    "compile",
 //    fn($arg) => var_dump("dtad336")&var_dump("third callback")
 //);
- print_r($mysql);
+ print_r($db);
 echo "sync exec ended.\n\n";
 

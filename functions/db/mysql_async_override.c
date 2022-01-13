@@ -13,13 +13,9 @@
 #include "../http/request.h"
 
 
-#define MYSQLI_REPORT_INDEX            4
-#define MYSQLI_REPORT_INDEX            4
-#define MYSQLI_REPORT_ERROR            1
-#define MYSQLI_STORE_RESULT 0
-#define MYSQLI_USE_RESULT    1
-
 void poll_cb(uv_poll_t *handle, int event, int status) {
+    puts("Readable");
+    uv_poll_stop(handle);
 //    MYSQLND *conn = handle->data;
 //    MYSQLND_RES *result = NULL;
 //    zval * return_value;
@@ -68,36 +64,42 @@ void poll_cb(uv_poll_t *handle, int event, int status) {
 
 }
 
-ZEND_FUNCTION(mysqli_query) {
-//    //TODO TRY TO FETCH MYSQLI ISNTANSE
-//    MYSQLND *p = NULL;
-//    MY_MYSQL  *obj;
-//    zend_fcall_info fci = empty_fcall_info;
-//    zend_fcall_info_cache fcc = empty_fcall_info_cache;
-//    ZEND_PARSE_PARAMETERS_START(1, 1)
-//            Z_PARAM_FUNC(fci, fcc)
-//            ZEND_PARSE_PARAMETERS_END();
-//    MYSQLI_FETCH_RESOURCE_CONN(obj, ZEND_THIS, MYSQLI_STATUS_VALID);
-//    p = obj->mysql;
-//    php_stream *stream = p->data->vio->data->m.get_stream((p)->data->vio);
+ZEND_FUNCTION(mysqli_wait) {
+    //TODO TRY TO FETCH MYSQLI ISNTANSE
+    MYSQLND *p = NULL;
+    MY_MYSQL  *obj;
+    zval *db;
+    zend_fcall_info fci = empty_fcall_info;
+    zend_fcall_info_cache fcc = empty_fcall_info_cache;
+    ZEND_PARSE_PARAMETERS_START(2, 2)
+            Z_PARAM_ZVAL(db)
+            Z_PARAM_FUNC(fci, fcc)
+            ZEND_PARSE_PARAMETERS_END();
+    MYSQLI_FETCH_RESOURCE_CONN(obj, db, MYSQLI_STATUS_VALID);
+    p = obj->mysql;
+    php_stream *stream = p->data->vio->data->m.get_stream((p)->data->vio);
 //    DBG_INF_FMT("conn=%"
 //    PRIu64
 //    " stream=%p", p->data->thread_id, stream);
-//    zend_result res;
-//    set_non_blocking(stream);
-//    int fd = cast_to_fd(stream, &res);
-//    uv_poll_t handle = {0};
-//    uv_poll_init(MODULE_GL(loop), &handle, fd);
-//    handle.data = p;
-//    uv_poll_start(MODULE_GL(loop), UV_READABLE, poll_cb);
+    zend_result res;
+    set_non_blocking(stream);
+    int fd = cast_to_fd(stream, &res);
+    uv_poll_t * handle = emalloc(sizeof(uv_poll_t));
+    printf("fd is %d\n", fd);
+    uv_poll_init(MODULE_GL(loop), handle, fd);
+    handle->data = p;
+    uv_poll_start(handle, UV_READABLE, poll_cb);
+}
 
+ZEND_FUNCTION(pg_wait) {
+    
 }
 ZEND_BEGIN_ARG_INFO(arginfo_promise_construct, 0)
                 ZEND_ARG_TYPE_INFO(0, closure, IS_CALLABLE, 0)
 ZEND_END_ARG_INFO()
 
 static const zend_function_entry class_Promise_methods[] = {
-        ZEND_ME_MAPPING(get_result, mysqli_query, arginfo_promise_construct, ZEND_ACC_PUBLIC)
+     //   ZEND_ME_MAPPING(get_result, mysqli_query, arginfo_promise_construct, ZEND_ACC_PUBLIC)
         PHP_FE_END
 };
 

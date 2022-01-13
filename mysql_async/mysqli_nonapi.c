@@ -15,7 +15,7 @@
   |          Ulf Wendel <uw@php.net>                                     |
   +----------------------------------------------------------------------+
 */
-
+#define MYSQLI_USE_MYSQLND
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
