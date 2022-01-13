@@ -4,27 +4,19 @@ function test(PromiseStatus $status)
     var_dump($status, $status == PromiseStatus::Pending);
 }
 
-//$db = mysqli_connect("raspis00.mysql.tools", "raspis00_bd", "Of!@4hjO17", "raspis00_bd");
+//$db = mysqli_connect("raspis00.mysql.tools", "raspis00_bd", "", "raspis00_bd");
 //mysqli_query($db, "select 1", MYSQLI_ASYNC);
-//function query(\PgSql\Connection $coonection, string $query):Promise
-//{
-//    pg_send_query($coonection, "select 1 as int");
-//    return new Promise(fn($res, $rej) => pg_wait($coonection, fn($arg) => $res(mysqli_reap_async_query($arg)))); //TODO rework to promise
-//}
-
+function mysql_query(mysqli $coonection, string $query):Promise
+{
+    mysqli_query($coonection, $query, MYSQLI_ASYNC);
+    return new Promise(fn($res, $rej) => mysql_wait($coonection, fn($arg) => $res(mysqli_reap_async_query($arg)))); //TODO rework to promise
+}
+//mysql_query($db, "select 1");
 $pg = pg_connect("host=0.0.0.0 user=root password=password");
 
-function generated()
-{
-
-    $arg = yield;
-    print_r($arg);
-}
-
-function query(\PgSql\Connection $coonection, string $query)
+function query(\PgSql\Connection $coonection, string $query):Promise
 {
     pg_send_query($coonection, $query);
-
     return new Promise(fn($res, $rej) => pg_wait($coonection, fn($connection) => $res($connection))); //TODO rework to promise
 }
 
