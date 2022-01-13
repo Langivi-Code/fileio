@@ -129,10 +129,10 @@ if test $PHP_UV != "no"; then
     fi
       case $host in
           *linux*)
-              CFLAGS="$CFLAGS -luv -std=gnu11"
+              CFLAGS="$CFLAGS -I/usr/include/postgresql  -luv -std=gnu11"
            ;;
            *darwin*)
-              CFLAGS="$CFLAGS -luv -std=gnu11"
+              CFLAGS="$CFLAGS -I/usr/include/postgresql  -luv -std=gnu11"
       esac
 	PHP_SUBST([CFLAGS])
     PHP_SUBST(UV_SHARED_LIBADD)
