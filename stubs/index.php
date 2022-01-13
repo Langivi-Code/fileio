@@ -14,12 +14,34 @@ function test(PromiseStatus $status)
 
 $pg = pg_connect("host=0.0.0.0 user=root password=password");
 
-pg_send_query($pg, "select 1 as int");
+function generated()
+{
 
-pg_wait($pg, function ($arg) {
-    var_dump(pg_fetch_all($arg));
- echo "hello";
-});
+    $arg = yield;
+    print_r($arg);
+}
+
+function query(\PgSql\Connection $coonection, string $query)
+{
+    pg_send_query($coonection, $query);
+
+    return new Promise(function ($res, $rej) use ($coonection) {
+        echo "test";
+        pg_wait($coonection, fn($connection) => $res($connection));
+    }); //TODO rework to promise
+}
+
+$promsie =query($pg, "select 1 as int");
+var_dump($promsie);
+var_dump($promsie->then(fn($arg)=>var_dump($arg)));
+
+//pg_send_query($pg, "select 1 as int");
+//
+//
+//pg_wait($pg, function ($arg) {
+//    var_dump(pg_fetch_all($arg));
+// echo "hello";
+//});
 
 //var_dump($pg);
 

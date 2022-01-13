@@ -24,6 +24,31 @@ static const zend_function_entry enum_PromiseStatus_methods[] = {
         ZEND_FE_END
 };
 
+void fn_idle(uv_idle_t *handle) {
+#define LOG_TAG "fn_idle"
+    then_t * data_handle = (then_t *) handle->data;
+    printf(" %lu \n", sizeof data_handle->then_cb.fci);
+    zval retval;
+    zval dstr;
+    zval * params = emalloc(2 * sizeof(zval));
+    zval func;
+    zval this;
+    ZVAL_OBJ(&this, data_handle->this);
+    zend_create_fake_closure(&func, promise_resolve, MODULE_GL(promise_class), MODULE_GL(promise_class),
+                             &this);
+    ZVAL_COPY(&params[0], &func);
+    zend_create_fake_closure(&func, promise_reject, MODULE_GL(promise_class), MODULE_GL(promise_class),
+                             &this);
+    ZVAL_COPY(&params[1], &func);
+    ZVAL_STRING(&dstr, "callback fn");
+    //    zend_call_method_with_1_params(NULL, NULL, NULL, "print_r", &retval, &dstr);
+    uv_idle_stop(handle);
+    LOG("Idle1 call back is called");
+    call_php_fn(&data_handle->then_cb, 2, params, &retval, "promies");
+
+    efree(data_handle->then_cb.fci.params);
+    efree(handle);
+}
 
 //static zend_object_handlers enum_handlers;
 //zend_object *zend_enum_new(zval *result, zend_class_entry *ce, zend_string *case_name, zval *backing_value_zv)
@@ -80,24 +105,14 @@ PHP_METHOD (Promise, __construct) {
 
     zend_update_property(MODULE_GL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("closure"), callback);
     zend_fcall_info_init(callback, 0, &fci, &fcc, NULL, NULL);
-
-    zval * params = emalloc(2 * sizeof(zval));
-    zval func;
-    zval retavl;
-    fci.retval = &retavl;
-    fci.param_count = 2;
-    zend_create_fake_closure(&func, promise_resolve, MODULE_GL(promise_class), MODULE_GL(promise_class),
-                             ZEND_THIS);
-    ZVAL_COPY(&params[0], &func);
-    zend_create_fake_closure(&func, promise_reject, MODULE_GL(promise_class), MODULE_GL(promise_class),
-                             ZEND_THIS);
-    ZVAL_COPY(&params[1], &func);
-    fci.params = params;
 #define LOG_TAG "PROMISE"
     uv_idle_t *idleHandle = emalloc(sizeof(uv_idle_t));
 
     uv_idle_init(MODULE_GL(loop), idleHandle);
-    fill_event_handle(idleHandle, &fci, &fcc);
+    then_t * data_handle = emalloc(sizeof(then_t));
+    init_cb(&fci, &fcc, &data_handle->then_cb);
+    data_handle->this = Z_OBJ_P(ZEND_THIS);
+    idleHandle->data = data_handle;
     LOG("Setting idle ...\n");
     uv_idle_start(idleHandle, fn_idle);
     zval status;
@@ -158,9 +173,10 @@ PHP_METHOD (Promise, resolved) {
             Z_PARAM_ZVAL_OR_NULL(param)ZEND_PARSE_PARAMETERS_END();
     zend_object * resolved = zend_enum_get_case_cstr(MODULE_GL(promise__status_enum), "Resolved");
     ZVAL_OBJ(&status, resolved);
+
     zend_update_property(MODULE_GL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("dataStore"), param);
     zend_update_property(MODULE_GL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("status"), &status);
-
+    printf("it resolved\n");
     switch (Z_TYPE_P(param)) {
         case IS_STRING:
 //            php_printf("resolved %s val", ZSTR_VAL(Z_STR_P(param)));
@@ -169,10 +185,8 @@ PHP_METHOD (Promise, resolved) {
             break;
 
     }
-    RETURN_OBJ(resolved);
-//         return new Promise(function ($res, $rej) use ($data) {
-//             $res($data);
-//         });
+    printf("resolved finished\n");
+//    RETURN_OBJ(resolved);
 }
 
 PHP_METHOD (Promise, rejected) {
@@ -205,13 +219,13 @@ PHP_METHOD (Promise, rejected) {
 void then_cb(uv_idle_t *handle) {
 
     then_t *data = handle->data;
-
+    puts("conflict");
     zval * promiseFinalized = zend_read_property(data->this->ce, data->this, PROP("promiseFinalised"),  0, NULL);
-
+    puts("conflict2");
     zval * status = zend_read_property(data->this->ce, data->this, PROP("status"), 0,  NULL);
     short promiseFinalized_bool = Z_TYPE_INFO_P(promiseFinalized);
     short status_val = Z_LVAL_P(OBJ_PROP_NUM(Z_OBJ_P(status), 1));
-
+    puts("conflict3");
     if (promiseFinalized_bool == IS_TRUE) {
         printf("setting cb new idle");
     } else if (status_val == Resolved) {
@@ -220,10 +234,8 @@ void then_cb(uv_idle_t *handle) {
                                                NULL);
         uv_idle_stop(handle);
         zval retval;
-
         LOG("Then call back is called");
         call_php_fn(&data->then_cb, 1, data_store, &retval, "then");
-
         efree(data);
         efree(handle);
     } else if (status_val == Rejected) {
@@ -231,6 +243,9 @@ void then_cb(uv_idle_t *handle) {
         efree(data);
         efree(handle);
     }
+    puts("conflict4");
+//    uv_idle_stop(handle);
+    puts("conflict5");
 }
 
 PHP_METHOD (Promise, then) {
@@ -249,23 +264,30 @@ PHP_METHOD (Promise, then) {
         printf("I am finalized");
     } else if (status_val == Resolved) {
         zval retval;
-        printf("running idle");
+        puts("running idle");
         zval * data = zend_read_property(MODULE_GL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("dataStore"), 0,  NULL);
         uv_cb_type then_cb_s = {0};
         init_cb(&fci, &fcc, &then_cb_s);
         LOG("Then call back is called");
-        call_php_fn(&then_cb_s, 1, data, &retval, "then");
+//        call_php_fn(&then_cb_s, 1, data, &retval, "then");
 
     } else if (status_val == Pending) {
-        printf("setting new idle");
+        puts("Setting new idle");
         uv_idle_t *idleHandle = emalloc(sizeof(uv_idle_t));
+        puts("Setting new idle2");
         uv_idle_init(MODULE_GL(loop), idleHandle);
+        puts("Setting new idle3");
         then_t *handle_data = emalloc(sizeof(then_t));
+        puts("Setting new idle4");
         init_cb(&fci, &fcc, &handle_data->then_cb);
+        puts("Setting new idle5");
         handle_data->this = Z_OBJ_P(ZEND_THIS);
+        puts("Setting new idle6");
         LOG("Setting then idle ...\n");
         idleHandle->data = handle_data;
+        puts("Setting new idle8");
         uv_idle_start(idleHandle, then_cb);
+        puts("Setting new idle9");
     }
 }
 
