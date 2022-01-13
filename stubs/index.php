@@ -4,21 +4,22 @@ function test(PromiseStatus $status)
     var_dump($status, $status == PromiseStatus::Pending);
 }
 
-$db = mysqli_connect("raspis00.mysql.tools", "raspis00_bd", "Of!@4hjO17", "raspis00_bd");
-mysqli_query($db, "select 1", MYSQLI_ASYNC);
-mysqli_wait($db, function ($arg){
-    var_dump(mysqli_reap_async_query($arg));
-// echo "hello";
-}); //TODO rework to promise
+//$db = mysqli_connect("raspis00.mysql.tools", "raspis00_bd", "Of!@4hjO17", "raspis00_bd");
+//mysqli_query($db, "select 1", MYSQLI_ASYNC);
+//function query(\PgSql\Connection $coonection, string $query):Promise
+//{
+//    pg_send_query($coonection, "select 1 as int");
+//    return new Promise(fn($res, $rej) => pg_wait($coonection, fn($arg) => $res(mysqli_reap_async_query($arg)))); //TODO rework to promise
+//}
 
-//$pg = pg_connect("host=0.0.0.0 user=root password=password");
-//
-//pg_send_query($pg, "select 1 as int");
-//
-//pg_wait($pg, function ($arg) {
-//    var_dump(pg_fetch_all(pg_get_result($arg)));
-// echo "hello";
-//});
+$pg = pg_connect("host=0.0.0.0 user=root password=password");
+
+pg_send_query($pg, "select 1 as int");
+
+pg_wait($pg, function ($arg) {
+    var_dump(pg_fetch_all($arg));
+ echo "hello";
+});
 
 //var_dump($pg);
 
@@ -108,8 +109,8 @@ mysqli_wait($db, function ($arg){
 //var_dump($timerId);
 
 
- //file_put_contents_async("compile2", "data");
- ////sleep(3);
+//file_put_contents_async("compile2", "data");
+////sleep(3);
 // file_get_contents_async("Makefile", fn($arg) => file_put_contents("dtad35", $arg)&&var_dump("second callback"));
 // //
 // file_get_contents_async("fileio.lo", function($arg){

@@ -1,11 +1,13 @@
 //
 // Created by admin on 13.12.2021.
 //
+#ifndef MYSQLI_USE_MYSQLND
+#define MYSQLI_USE_MYSQLND
+#endif
 #include <php.h>
 #include <uv.h>
 #include <zend_API.h>
 #include "db_async_override.h"
-#include "mysqli/php_mysqli_structs.h"
 #include "mysqlnd/mysqlnd.h"
 #include "../web/helpers.h"
 #include "../../php_fileio.h"
@@ -13,9 +15,10 @@
 #include "../http/request.h"
 #include "../common/call_php_fn.h"
 #include "../common/struct.h"
+#include "mysqli/php_mysqli_structs.h"
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
-#include <pcap/socket.h>
+#include <zend_exceptions.h>
 
 typedef struct pgsql_link_handle {
     PGconn *conn;
@@ -25,18 +28,85 @@ typedef struct pgsql_link_handle {
     zend_object std;
 } pgsql_link_handle;
 
+typedef struct {
+    MYSQLND			*mysql;
+    zend_string		*hash_key;
+    zval			li_read;
+    php_stream		*li_stream;
+    unsigned int 	multi_query;
+    bool		persistent;
+    int				async_result_fetch_type;
+} MY_MYSQLND;
+
+typedef struct _php_pgsql_result_handle {
+    PGconn *conn;
+    PGresult *result;
+    int row;
+    zend_object std;
+} pgsql_result_handle;
+
 static inline pgsql_link_handle *pgsql_link_from_obj(zend_object *obj) {
     return (pgsql_link_handle *) ((char *) (obj) - XtOffsetOf(pgsql_link_handle, std));
+}
+
+static inline pgsql_result_handle *pgsql_result_from_obj(zend_object *obj) {
+    return (pgsql_result_handle *) ((char *) (obj) - XtOffsetOf(pgsql_result_handle, std));
 }
 
 void poll_cb(uv_poll_t *handle, int event, int status) {
     puts("Readable");
     zval retval;
     zval arg[1] = {0};
-
+    PGconn *pgsql;
     uv_poll_stop(handle);
-    db_type_t * db_data = handle->data;
-    ZVAL_COPY(&arg[0], db_data->db_handle);
+    db_type_t *db_data = handle->data;
+    zend_object * obj = Z_OBJ_P(db_data->db_handle);
+    pgsql_link_handle *link;
+    switch (db_data->type) {
+        case MYSQL_DB:
+            ZVAL_COPY(&arg[0], db_data->db_handle);
+            break;
+        case PGSQL_DB:
+            link = pgsql_link_from_obj(obj);
+            if (link->conn == NULL) {
+                zend_throw_error(NULL, "PostgreSQL connection has already been closed");
+                ZVAL_FALSE(&arg[0]);
+            }
+            pgsql = link->conn;
+            PGresult *pgsql_result = PQgetResult(pgsql);
+            pgsql_result_handle *pg_result;
+            if (!pgsql_result) {
+                zend_throw_error(NULL, "PostgreSQL no result closed");
+                /* no result */
+                ZVAL_FALSE(&arg[0]);
+            }
+            zend_string * lcname;
+            zend_class_entry * pgsql_result_ce;
+            char n[] = "PgSql\\Result";
+            zend_string * name = zend_string_init(n, strlen(n), 0);
+            if (1) {
+                /* Ignore leading "\" */
+                lcname = zend_string_tolower(name);
+                pgsql_result_ce = zend_hash_find_ptr(EG(class_table), lcname);
+                zend_string_release_ex(lcname, 0);
+            } else {
+                pgsql_result_ce = zend_lookup_class(name);
+            }
+
+            if (!pgsql_result_ce) {
+                zend_throw_error(NULL, "PostgreRes not found");
+                /* no result */
+                ZVAL_FALSE(&arg[0]);
+            }
+
+            object_init_ex(&arg[0], pgsql_result_ce);
+            pg_result = pgsql_result_from_obj(Z_OBJ(arg[0]));
+            pg_result->conn = pgsql;
+            pg_result->result = pgsql_result;
+            pg_result->row = 0;
+            break;
+    }
+//
     call_php_fn(&db_data->cb, 1, arg, &retval, "db_wait");
 //    MYSQLND *conn = handle->data;
 //    MYSQLND_RES *result = NULL;
