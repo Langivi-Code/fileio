@@ -4,21 +4,23 @@ function test(PromiseStatus $status)
     var_dump($status, $status == PromiseStatus::Pending);
 }
 
-//$db = mysqli_connect("raspis00.mysql.tools", "raspis00_bd", "Of!@4hjO17", "raspis00_bd");
+$db = mysqli_connect("raspis00.mysql.tools", "raspis00_bd", "Of!@4hjO17", "raspis00_bd");
+mysqli_query($db, "select 1", MYSQLI_ASYNC);
+mysqli_wait($db, function ($arg){
+    var_dump(mysqli_reap_async_query($arg));
+// echo "hello";
+}); //TODO rework to promise
+
+//$pg = pg_connect("host=0.0.0.0 user=root password=password");
 //
-//mysqli_wait($db, function (){
+//pg_send_query($pg, "select 1 as int");
 //
-//}); //TODO rework to promise
+//pg_wait($pg, function ($arg) {
+//    var_dump(pg_fetch_all(pg_get_result($arg)));
+// echo "hello";
+//});
 
-$pg = pg_connect("host=0.0.0.0 user=root password=password");
-
-//pg_send_query($pg, "select 1");
-
-pg_wait($pg, function () {
-
-});
-
-var_dump($pg);
+//var_dump($pg);
 
 //mysqli_query($db, "select 1", MYSQLI_ASYNC | MYSQLI_STORE_RESULT);
 //$file = file_get_contents("./stubs/index.html");
