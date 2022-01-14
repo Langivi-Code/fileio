@@ -6,26 +6,31 @@ function test(PromiseStatus $status)
 
 //$db = mysqli_connect("raspis00.mysql.tools", "raspis00_bd", "", "raspis00_bd");
 //mysqli_query($db, "select 1", MYSQLI_ASYNC);
-function mysql_query(mysqli $coonection, string $query):Promise
+function mysql_query(mysqli $coonection, string $query): Promise
 {
     mysqli_query($coonection, $query, MYSQLI_ASYNC);
     return new Promise(fn($res, $rej) => mysql_wait($coonection, fn($arg) => $res(mysqli_reap_async_query($arg)))); //TODO rework to promise
 }
-//mysql_query($db, "select 1");
-$pg = pg_connect("host=0.0.0.0 user=root password=password");
 
-function query(\PgSql\Connection $coonection, string $query):Promise
+//mysql_query($db, "select 1");
+//$pg = pg_connect("host=0.0.0.0 user=root password=password");
+
+function query(\PgSql\Connection $coonection, string $query): Promise
 {
     pg_send_query($coonection, $query);
     return new Promise(fn($res, $rej) => pg_wait($coonection, fn($connection) => $res($connection))); //TODO rework to promise
 }
 
-$promsie = query($pg, "select 1 as int");
-var_dump($promsie);
-var_dump($promsie->then(function (\PgSql\Result $arg) {
-    var_dump($arg);
-    var_dump(pg_fetch_all($arg));
-}));
+work([
+    function () {
+        echo "hello2";
+    }]);
+//$promsie = query($pg, "select 1 as int");
+//var_dump($promsie);
+//var_dump($promsie->then(function (\PgSql\Result $arg) {
+//    var_dump($arg);
+//    var_dump(pg_fetch_all($arg));
+//}));
 
 //pg_send_query($pg, "select 1 as int");
 //

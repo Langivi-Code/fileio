@@ -120,8 +120,6 @@ PHP_METHOD (Promise, __construct) {
     ZVAL_OBJ(&status, pending);
     zend_update_property(MODULE_GL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("status"), &status);
 
-//    zend_call_known_function(promise_resolve, NULL, FILE_IO_GLOBAL(promise_class), &callable3, 0, NULL, NULL);
-
 }
 
 PHP_METHOD (Promise, resolve) {
@@ -219,13 +217,11 @@ PHP_METHOD (Promise, rejected) {
 void then_cb(uv_idle_t *handle) {
 
     then_t *data = handle->data;
-    puts("conflict");
     zval * promiseFinalized = zend_read_property(data->this->ce, data->this, PROP("promiseFinalised"), 0, NULL);
-    puts("conflict2");
     zval * status = zend_read_property(data->this->ce, data->this, PROP("status"), 0, NULL);
     short promiseFinalized_bool = Z_TYPE_INFO_P(promiseFinalized);
     short status_val = Z_LVAL_P(OBJ_PROP_NUM(Z_OBJ_P(status), 1));
-    puts("conflict3");
+    puts("conflict1");
     if (promiseFinalized_bool == IS_TRUE) {
         printf("Promise is finalized\n");
         uv_idle_stop(handle);
@@ -247,8 +243,24 @@ void then_cb(uv_idle_t *handle) {
         efree(handle);
     }
     puts("conflict4");
-//    uv_idle_stop(handle);
-    puts("conflict5");
+}
+
+
+zval * promisify(zval * constructor_closure) {
+    zval * promise = emalloc(sizeof(zval));
+    zval closure,status;
+    object_init_ex(promise, MODULE_GL(promise_class));
+    zend_object * pending = zend_enum_get_case_cstr(MODULE_GL(promise__status_enum), "Pending");
+    ZVAL_OBJ(&status, pending);
+
+    object_init_ex(&closure, zend_ce_closure);
+    zend_update_property(MODULE_GL(promise_class), Z_OBJ_P(promise), PROP("closure"), &closure);
+    zend_update_property(MODULE_GL(promise_class), Z_OBJ_P(promise), PROP("status"), &status);
+//    zend_call_known_instance_method_with_1_params(MODULE_GL(promise_class)->constructor,
+//                                                  Z_OBJ_P(promise), NULL, constructor_closure);
+//    zend_call_known_function(promise_resolve, NULL, FILE_IO_GLOBAL(promise_class), &callable3, 0, NULL, NULL);
+
+    return &promise;
 }
 
 PHP_METHOD (Promise, then) {

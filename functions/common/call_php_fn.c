@@ -15,7 +15,7 @@ void call_php_fn(uv_cb_type * cb, size_t arg_count, zval * args, zval * retval, 
     cb->fci.retval = retval;
     cb->fcc.function_handler->common.function_name = zend_string_init(fun_name, strlen(fun_name), 1);
     if (ZEND_FCI_INITIALIZED(cb->fci)) {
-        if (zend_call_function(&cb->fci, &cb->fcc) != SUCCESS) {
+        if (/*zend_call_function(&cb->fci, &cb->fcc)*/1 != SUCCESS) {
             error = -1;
             zend_function * fun = cb->fcc.function_handler;
             if (!EG(exception)) {

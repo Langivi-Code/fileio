@@ -43,6 +43,10 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_mysqla_query, 0, 2, IS_MIXED, 0)
                 ZEND_ARG_TYPE_INFO(0, callback, IS_CALLABLE, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO(work,0)
+                ZEND_ARG_TYPE_INFO(0, data, IS_ARRAY,0)
+ZEND_END_ARG_INFO()
+
 
 ZEND_FUNCTION(use_promise);
 
@@ -66,6 +70,7 @@ PHP_FUNCTION (send_header);
 
 ZEND_FUNCTION(mysqli_wait);
 ZEND_FUNCTION(pg_wait);
+PHP_FUNCTION(work);
 
 static const zend_function_entry file_io_functions[] = {
         ZEND_FE(use_promise, arginfo_use_promise)
@@ -79,5 +84,6 @@ static const zend_function_entry file_io_functions[] = {
         ZEND_FE(file_put_contents_async, arginfo_file_put_contents_async)
         ZEND_FE(mysqli_wait, arginfo_mysqla_query)
         ZEND_FE(pg_wait, arginfo_mysqla_query)
+        PHP_FE(work, work)
         ZEND_FE_END
 };

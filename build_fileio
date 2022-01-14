@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-git clone https://github.com/LangiviTechnology/fileio.git -b db-adoptation
+git clone https://github.com/LangiviTechnology/fileio.git -b threads
 cd fileio
 phpize
 make clean
