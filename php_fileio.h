@@ -33,8 +33,8 @@ extern zend_module_entry fileio_module_entry;
 
 
 
-#ifdef ZTS
-#define MODULE_GL(v) TSRMG(fileio_globals_id, zend_fileio_globals *, v)
+#ifndef ZTS
+#define MODULE_GL(v) TSRMG(standard_async_globals, zend_fileio_globals *, v)
 #else
 #define MODULE_GL(v) standard_async_globals.v
 #endif
