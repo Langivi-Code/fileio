@@ -8,6 +8,7 @@
 #include "../common/callback_interface.h"
 #include "../../php_fileio.h"
 #include "file_interface.h"
+#include "standard/file.h"
 
 #define LOG_TAG "file_put_contents_async * "
 
@@ -56,7 +57,11 @@ PHP_FUNCTION (file_put_contents_async) {
     file_data_handle->close_requests.open_req = open_req;
     printf("%llu\n", fs_id->id);
     open_req->data = fs_id;
-    int r = uv_fs_open(MODULE_GL(loop), open_req, filename, O_WRONLY | O_CREAT, S_IRWXU, on_wr_open);
+    int flags_default = O_WRONLY | O_CREAT;
+    if (flags & PHP_FILE_APPEND) {
+        flags_default |= O_APPEND;
+    }
+    int r = uv_fs_open(MODULE_GL(loop), open_req, filename, flags_default, S_IRWXU, on_wr_open);
     if (r) {
         fprintf(stderr, "Error at opening file: %s.\n",
                 uv_strerror(r));
