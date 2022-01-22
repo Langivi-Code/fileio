@@ -61,6 +61,7 @@ include_directories(
         "${PHP_SRC_PATH}/sapi"
         "/usr/local/Cellar/libuv/1.42.0/include/"
         "./3rd/llhttp"
+        "/usr/local/opt/libpq/include"
 )
 find_library(uvPath2 NAMES uv libuv)
 

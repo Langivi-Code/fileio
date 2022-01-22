@@ -4,6 +4,40 @@ function test(PromiseStatus $status)
     var_dump($status, $status == PromiseStatus::Pending);
 }
 
+//$db = mysqli_connect("raspis00.mysql.tools", "raspis00_bd", "", "raspis00_bd");
+//mysqli_query($db, "select 1", MYSQLI_ASYNC);
+function mysql_query(mysqli $coonection, string $query):Promise
+{
+    mysqli_query($coonection, $query, MYSQLI_ASYNC);
+    return new Promise(fn($res, $rej) => mysql_wait($coonection, fn($arg) => $res(mysqli_reap_async_query($arg)))); //TODO rework to promise
+}
+//mysql_query($db, "select 1");
+$pg = pg_connect("host=0.0.0.0 user=root password=password");
+
+function query(\PgSql\Connection $coonection, string $query):Promise
+{
+    pg_send_query($coonection, $query);
+    return new Promise(fn($res, $rej) => pg_wait($coonection, fn($connection) => $res($connection))); //TODO rework to promise
+}
+
+$promsie = query($pg, "select 1 as int");
+var_dump($promsie);
+var_dump($promsie->then(function (\PgSql\Result $arg) {
+    var_dump($arg);
+    var_dump(pg_fetch_all($arg));
+}));
+
+//pg_send_query($pg, "select 1 as int");
+//
+//
+//pg_wait($pg, function ($arg) {
+//    var_dump(pg_fetch_all($arg));
+// echo "hello";
+//});
+
+//var_dump($pg);
+
+//mysqli_query($db, "select 1", MYSQLI_ASYNC | MYSQLI_STORE_RESULT);
 //$file = file_get_contents("./stubs/index.html");
 //$serv1 = new HttpServer(8001, "tcp://0.0.0.0", []);
 
@@ -74,7 +108,7 @@ function test(PromiseStatus $status)
 // //    var_dump($timerId);
 // });
 
- file_put_contents_async("try.php","dat1212a", fn()=>var_dump(1234));
+//  file_put_contents_async("try.php","dat1212a", fn()=>var_dump(1234));
 // } catch(Exception $e){
 // var_dump($e);
 // }
@@ -89,8 +123,8 @@ function test(PromiseStatus $status)
 //var_dump($timerId);
 
 
- //file_put_contents_async("compile2", "data");
- ////sleep(3);
+//file_put_contents_async("compile2", "data");
+////sleep(3);
 // file_get_contents_async("Makefile", fn($arg) => file_put_contents("dtad35", $arg)&&var_dump("second callback"));
 // //
 // file_get_contents_async("fileio.lo", function($arg){
@@ -138,9 +172,11 @@ function test(PromiseStatus $status)
 //}, 100);
 
 //
-//idle(function () {
+//$mysql = mysqla_query(123);
+
+// idle(function () {
 //    echo "idle111";
-//});
+// });
 //
 //idle(function () {
 //    echo setTimeout(function () {
@@ -170,6 +206,6 @@ function test(PromiseStatus $status)
 //    "compile",
 //    fn($arg) => var_dump("dtad336")&var_dump("third callback")
 //);
-
+// print_r($db);
 echo "sync exec ended.\n\n";
 
