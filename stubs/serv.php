@@ -1,10 +1,45 @@
 <?php
-$serv1 = new HttpServer(81, "tcp://0.0.0.0");
+$serv1 = new HttpServer(82, "tcp://0.0.0.0");
 $serv1->setPublicPath(__DIR__);
+
+$serv1->on_connect(function() {
+    echo"request started\n";
+});
+
+$serv1->on_disconnect(function() {
+    echo"request ended\n";
+});
+file_get_contents_async('./stubs/serv.php', function($arg) use ($res){
+    echo "file is read before\n";}
+
+//      $res->setHeader("Content-Type", "text/plain; charset=utf-8");
+//        $res->send("hello\n");
+//     }
+    );
 $serv1->on_request(function (HttpRequest $req, HttpResponse $res) use ($serv1) {
+//     file_get_contents_async('./stubs/index.php', function($arg) use ($res){
+//     echo "file is read\n";
+//      $res->setHeader("Content-Type", "text/plain; charset=utf-8");
+//        $res->send("hello\n");
+//     }
+//     );
+echo "first\n";
+set_timeout(function() use ($res){
+//  $res->setHeader("Content-Type", "text/plain; charset=utf-8");
+//        $res->send("hello\n");
 
-
-   var_dump($req, $res, $this);
+set_timeout(function()use ($res){
+//  $res->setHeader("Content-Type", "text/plain; charset=utf-8");
+//        $res->send("hello\n");
+echo "TIMEOUT2";
+}, 2000);
+echo "TIMEOUT1";
+}, 2000);
+echo "first2\n";
+    echo "why\n\n";
+         $res->setHeader("Content-Type", "text/plain; charset=utf-8");
+            $res->send("hello\n");
+//    var_dump($req, $res, $this);
     if (file_exists($serv1->publicPath.$req->uri) && !is_dir($serv1->publicPath.$req->uri)){
 
         echo  "WTF???";
@@ -23,8 +58,7 @@ $serv1->on_request(function (HttpRequest $req, HttpResponse $res) use ($serv1) {
 
        return;
     }
-    echo "why";
-    $res->setHeader("Content-Type", "text/plain; charset=utf-8");
-    $res->send("hello\n");
+
+
 
 });

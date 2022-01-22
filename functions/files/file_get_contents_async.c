@@ -70,6 +70,8 @@ PHP_FUNCTION (file_get_contents_async) {
         LOG("Error opening file: %s\n", filename);
 //        RETURN_THROWS();
     }
+//    uv_ref((uv_handle_t *) open_req);
+    printf("alive handles %d\n", uv_loop_alive(MODULE_GL(loop)));
 
     RETURN_BOOL(1);
 //    if (maxlen_is_null) {
@@ -149,7 +151,7 @@ void on_status(uv_fs_t *req) {
         uv_fs_t *read_req = emalloc(sizeof(uv_fs_t));
         read_req->data = fs_id;
         fs_handle->handle->close_requests.read_req = read_req;
-        LOG("file size is %llu %llu\n", fs_handle->handle->file_size, req->statbuf.st_size);
+        printf("file size is %llu %llu\n", fs_handle->handle->file_size, req->statbuf.st_size);
         LOG("starting reading ... %d\n", fs_handle->handle->file);
         size_t buf_size = fs_handle->handle->file_size + 1;
         fs_handle->handle->buffer = uv_buf_init(emalloc(sizeof(char) * buf_size), buf_size);
@@ -190,9 +192,9 @@ static void on_open(uv_fs_t *req) {
 }
 
 static void on_read(uv_fs_t *req) {
-    puts("Ffffff");
     fs_id_t *fs_id = (fs_id_t *) req->data;
-    LOG("file id is %zd\n", req->result);
+    printf("file id is %zd\n", req->result);
+
     fs_id_item_t * fs_handle = find_fs_handle(fs_handle_map,fs_id->id);
 //    uv_fs_t *close_req = emalloc(sizeof(uv_fs_t));
     fs_handle->handle->close_requests.write_req = NULL;

@@ -22,11 +22,13 @@ typedef struct {
     uv_cb_type on_disconnect;
     uv_cb_type on_error;
     uv_buf_t write_buf;
+    unsigned int active_handles;
 } http_server_type;
 
 typedef struct {
     unsigned long long id;
     bool is_read;
+    bool is_written;
 } request_info;
 
 typedef struct ht_event_handle_item {

@@ -12,23 +12,34 @@
 
 PHP_FUNCTION (set_timeout) {
     zend_long var;
-    zend_fcall_info fci;
-    zend_fcall_info_cache fcc;
+    zend_fcall_info_cache fcc = empty_fcall_info_cache;
+    zend_fcall_info fci = empty_fcall_info;
     zval return_val;
+    puts("timer0");
     //    object_init_ex(&fiber, zend_ce_fiber);
     ZEND_PARSE_PARAMETERS_START(2, 2)
             Z_PARAM_FUNC(fci, fcc)
             Z_PARAM_LONG(var)ZEND_PARSE_PARAMETERS_END();
+    puts("timer00");
     fci.retval = &return_val;
-    fci.param_count = 0;
-    uv_timer_t *timerHandle = emalloc(sizeof(uv_timer_t));
 
+    fci.param_count = 0;
+    fci.params=NULL;
+    puts("timer000");
+    uv_timer_t * timerHandle =  NULL;
+    timerHandle = emalloc(sizeof(uv_timer_t));
+    timerData * timer_data =  emalloc(sizeof(timerData));
+    puts("timer1");
 //    printf("Main thread id: %p\n", uv_thread_self());
     uv_timer_init(MODULE_GL(loop), timerHandle);
-    fill_event_handle(timerHandle, &fci, &fcc);
+    init_cb(&fci, &fcc,&timer_data->cb);
+    timerHandle->data = timer_data;
+//    fill_event_handle(timerHandle, &fci, &fcc);
 //    uv_unref((uv_handle_t *) timerHandle);
 //    printf("time is in thrd prc %lld  %p\n", var, &var);
     unsigned long id = add_handle(timerHandle);
+    puts("timer2");
+    timer_data->handle_id = id;
     uv_timer_start(timerHandle, fn, var, 0);
 
 //    printf("handle id %lul handles count is %ul\n", id, count_handles());
