@@ -49,5 +49,5 @@ HTTP response interfaces `HttpResponse class`:
 &nbsp;&nbsp;&nbsp;public string **$body**;<br>
 &nbsp;&nbsp;&nbsp;public function **setStatusCode**(int $code);<br>
 &nbsp;&nbsp;&nbsp;public function **setHeader**(string $headerName, string $value): HttpResponse;<br>
-&nbsp;&nbsp;&nbsp;public function **write**(string $data): void;<br>
+&nbsp;&nbsp;&nbsp;public function **send**(string $data): void;<br>
 }`
