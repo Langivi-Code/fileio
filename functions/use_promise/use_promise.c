@@ -46,7 +46,7 @@ void fn_idle(uv_idle_t *handle) {
     call_php_fn(&data_handle->then_cb, 2, params, &retval, "promise_handler");
 
 
-    efree(data_handle->then_cb.fci.params);
+//    efree(data_handle->then_cb.fci.params);
     efree(data_handle);
     efree(handle);
 }
