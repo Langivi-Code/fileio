@@ -225,7 +225,7 @@ void then_cb(uv_idle_t *handle) {
     zval * status = zend_read_property(data->this->ce, data->this, PROP("status"), 0, NULL);
     short promiseFinalized_bool = Z_TYPE_INFO_P(promiseFinalized);
     short status_val = Z_LVAL_P(OBJ_PROP_NUM(Z_OBJ_P(status), 1));
-    puts("conflict3");
+//    puts("conflict3");
     if (promiseFinalized_bool == IS_TRUE) {
         printf("Promise is finalized\n");
         uv_idle_stop(handle);
@@ -245,11 +245,13 @@ void then_cb(uv_idle_t *handle) {
         uv_idle_stop(handle);
         efree(data);
         efree(handle);
+    } else if (status_val == Pending){
+        uv_idle_stop(handle);
+        uv_idle_start(handle, then_cb);
     }
-    puts("conflict4");
-    uv_idle_stop(handle);
-    uv_idle_start(handle, then_cb);
-    puts("conflict5");
+//    puts("conflict4");
+
+//    puts("conflict5");
 }
 
 PHP_METHOD (Promise, then) {
