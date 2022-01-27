@@ -247,7 +247,8 @@ void then_cb(uv_idle_t *handle) {
         efree(handle);
     }
     puts("conflict4");
-//    uv_idle_stop(handle);
+    uv_idle_stop(handle);
+    uv_idle_start(handle, then_cb);
     puts("conflict5");
 }
 
