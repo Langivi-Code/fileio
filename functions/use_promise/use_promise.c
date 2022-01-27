@@ -48,7 +48,7 @@ void fn_idle(uv_idle_t *handle) {
 
 //    efree(data_handle->then_cb.fci.params);
 //    efree(data_handle);
-    php_var_dump(params, 2);
+    php_var_dump(params, 1);
     efree(handle);
 }
 
@@ -113,6 +113,7 @@ PHP_METHOD (Promise, __construct) {
     then_t *data_handle = emalloc(sizeof(then_t));
     init_cb(&fci, &fcc, &data_handle->then_cb);
     data_handle->this = Z_OBJ_P(ZEND_THIS);
+    GC_TRY_ADDREF(data_handle->this);
     idleHandle->data = data_handle;
     LOG("Setting idle ...\n");
     uv_idle_start(idleHandle, fn_idle);
