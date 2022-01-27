@@ -47,7 +47,8 @@ void fn_idle(uv_idle_t *handle) {
 
 
 //    efree(data_handle->then_cb.fci.params);
-    efree(data_handle);
+//    efree(data_handle);
+    php_var_dump(params, 2);
     efree(handle);
 }
 
