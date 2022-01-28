@@ -1,4 +1,52 @@
 <?php
+class ExtendedPromise extends \Promise
+{
+    public static function all (array $promises):\Promise
+    {
+        return new \Promise(function($res,$rej) use(&$promises){
+            $promiseArray = array();
+            $lengthPromises = count($promises);
+            if($lengthPromises == 0){
+                $res($promiseArray);
+            }
+            foreach($promises as $key => $promise){
+                $promise->then(function($result) use(&$lengthPromises,&$promiseArray, $res, $key){
+                    var_dump('promise inside', $result, $key);
+                    file_put_contents($result,'');
+                    $promiseArray[$key] = $result;
+                    $lengthPromises -= 1;
+                    if ($lengthPromises == 0){
+                        echo "hello\n";
+                        var_dump($promiseArray);
+                        $res($promiseArray);
+                        echo "hello1\n";
+                    }
+
+                });
+//                var_dump($promise);
+            }
+
+        });
+    }
+}
+
+$promises = [
+    new \Promise(fn($res, $rej) => set_timeout(fn() => $res(1), 100)),
+    new \Promise(fn($res, $rej) => set_timeout(fn() => $res(2), 2000)),
+//            new \Promise(fn($res,$rej)=> set_timeout(fn()=>$res(3),3000)) ,
+];
+//        var_dump($promises);
+$a = ExtendedPromise::all($promises)->then(function (array $params) {
+    echo "resolved\n\n\n";
+    var_dump($params);
+    return \Promise::resolve([]);
+});
+
+$a->then(function ($res) use ($a) {
+    echo "qwreqr";
+   var_dump($a, $res);
+});
+
 function test(PromiseStatus $status)
 {
     var_dump($status, $status == PromiseStatus::Pending);
@@ -6,26 +54,26 @@ function test(PromiseStatus $status)
 
 //$db = mysqli_connect("raspis00.mysql.tools", "raspis00_bd", "", "raspis00_bd");
 //mysqli_query($db, "select 1", MYSQLI_ASYNC);
-function mysql_query(mysqli $coonection, string $query):Promise
-{
-    mysqli_query($coonection, $query, MYSQLI_ASYNC);
-    return new Promise(fn($res, $rej) => mysql_wait($coonection, fn($arg) => $res(mysqli_reap_async_query($arg)))); //TODO rework to promise
-}
+//function mysql_query(mysqli $coonection, string $query):Promise
+//{
+//    mysqli_query($coonection, $query, MYSQLI_ASYNC);
+//    return new Promise(fn($res, $rej) => mysql_wait($coonection, fn($arg) => $res(mysqli_reap_async_query($arg)))); //TODO rework to promise
+//}
 //mysql_query($db, "select 1");
-$pg = pg_connect("host=0.0.0.0 user=root password=password");
+//$pg = pg_connect("host=0.0.0.0 user=root password=password");
 
-function query(\PgSql\Connection $coonection, string $query):Promise
-{
-    pg_send_query($coonection, $query);
-    return new Promise(fn($res, $rej) => pg_wait($coonection, fn($connection) => $res($connection))); //TODO rework to promise
-}
-
-$promsie = query($pg, "select 1 as int");
-var_dump($promsie);
-var_dump($promsie->then(function (\PgSql\Result $arg) {
-    var_dump($arg);
-    var_dump(pg_fetch_all($arg));
-}));
+//function query(\PgSql\Connection $coonection, string $query):Promise
+//{
+//    pg_send_query($coonection, $query);
+//    return new Promise(fn($res, $rej) => pg_wait($coonection, fn($connection) => $res($connection))); //TODO rework to promise
+//}
+//
+//$promsie = query($pg, "select 1 as int");
+//var_dump($promsie);
+//var_dump($promsie->then(function (\PgSql\Result $arg) {
+//    var_dump($arg);
+//    var_dump(pg_fetch_all($arg));
+//}));
 
 //pg_send_query($pg, "select 1 as int");
 //
