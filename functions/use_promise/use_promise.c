@@ -241,12 +241,12 @@ void then_cb(uv_idle_t *handle) {
         LOG("Then call back is called");
         call_php_fn(&data->then_cb, 1, data_store, &retval, "then");
 //        php_var_dump(&retval,1);
-        printf("retval %d\n", Z_TYPE_INFO(retval));
-        if (Z_TYPE_INFO(retval) == 776 && instanceof_function(Z_OBJCE(retval),MODULE_GL(promise_class))) {
+        printf("retval %d\n", Z_TYPE(retval));
+        if (Z_TYPE(retval) == IS_OBJECT && instanceof_function(Z_OBJCE(retval),MODULE_GL(promise_class))) {
             zval * data_store_ret = zend_read_property(data->this->ce, Z_OBJ(retval), PROP("dataStore"), 0,
                                                        NULL);
             puts("retval");
-//            php_var_dump(data->retval,1);
+//          php_var_dump(data->retval,1);
             zend_update_property(MODULE_GL(promise_class), Z_OBJ_P(data->retval), PROP("dataStore"), data_store_ret);
             zend_object * resolved = zend_enum_get_case_cstr(MODULE_GL(promise__status_enum), "Resolved");
             ZVAL_OBJ(&status_ret, resolved);
