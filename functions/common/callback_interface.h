@@ -11,6 +11,6 @@ typedef struct {
 } uv_cb_type;
 #endif //FILEIO_CALLBACK_INTERFACE_H
 void fn(uv_timer_t *handle);
-void fn_idle(uv_idle_t *handle);
+void fn_idle(uv_check_t *handle);
 void fn_interval(uv_timer_t *handle);
 zend_long fn_fs(uv_fs_t *handle);
