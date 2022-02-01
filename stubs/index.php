@@ -30,17 +30,23 @@ class ExtendedPromise extends \Promise
     }
 }
 
- $pro = new \Promise(fn($res, $rej) => set_timeout(fn() => $res(-1), 1000));
+$pro = new \Promise(fn($res, $rej) => set_timeout(fn() => $res(-1), 1000));
 //var_dump($pro);
 
 $pro->then(function ($a) {
     var_dump("returned is" . $a);
-    new Promise(function ($res, $rej){});
-    new Promise(function ($res, $rej){});
+//    new Promise(function ($res, $rej){  $res(40);});
+//    $promise = (new \Promise(fn($res, $rej) => set_timeout(fn() => $res(1), 100)));
+//    var_dump($promise);
+//    $promise->then('var_dump');
+return new Promise(function ($res, $rej){ $res(30);});
 //    set_timeout(function (){
-        return Promise::resolve(1);
+//    return Promise::resolve(2);
 //    var_dump($prms);
 //    },0);
+})->then(function ($result){
+    echo"-------------------------------------------------------";
+    var_dump($result);
 });
 //$pro2 =  ;
 ////var_dump($pro);
@@ -61,7 +67,7 @@ $pro->then(function ($a) {
 //    echo "qwreqr";
 //   var_dump($a, $res);
 //});
-
+//set_timeout(fn()=>100, 10000);
 function test(PromiseStatus $status)
 {
     var_dump($status, $status == PromiseStatus::Pending);
