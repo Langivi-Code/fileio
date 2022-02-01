@@ -1,4 +1,4 @@
-# Async interfaces(fileio)
+# Async interfaces(standard_async)
 
 Functions of event loop that were implemented:
 >-  **_set_timeout_**(callable $callback, int $timout): int
