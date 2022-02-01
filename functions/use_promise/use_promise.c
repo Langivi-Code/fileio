@@ -247,7 +247,7 @@ void then_cb(uv_prepare_t *handle) {
     zval * promiseFinalized, *status;
     short promiseFinalized_bool, status_val;
     puts("Uv loop in then cb");
-    uv_prepare_stop(handle);
+//    uv_prepare_stop(handle);
 
     then_start:
     puts("then_start label triggered");
@@ -265,7 +265,7 @@ void then_cb(uv_prepare_t *handle) {
             efree(data);
             efree(handle);
         } else if (status_val == Resolved) {
-
+            uv_prepare_stop(handle);
             printf("In resolve section of then_cb\n");
             zval * then_closures = zend_read_property(MODULE_GL(promise_class), data->this, PROP("thenClosures"), 0,
                                                       NULL);
@@ -281,10 +281,15 @@ void then_cb(uv_prepare_t *handle) {
             zend_long array_size = zend_hash_num_elements(Z_ARRVAL_P(then_closures));
 
             zval * closure = zend_hash_index_find_deref(Z_ARR_P(then_closures), clusure_to_run);
-
+            puts("Current this:");
+            zval zval2;
+            ZVAL_OBJ(&zval2, data->this);
+            php_var_dump(&zval2, 1);
             if (clusure_to_run < array_size && closure) {
                 zval * data_store = zend_read_property(data->this->ce, data->this, PROP("dataStore"), 0,
                                                        NULL);
+
+
                 zval retval;
                 zend_fcall_info fci = empty_fcall_info;
                 zend_fcall_info_cache fcc = empty_fcall_info_cache;
@@ -342,12 +347,12 @@ void then_cb(uv_prepare_t *handle) {
 
 //        puts("conflict2");
 //            puts("conflict2");
-            uv_prepare_t *idleHandle = emalloc(sizeof(uv_prepare_t));
+//            uv_prepare_t *idleHandle = emalloc(sizeof(uv_prepare_t));
             puts("Setting new then pending idle");
-            uv_prepare_init(MODULE_GL(loop), idleHandle);
-            idleHandle->data = handle->data;
-            efree(handle);
-            uv_prepare_start(idleHandle, then_cb); /// how to pass smth from promise to promise
+//            uv_prepare_init(MODULE_GL(loop), idleHandle);
+//            idleHandle->data = handle->data;
+//            efree(handle);
+//            uv_prepare_start(idleHandle, then_cb); /// how to pass smth from promise to promise
 //            puts("conflict3");
         }
     }

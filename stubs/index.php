@@ -3,22 +3,22 @@ class ExtendedPromise extends \Promise
 {
     public static function all (array $promises):\Promise
     {
-        return new \Promise(function($res,$rej) use(&$promises){
+        $bb = new \Promise(function($resolveAll, $rej) use(&$promises, &$bb){
             $promiseArray = array();
             $lengthPromises = count($promises);
             if($lengthPromises == 0){
-                $res($promiseArray);
+                $resolveAll($promiseArray);
             }
             foreach($promises as $key => $promise){
-                $promise->then(function($result) use(&$lengthPromises,&$promiseArray, $res, $key){
+                $promise->then(function($result) use(&$bb, &$lengthPromises,&$promiseArray, $resolveAll, $key){
                     var_dump('promise inside', $result, $key);
                     file_put_contents($result,'');
                     $promiseArray[$key] = $result;
                     $lengthPromises -= 1;
                     if ($lengthPromises == 0){
-                        echo "hello\n";
+                        echo "promise all resolved\n";
                         var_dump($promiseArray);
-                        $res($promiseArray);
+                        $resolveAll($promiseArray);
                         echo "hello1\n";
                     }
 
@@ -27,41 +27,42 @@ class ExtendedPromise extends \Promise
             }
 
         });
+        return $bb;
     }
 }
 
-$pro = new \Promise(fn($res, $rej) => set_timeout(fn() => $res(-1), 1000));
-//var_dump($pro);
-
-$pro->then(function ($a) {
-    var_dump("returned is" . $a);
-//    new Promise(function ($res, $rej){  $res(40);});
-//    $promise = (new \Promise(fn($res, $rej) => set_timeout(fn() => $res(1), 100)));
-//    var_dump($promise);
-//    $promise->then('var_dump');
-return new Promise(function ($res, $rej){ $res(30);});
-//    set_timeout(function (){
-//    return Promise::resolve(2);
-//    var_dump($prms);
-//    },0);
-})->then(function ($result){
-    echo"-------------------------------------------------------";
-    var_dump($result);
-});
+//$pro = new \Promise(fn($res, $rej) => set_timeout(fn() => $res(-1), 1000));
+////var_dump($pro);
+//
+//$pro->then(function ($a) {
+//    var_dump("returned is" . $a);
+////    new Promise(function ($res, $rej){  $res(40);});
+////    $promise = (new \Promise(fn($res, $rej) => set_timeout(fn() => $res(1), 100)));
+////    var_dump($promise);
+////    $promise->then('var_dump');
+//return new Promise(function ($res, $rej){ $res(30);});
+////    set_timeout(function (){
+////    return Promise::resolve(2);
+////    var_dump($prms);
+////    },0);
+//})->then(function ($result){
+//    echo"-------------------------------------------------------";
+//    var_dump($result);
+//});
 //$pro2 =  ;
 ////var_dump($pro);
 //$pro2->then(fn($do)=>2)->then(fn($do)=>3);
-// $promises = [
-//    new \Promise(fn($res, $rej) => set_timeout(fn() => $res(1), 100)),
-//    new \Promise(fn($res, $rej) => set_timeout(fn() => $res(2), 2000)),
-//    new \Promise(fn($res,$rej)=> set_timeout(fn()=>$res(3),3000)) ,
-//];
+ $promises = [
+    new \Promise(fn($res, $rej) => set_timeout(fn() => $res(1), 100)),
+    new \Promise(fn($res, $rej) => set_timeout(fn() => $res(2), 2000)),
+    new \Promise(fn($res,$rej)=> set_timeout(fn()=>$res(3),3000)) ,
+];
 //        var_dump($promises);
-//$a = ExtendedPromise::all($promises)->then(function (array $params) {
-//    echo " ExtendedPromise resolved\n\n\n";
-//    var_dump($params);
+$a = ExtendedPromise::all($promises)->then(function (array $params) {
+    echo "ExtendedPromise resolved\n\n\n";
+    var_dump($params);
 //    return $params;
-//});
+});
 
 //$a->then(function ($res) use ($a) {
 //    echo "qwreqr";
