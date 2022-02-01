@@ -115,16 +115,11 @@ PHP_METHOD (Promise, __construct) {
     then_t *data_handle = emalloc(sizeof(then_t));
     init_cb(&fci, &fcc, &data_handle->then_cb);
     data_handle->this = Z_OBJ_P(ZEND_THIS);
-    GC_ADDREF(data_handle->this);
-    GC_ADDREF(Z_OBJ_P(callback));
+    GC_TRY_ADDREF(data_handle->this);
+    GC_TRY_ADDREF(Z_OBJ_P(callback));
     idleHandle->data = data_handle;
     LOG("Setting idle ...\n");
-    php_var_dump(this, 1);
     uv_idle_init(MODULE_GL(loop), idleHandle);
-//    uv_update_time(MODULE_GL(loop));
-    puts("i died");
-//    GC_ADDREF(data_handle->this);
-    php_var_dump(this, 1);
     zval status;
     zend_object * pending = zend_enum_get_case_cstr(MODULE_GL(promise__status_enum), "Pending");
     ZVAL_OBJ(&status, pending);
@@ -195,7 +190,6 @@ PHP_METHOD (Promise, resolved) {
 
     }
     printf("resolved finished\n");
-    php_var_dump(ZEND_THIS, 1);
 //    GC_TRY_DELREF(Z_OBJ_P(ZEND_THIS));
 //    RETURN_OBJ(resolved);
 }
@@ -237,7 +231,6 @@ void copy_promise_vals(zval *source, zend_object *target) {
                                         NULL);
     zval * finalized = zend_read_property(Z_OBJCE_P(source), Z_OBJ_P(source), PROP("promiseFinalised"), 0,
                                           NULL);
-    php_var_dump(source, 1);
 //    GC_TRY_ADDREF(Z_OBJ_P(data_store_ret));
 //    GC_TRY_ADDREF(Z_OBJ_P(status));
 //    GC_TRY_ADDREF(Z_OBJ_P(closure));
@@ -253,11 +246,11 @@ void then_cb(uv_prepare_t *handle) {
     data = handle->data;
     zval * promiseFinalized, *status;
     short promiseFinalized_bool, status_val;
-    puts("conflict41");
+    puts("Uv loop in then cb");
     uv_prepare_stop(handle);
 
     then_start:
-    puts("i am here1111");
+    puts("then_start label triggered");
     if (1) {
 //        puts("conflict4");
         promiseFinalized = zend_read_property(data->this->ce, data->this, PROP("promiseFinalised"), 0, NULL);
@@ -265,7 +258,7 @@ void then_cb(uv_prepare_t *handle) {
         status = zend_read_property(data->this->ce, data->this, PROP("status"), 0, NULL);
         promiseFinalized_bool = Z_TYPE_INFO_P(promiseFinalized);
         status_val = Z_LVAL_P(OBJ_PROP_NUM(Z_OBJ_P(status), 1));
-        printf("stausval %d\n", status_val);
+        printf("status value: %d\n", status_val);
 //    puts("conflict3");
         if (promiseFinalized_bool == IS_TRUE) {
             printf("Promise is finalized\n");
@@ -273,7 +266,7 @@ void then_cb(uv_prepare_t *handle) {
             efree(handle);
         } else if (status_val == Resolved) {
 
-            printf("In reslove cb idle\n");
+            printf("In resolve section of then_cb\n");
             zval * then_closures = zend_read_property(MODULE_GL(promise_class), data->this, PROP("thenClosures"), 0,
                                                       NULL);
             zval * currentClosure = zend_read_property(MODULE_GL(promise_class), data->this, PROP("closureNumber"), 0,
@@ -315,7 +308,7 @@ void then_cb(uv_prepare_t *handle) {
                     GC_TRY_ADDREF(Z_OBJ(retval));
                     GC_TRY_ADDREF(data->this);
                     copy_promise_vals(&retval, data->this);
-                    puts("data->retval");
+                    puts("Current this:");
                     zend_update_property(data->this->ce, data->this, PROP("_internal"), &retval);
                     php_var_dump(&zval1, 1);
                     goto then_start;
@@ -380,7 +373,7 @@ PHP_METHOD (Promise, then) {
         array_init(then_closures);
     }
     GC_TRY_ADDREF(Z_OBJ_P(promise));
-    GC_ADDREF(Z_OBJ_P(ZEND_THIS));
+    GC_TRY_ADDREF(Z_OBJ_P(ZEND_THIS));
     add_index_zval(then_closures, array_size, promise);
 
     short promiseFinalized_bool = Z_TYPE_INFO_P(promiseFinalized);
