@@ -204,6 +204,7 @@ static void on_read(uv_fs_t *req) {
     if (req->result < 0) {
         fprintf(stderr, "Read error: %s\n", uv_strerror(req->result));
     } else if (req->result == 0) {
+		fprintf(stderr, "sync error: %s\n", uv_strerror(req->result));
         // synchronous
     } else if (req->result > 0) {
         fn_fs(req);

@@ -95,7 +95,7 @@ zend_long fn_fs(uv_fs_t *handle) {
         memset(output_text, 0, file_handle->buffer.len);
 //        strcat(dd, data);
         printf("char len %zu %lu\n", file_handle->buffer.len, strlen(file_handle->buffer.base));
-        strncat(output_text, file_handle->buffer.base, file_handle->buffer.len);
+        strncat(output_text, file_handle->buffer.base, file_handle->buffer.len); // TODO use memcp
         ZVAL_STRING(&args[0], &output_text);
     }
 //    printf("%s",file_handle->buffer.base);
