@@ -329,7 +329,6 @@ void then_cb(uv_prepare_t *handle) {
             efree(data);
             efree(handle);
         } else if (status_val == Pending) {
-            puts("i am here2222");
             zval * internal_promise = zend_read_property(data->this->ce, data->this, PROP("_internal"), 0,
                                                          NULL);
             short internal_promise_bool = Z_TYPE_INFO_P(internal_promise);
