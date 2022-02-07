@@ -14,6 +14,8 @@ enum DB_TYPE{
 
 typedef struct {
     uv_cb_type cb;
+    uv_cb_type cb_read;
+	bool written;
     enum DB_TYPE type;
     zval * db_handle;
 } db_type_t;
