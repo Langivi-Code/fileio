@@ -52,17 +52,17 @@ class ExtendedPromise extends \Promise
 //$pro2 =  ;
 ////var_dump($pro);
 //$pro2->then(fn($do)=>2)->then(fn($do)=>3);
- $promises = [
-    new \Promise(fn($res, $rej) => set_timeout(fn() => $res(1), 100)),
-    new \Promise(fn($res, $rej) => set_timeout(fn() => $res(2), 2000)),
-    new \Promise(fn($res,$rej)=> set_timeout(fn()=>$res(3),3000)) ,
-];
-//        var_dump($promises);
-$a = ExtendedPromise::all($promises)->then(function (array $params) {
-    echo "ExtendedPromise resolved\n\n\n";
-    var_dump($params);
-//    return $params;
-});
+// $promises = [
+//    new \Promise(fn($res, $rej) => set_timeout(fn() => $res(1), 100)),
+//    new \Promise(fn($res, $rej) => set_timeout(fn() => $res(2), 2000)),
+//    new \Promise(fn($res,$rej)=> set_timeout(fn()=>$res(3),3000)) ,
+//];
+////        var_dump($promises);
+//$a = ExtendedPromise::all($promises)->then(function (array $params) {
+//    echo "ExtendedPromise resolved\n\n\n";
+//    var_dump($params);
+////    return $params;
+//});
 
 //$a->then(function ($res) use ($a) {
 //    echo "qwreqr";
@@ -82,8 +82,28 @@ function test(PromiseStatus $status)
 //    return new Promise(fn($res, $rej) => mysql_wait($coonection, fn($arg) => $res(mysqli_reap_async_query($arg)))); //TODO rework to promise
 //}
 //mysql_query($db, "select 1");
-//$pg = pg_connect("host=0.0.0.0 user=root password=password");
+$pg = pg_connect("host=0.0.0.0 user=root password=password");
+pg_wait($pg,
+    fn($connection) => "select 1",
+    function ($connection) use ($pg) {
+        var_dump(pg_fetch_all($connection));
+        pg_wait($pg,
+            fn($connection) => "select 2",
+            function ($connection) use ($pg) {
+                var_dump(pg_fetch_all($connection));
+                pg_wait($pg,
+                    fn($connection) => "select 3",
+                    fn($res) => var_dump(pg_fetch_all($res)));
+            } );
+} );
 
+;
+//pg_wait($pg,
+//    fn($connection) => "select 3",
+//    fn($connection) => var_dump(pg_fetch_all($connection)));
+//pg_wait($pg,
+//    fn($connection) => "select 4",
+//    fn($connection) => var_dump(pg_fetch_all($connection)));
 //function query(\PgSql\Connection $coonection, string $query):Promise
 //{
 //    pg_send_query($coonection, $query);
