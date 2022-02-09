@@ -230,56 +230,6 @@ void poll_cb(uv_poll_t *handle, int status, int event) {
         call_php_fn(&db_data->cb_read, 1, arg_read, &retval, "db_wait");
         efree(db_data);
     }
-
-
-
-
-    //    MYSQLND *conn = handle->data;
-    //    MYSQLND_RES *result = NULL;
-    //    zval * return_value;
-    //    int async_result_fetch_type = MYSQLI_STORE_RESULT;
-    ////  MYSQLND_RES->data)->m->reap_query((conn)->data)
-    //    if (FAIL == mysqlnd_reap_async_query(conn)) {
-    ////        if ((MyG(report_mode) & MYSQLI_REPORT_ERROR) && mysqlnd_errno(conn)) {
-    ////
-    ////            php_mysqli_report_error(mysqlnd_sqlstate(conn), mysqlnd_errno(conn), mysqlnd_error(conn));
-    ////
-    ////        }
-    //        RETURN_FALSE;
-    //    }
-    //
-    //    if (!mysqlnd_field_count(conn)) {
-    //        /* no result set - not a SELECT */
-    ////        if (MyG(report_mode) & MYSQLI_REPORT_INDEX) {
-    /////*			php_mysqli_report_index("n/a", mysqli_server_status(mysql->mysql)); */
-    ////        }
-    //        RETURN_TRUE;
-    //    }
-    //
-    //    switch (async_result_fetch_type) {
-    //        case MYSQLI_STORE_RESULT:
-    //            result = mysqlnd_store_result(conn);
-    //            break;
-    //        case MYSQLI_USE_RESULT:
-    //            result = mysqlnd_use_result(conn);
-    //            break;
-    //    }
-    //
-    //    if (!result) {
-    ////        if ((MyG(report_mode) & MYSQLI_REPORT_ERROR) && mysqlnd_errno(conn)) {
-    ////            php_mysqli_report_error(mysqlnd_sqlstate(conn), mysqlnd_errno(conn), mysqlnd_error(conn));
-    ////        }
-    //        RETURN_FALSE;
-    //    }
-    //
-    ////    if (MyG(report_mode) & MYSQLI_REPORT_INDEX) {
-    /////*		php_mysqli_report_index("n/a", mysqli_server_status(mysql->mysql)); */
-    ////    }
-    //    MYSQLI_RESOURCE *mysqli_resource = (MYSQLI_RESOURCE *) ecalloc (1, sizeof(MYSQLI_RESOURCE));
-    //    mysqli_resource->ptr = (void *) result;
-    //    mysqli_resource->status = MYSQLI_STATUS_VALID;
-    //    MYSQLI_RETVAL_RESOURCE(mysqli_resource, mysqli_result_class_entry);
-
 }
 
 
