@@ -96,8 +96,11 @@ pg_wait($pg,
                     fn($res) => var_dump(pg_fetch_all($res)));
             } );
 } );
-
-;
+pg_wait($pg,
+    fn($connection) => "select 3", //WRITE SQL
+    fn($res) => var_dump(pg_fetch_all($res))//READ RESULT
+    );
+});
 //pg_wait($pg,
 //    fn($connection) => "select 3",
 //    fn($connection) => var_dump(pg_fetch_all($connection)));

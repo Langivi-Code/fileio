@@ -4,7 +4,7 @@
 #ifndef MYSQLI_USE_MYSQLND
 #define MYSQLI_USE_MYSQLND
 #endif
-
+//#define PG_PARALLEL
 #include <php.h>
 #include <uv.h>
 #include <zend_API.h>
@@ -18,49 +18,14 @@
 #include "../common/struct.h"
 #include "mysqli/php_mysqli_structs.h"
 #include "mysqli_priv.h"
+#include "db_polyfill.h"
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
 #include <zend_exceptions.h>
 
-#define mysqlnd_async_query(conn, query_str, query_len)    ((conn)->data)->m->send_query((conn)->data, (query_str), (query_len), MYSQLND_SEND_QUERY_EXPLICIT, NULL, NULL)
-#define mysqlnd_reap_async_query(conn)                    ((conn)->data)->m->reap_query((conn)->data)
 
-#define MYSQLI_STORE_RESULT 0
-#define MYSQLI_USE_RESULT    1
-#define Z_MYSQLI(zv) php_mysqli_fetch_object(Z_OBJ((zv)))
-typedef struct pgsql_link_handle {
-    PGconn *conn;
-    zend_string *hash;
-    HashTable *notices;
-    bool persistent;
-    zend_object std;
-} pgsql_link_handle;
-
-typedef struct {
-    MYSQLND *mysql;
-    zend_string *hash_key;
-    zval li_read;
-    php_stream *li_stream;
-    unsigned int multi_query;
-    bool persistent;
-    int async_result_fetch_type;
-} MY_MYSQLND;
-
-
-typedef struct _php_pgsql_result_handle {
-    PGconn *conn;
-    PGresult *result;
-    int row;
-    zend_object std;
-} pgsql_result_handle;
-
-static inline pgsql_link_handle *pgsql_link_from_obj(zend_object *obj) {
-    return (pgsql_link_handle *) ((char *) (obj) - XtOffsetOf(pgsql_link_handle, std));
-}
-
-static inline pgsql_result_handle *pgsql_result_from_obj(zend_object *obj) {
-    return (pgsql_result_handle *) ((char *) (obj) - XtOffsetOf(pgsql_result_handle, std));
-}
+static db_poll_queue pg_queue={0};
+static db_poll_queue my_queue={0};
 
 void poll_cb(uv_poll_t *handle, int status, int event) {
 //    printf("event name %d ", event);
@@ -97,7 +62,7 @@ void poll_cb(uv_poll_t *handle, int status, int event) {
                 case PGSQL_DB:
                     link = pgsql_link_from_obj(obj);
                     //ZVAL_COPY(&arg_write[0], db_data->db_handle);
-                    char *query = Z_STRVAL(retval_write);
+                    char * query = Z_STRVAL(retval_write);
 
                     if (link->conn == NULL) {
                         zend_throw_error(NULL, "PostgreSQL connection has already been closed");
@@ -106,8 +71,8 @@ void poll_cb(uv_poll_t *handle, int status, int event) {
                     pgsql = link->conn;
                     if (!PQsendQuery(pgsql, query)) {
                         puts("Retrying");
-                        if(PQgetResult(pgsql)==NULL){
-                            if (!PQsendQuery(pgsql, query)){
+                        if(PQgetResult(pgsql) == NULL) {
+                            if (!PQsendQuery(pgsql, query)) {
                                 zend_throw_error(NULL, "Query can't be sent");
                                 ZEND_ASSERT(EG(exception));
                                 break;
@@ -277,7 +242,8 @@ ZEND_FUNCTION(pg_wait) {
         ZEND_PARSE_PARAMETERS_START(3, 3)
                 Z_PARAM_ZVAL(db)
                 Z_PARAM_FUNC(fci, fcc)
-                Z_PARAM_FUNC(fci_read, fcc_read)ZEND_PARSE_PARAMETERS_END();
+                Z_PARAM_FUNC(fci_read, fcc_read)
+        ZEND_PARSE_PARAMETERS_END();
         puts("pll satrr0");
         PGconn *pgsql;
         link = pgsql_link_from_obj(Z_OBJ_P(db));
@@ -292,6 +258,7 @@ ZEND_FUNCTION(pg_wait) {
             zend_throw_error(NULL, "Can't allocate connection socket");
             RETURN_THROWS();
         }
+#ifndef PG_PARALLEL
         puts("pll satrr1");
         PQsetnonblocking(pgsql, 1);
         uv_poll_t *handle = emalloc(sizeof(uv_poll_t));
@@ -307,7 +274,9 @@ ZEND_FUNCTION(pg_wait) {
         puts("pll satrr");
         uv_poll_start(handle, UV_READABLE | UV_WRITABLE, poll_cb);
     //TODO rewrite to global struct with reqs number, fci, fcc's for writing and reading
+#else
 
+#endif
     } else {
         zend_throw_error(NULL, "PgSQL is not loaded\n");
         RETURN_THROWS();
