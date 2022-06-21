@@ -94,11 +94,12 @@ zend_long fn_fs(uv_fs_t *handle) {
         char output_text[file_handle->buffer.len];
         memset(output_text, 0, file_handle->buffer.len);
 //        strcat(dd, data);
-        printf("char len %zu %lu\n", file_handle->buffer.len, strlen(file_handle->buffer.base));
+        printf("char len %zu %lu\n", file_handle->buffer.len, sizeof (file_handle->buffer.base));
         memcpy(output_text, file_handle->buffer.base, file_handle->buffer.len);
+        printf("%s\n",file_handle->buffer.base);
         ZVAL_STRING(&args[0], &output_text);
     }
-//    printf("%s",file_handle->buffer.base);
+
 
     LOG("FS call back is initalized");
     call_php_fn(&file_handle->php_cb_data, file_handle->read ? 1 : 0, file_handle->read ? args : NULL, &retval,
