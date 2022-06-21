@@ -17,7 +17,7 @@
 #include "../common/call_php_fn.h"
 #include "../common/struct.h"
 #include "mysqli/php_mysqli_structs.h"
-
+#include "mysqli_priv.h"
 #include "db_polyfill.h"
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
