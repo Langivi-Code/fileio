@@ -1,35 +1,35 @@
 <?php
-class ExtendedPromise extends \Promise
-{
-    public static function all (array $promises):\Promise
-    {
-        $bb = new \Promise(function($resolveAll, $rej) use(&$promises, &$bb){
-            $promiseArray = array();
-            $lengthPromises = count($promises);
-            if($lengthPromises == 0){
-                $resolveAll($promiseArray);
-            }
-            foreach($promises as $key => $promise){
-                $promise->then(function($result) use(&$bb, &$lengthPromises,&$promiseArray, $resolveAll, $key){
-                    var_dump('promise inside', $result, $key);
-                    file_put_contents($result,'');
-                    $promiseArray[$key] = $result;
-                    $lengthPromises -= 1;
-                    if ($lengthPromises == 0){
-                        echo "promise all resolved\n";
-                        var_dump($promiseArray);
-                        $resolveAll($promiseArray);
-                        echo "hello1\n";
-                    }
-
-                });
-//                var_dump($promise);
-            }
-
-        });
-        return $bb;
-    }
-}
+// class ExtendedPromise extends \Promise
+// {
+//     public static function all (array $promises):\Promise
+//     {
+//         $bb = new \Promise(function($resolveAll, $rej) use(&$promises, &$bb){
+//             $promiseArray = array();
+//             $lengthPromises = count($promises);
+//             if($lengthPromises == 0){
+//                 $resolveAll($promiseArray);
+//             }
+//             foreach($promises as $key => $promise){
+//                 $promise->then(function($result) use(&$bb, &$lengthPromises,&$promiseArray, $resolveAll, $key){
+//                     var_dump('promise inside', $result, $key);
+//                     file_put_contents($result,'');
+//                     $promiseArray[$key] = $result;
+//                     $lengthPromises -= 1;
+//                     if ($lengthPromises == 0){
+//                         echo "promise all resolved\n";
+//                         var_dump($promiseArray);
+//                         $resolveAll($promiseArray);
+//                         echo "hello1\n";
+//                     }
+//
+//                 });
+// //                var_dump($promise);
+//             }
+//
+//         });
+//         return $bb;
+//     }
+// }
 
 //$pro = new \Promise(fn($res, $rej) => set_timeout(fn() => $res(-1), 1000));
 ////var_dump($pro);
@@ -82,25 +82,25 @@ function test(PromiseStatus $status)
 //    return new Promise(fn($res, $rej) => mysql_wait($coonection, fn($arg) => $res(mysqli_reap_async_query($arg)))); //TODO rework to promise
 //}
 //mysql_query($db, "select 1");
-$pg = pg_connect("host=0.0.0.0 user=root password=password");
-pg_wait($pg,
-    fn($connection) => "select 1",
-    function ($connection) use ($pg) {
-        var_dump(pg_fetch_all($connection));
-        pg_wait($pg,
-            fn($connection) => "select 2",
-            function ($connection) use ($pg) {
-                var_dump(pg_fetch_all($connection));
-                pg_wait($pg,
-                    fn($connection) => "select 3",
-                    fn($res) => var_dump(pg_fetch_all($res)));
-            } );
-} );
-pg_wait($pg,
-    fn($connection) => "select 3", //WRITE SQL
-    fn($res) => var_dump(pg_fetch_all($res))//READ RESULT
-    );
-});
+// $pg = pg_connect("host=0.0.0.0 user=root password=password");
+// pg_wait($pg,
+//     fn($connection) => "select 1",
+//     function ($connection) use ($pg) {
+//         var_dump(pg_fetch_all($connection));
+//         pg_wait($pg,
+//             fn($connection) => "select 2",
+//             function ($connection) use ($pg) {
+//                 var_dump(pg_fetch_all($connection));
+//                 pg_wait($pg,
+//                     fn($connection) => "select 3",
+//                     fn($res) => var_dump(pg_fetch_all($res)));
+//             } );
+// } );
+// pg_wait($pg,
+//     fn($connection) => "select 3", //WRITE SQL
+//     fn($res) => var_dump(pg_fetch_all($res))//READ RESULT
+//     );
+// });
 //pg_wait($pg,
 //    fn($connection) => "select 3",
 //    fn($connection) => var_dump(pg_fetch_all($connection)));
@@ -301,4 +301,6 @@ pg_wait($pg,
 //);
 // print_r($db);
 echo "sync exec ended.\n\n";
+    file_get_contents_async("favicon.ico",
+        fn(string $arg)=> print_r($arg));
 

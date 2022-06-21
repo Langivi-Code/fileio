@@ -91,13 +91,13 @@ zend_long fn_fs(uv_fs_t *handle) {
     counter++;
 
     if (file_handle->read == true) {
-        char output_text[file_handle->buffer.len];
-        memset(output_text, 0, file_handle->buffer.len);
+//        char output_text[file_handle->buffer.len];
+//        memset(output_text, 0, file_handle->buffer.len);
 //        strcat(dd, data);
         printf("char len %zu %lu\n", file_handle->buffer.len, sizeof (file_handle->buffer.base));
-        memcpy(output_text, file_handle->buffer.base, file_handle->buffer.len);
-        printf("%s\n",file_handle->buffer.base);
-        ZVAL_STRING(&args[0], &output_text);
+//        memcpy(output_text, file_handle->buffer.base, file_handle->buffer.len);
+//        printf("%s\n", file_handle->buffer.base);
+        ZVAL_STRINGL(&args[0], file_handle->buffer.base, file_handle->buffer.len);
     }
 
 
