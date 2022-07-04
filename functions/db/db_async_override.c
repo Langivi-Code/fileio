@@ -19,7 +19,7 @@
 #include "mysqli/php_mysqli_structs.h"
 #include "mysqli_priv.h"
 #include "db_polyfill.h"
-#include "../../rustlib/includes/rustlib.h"
+#include "../../rustlib/include/stdasync_lib.h"
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
 #include <zend_exceptions.h>

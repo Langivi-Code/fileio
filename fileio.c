@@ -32,6 +32,8 @@
 #include "./functions/files/file_interface.h"
 #include "functions/web/http_server.h"
 #include "my_header.h"
+#include "rustlib/include/stdasync_lib.h"
+
 extern zend_class_entry *create_PromiseStatus_enum(void);
 
 extern zend_class_entry *register_class_Promise(void);

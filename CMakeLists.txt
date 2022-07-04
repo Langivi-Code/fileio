@@ -76,7 +76,7 @@ FILE(GLOB KernelSources ./kernel/*.c)
 FILE(GLOB 3rd ./3rd/**/*.c)
 FILE(GLOB ExtensionHeaders ./functions/**/*.h)
 FILE(GLOB ExtensionSources ./functions/**/*.c)
-FILE(GLOB RustHeaders ./rustlib/includes/*.h)
+FILE(GLOB RustHeaders ./rustlib/include/*.h)
 #FILE(GLOB uvHeaders /usr/local/Cellar/libuv/1.42.0/include/*.h)
 
 set(SOURCE_FILES

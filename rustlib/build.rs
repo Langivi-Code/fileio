@@ -1,9 +1,7 @@
-use std::{
-    env,
-    path::{Path, PathBuf},
-    process::Command,
-    str,
-};
+use std::{env, path::{Path, PathBuf}, process::Command, str, fs, process};
+use cbindgen::Language::C;
+
+extern crate cbindgen;
 
 use regex::Regex;
 
@@ -11,7 +9,6 @@ const MIN_PHP_API_VER: u32 = 20200930;
 const MAX_PHP_API_VER: u32 = 20210902;
 
 fn main() {
-
     let out_dir = env::var_os("OUT_DIR").expect("Failed to get OUT_DIR");
     let out_path = PathBuf::from(out_dir).join("bindings.rs");
 
@@ -94,7 +91,7 @@ fn main() {
     //     .compile("wrapper");
 
     let mut bindgen = bindgen::Builder::default()
-         .header("wrapper.h")
+        .header("wrapper.h")
         .clang_args(includes.split(' '))
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .rustfmt_bindings(true)
@@ -103,21 +100,31 @@ fn main() {
         .no_copy("_zend_array")
         .layout_tests(env::var("EXT_PHP_RS_TEST").is_ok());
 
-    // for binding in ALLOWED_BINDINGS.iter() {
-    //     bindgen = bindgen
-    //         .allowlist_function(binding)
-    //         .allowlist_type(binding)
-    //         .allowlist_var(binding);
-    // }
-
     bindgen
         .generate()
         .expect("Unable to generate bindings for PHP")
         .write_to_file(out_path)
         .expect("Unable to write bindings file.");
 
+    let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
+
+    if !Path::new("./include").exists() {
+        fs::create_dir("./include").unwrap_or_else(|e| {
+            println!("{}",e.to_string());
+            process::exit(-1);
+        });
+    }
+    cbindgen::Builder::new()
+        .with_crate(crate_dir)
+        .with_language(C)
+        .with_no_includes()
+        .generate()
+        .expect("Unable to generate bindings")
+        .write_to_file("./include/stdasync_lib.h");
+
+
     let configure = Configure::get();
-    println!("{}",configure.0);
+    println!("{}", configure.0);
     if configure.has_zts() {
         println!("cargo:rustc-cfg=php_zts");
     }

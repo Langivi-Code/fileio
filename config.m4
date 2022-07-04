@@ -82,7 +82,7 @@ if test $PHP_UV != "no"; then
     AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
 
  AC_MSG_CHECKING(for rustlib)
-   PHP_ADD_INCLUDE("./rustlib/","yes")
+  PHP_ADD_INCLUDE("./rustlib/include","yes")
   PHP_ADD_LIBPATH(./rustlib/target/debug)
   PHP_CHECK_LIBRARY(rustlib, f,[
     echo "GOOOOD"

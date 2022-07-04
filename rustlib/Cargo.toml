@@ -15,4 +15,5 @@ lazy_static = "1.4.0"
 [build-dependencies]
 bindgen = "0.59"
 regex = "1.5.6"
+cbindgen = "0.24.3"
 
