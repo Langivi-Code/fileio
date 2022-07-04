@@ -301,6 +301,27 @@ function test(PromiseStatus $status)
 //);
 // print_r($db);
 echo "sync exec ended.\n\n";
-    file_get_contents_async("favicon.ico",
-        fn(string $arg)=> print_r($arg));
+//    file_get_contents_async("favicon.ico",
+//        fn(string $arg)=> print_r($arg));
+$promise = new Promise(function($res,$rej){
+    set_timeout(fn()=>$res(333),10000);
+});
+function await(): Generator
+{
+echo "hallo await";
+    yield;
+    echo "end await";
+}
+function async($Promise)
+{
+    $generator = await();
+    $Promise->then(function($res) use ($generator) {
+        var_dump($res);
+        echo "resolved\n";
+        var_dump($generator);
+        $generator->send($res??"in then......await");
+    });
+    return $generator;
+}
+var_dump(async($promise));
 

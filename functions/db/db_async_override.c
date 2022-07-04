@@ -4,7 +4,7 @@
 #ifndef MYSQLI_USE_MYSQLND
 #define MYSQLI_USE_MYSQLND
 #endif
-//#define PG_PARALLEL
+#define PG_PARALLEL
 #include <php.h>
 #include <uv.h>
 #include <zend_API.h>
@@ -19,6 +19,7 @@
 #include "mysqli/php_mysqli_structs.h"
 #include "mysqli_priv.h"
 #include "db_polyfill.h"
+#include "../../rustlib/includes/rustlib.h"
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
 #include <zend_exceptions.h>
@@ -258,6 +259,7 @@ ZEND_FUNCTION(pg_wait) {
             zend_throw_error(NULL, "Can't allocate connection socket");
             RETURN_THROWS();
         }
+
 #ifndef PG_PARALLEL
         puts("pll satrr1");
         PQsetnonblocking(pgsql, 1);
@@ -275,6 +277,31 @@ ZEND_FUNCTION(pg_wait) {
         uv_poll_start(handle, UV_READABLE | UV_WRITABLE, poll_cb);
     //TODO rewrite to global struct with reqs number, fci, fcc's for writing and reading
 #else
+    if (!fd_map_has(fd_number)){
+        fd_map_add(fd_number);
+        PQsetnonblocking(pgsql, 1);
+        uv_poll_t *handle = emalloc(sizeof(uv_poll_t));
+        db_type_t *db_type = emalloc(sizeof(db_type_t));
+        memset(db_type, 0, sizeof(db_type_t));
+        printf("fd is %d\n", fd_number);
+        init_cb(&fci, &fcc, &db_type->cb);
+        init_cb(&fci_read, &fcc_read, &db_type->cb_read);
+        db_type->type = PGSQL_DB;
+        db_type->db_handle = db;
+        uv_poll_init(MODULE_GL(loop), handle, fd_number);
+        handle->data = db_type;
+        puts("pll satrr");
+        uv_poll_start(handle, UV_READABLE | UV_WRITABLE, poll_cb);
+    } else {
+        db_type_t *db_type = emalloc(sizeof(db_type_t));
+        memset(db_type, 0, sizeof(db_type_t));
+        printf("fd is %d\n", fd_number);
+        init_cb(&fci, &fcc, &db_type->cb);
+        init_cb(&fci_read, &fcc_read, &db_type->cb_read);
+        db_type->type = PGSQL_DB;
+        db_type->db_handle = db;
+        //JUST ADDING to queue of CB's
+    }
 
 #endif
     } else {
