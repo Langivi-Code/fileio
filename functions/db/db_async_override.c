@@ -28,6 +28,7 @@
 static db_poll_queue pg_queue={0};
 static db_poll_queue my_queue={0};
 
+
 void poll_cb(uv_poll_t *handle, int status, int event) {
 //    printf("event name %d ", event);
 //    puts("polled");
@@ -233,7 +234,6 @@ ZEND_FUNCTION(pg_wait) {
     zend_result pg_exists = FAILURE;
     zend_string * module_name = zend_string_init(PROP("pgsql"), 0);
     if (zend_hash_exists(&module_registry, module_name)) {
-        puts("pll satrr-1");
         zval * db;
         zend_fcall_info fci = empty_fcall_info;
         zend_fcall_info_cache fcc = empty_fcall_info_cache;
@@ -279,28 +279,33 @@ ZEND_FUNCTION(pg_wait) {
 #else
     if (!fd_map_has(fd_number)){
         fd_map_add(fd_number);
+        cb_item item ={
+                .read=0,
+                .written=0,
+                .type=PGSQL_DB,
+                .db_handle = db
+        };
         PQsetnonblocking(pgsql, 1);
         uv_poll_t *handle = emalloc(sizeof(uv_poll_t));
-        db_type_t *db_type = emalloc(sizeof(db_type_t));
-        memset(db_type, 0, sizeof(db_type_t));
         printf("fd is %d\n", fd_number);
-        init_cb(&fci, &fcc, &db_type->cb);
-        init_cb(&fci_read, &fcc_read, &db_type->cb_read);
-        db_type->type = PGSQL_DB;
-        db_type->db_handle = db;
+        init_cb(&fci, &fcc, &item.cb);
+        init_cb(&fci_read, &fcc_read, &item.cb_read);
+        pg_add_item(fd_number, item);
         uv_poll_init(MODULE_GL(loop), handle, fd_number);
-        handle->data = db_type;
+        handle->data = (void *) fd_number;
         puts("pll satrr");
         uv_poll_start(handle, UV_READABLE | UV_WRITABLE, poll_cb);
     } else {
-        db_type_t *db_type = emalloc(sizeof(db_type_t));
-        memset(db_type, 0, sizeof(db_type_t));
+        cb_item item ={
+                .read=0,
+                .written=0,
+                .type=PGSQL_DB,
+                .db_handle = db
+        };
+        init_cb(&fci, &fcc, &item.cb);
+        init_cb(&fci_read, &fcc_read, &item.cb_read);
+        pg_add_item(fd_number, item);
         printf("fd is %d\n", fd_number);
-        init_cb(&fci, &fcc, &db_type->cb);
-        init_cb(&fci_read, &fcc_read, &db_type->cb_read);
-        db_type->type = PGSQL_DB;
-        db_type->db_handle = db;
-        //JUST ADDING to queue of CB's
     }
 
 #endif
