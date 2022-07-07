@@ -5,6 +5,7 @@
 #define MYSQLI_USE_MYSQLND
 #endif
 #define PG_PARALLEL
+
 #include <php.h>
 #include <uv.h>
 #include <zend_API.h>
@@ -25,11 +26,118 @@
 #include <zend_exceptions.h>
 
 
-static db_poll_queue pg_queue={0};
-static db_poll_queue my_queue={0};
+static db_poll_queue pg_queue = {0};
+static db_poll_queue my_queue = {0};
 
 
-void poll_cb(uv_poll_t *handle, int status, int event) {
+void pg_poll_cb(uv_poll_t *handle, int status, int event) {
+//    printf("event name %d ", event);
+//    puts("polled");
+    zval retval, retval_write;
+    zval arg_read[1] = {0};
+    zval arg_write[1] = {0};
+    PGconn *pgsql;
+    bool pg_sent;
+    int fd = handle->data;
+    cb_item *g = pg_get_item(fd);
+    zend_object * obj = Z_OBJ_P(g->db_handle);
+    pgsql_link_handle *link;
+
+    if (event & UV_WRITABLE && !g->written)    //WRITE TO FD
+    {
+        puts("Writable");
+        zend_result pg_sent = FAILURE;
+
+        ZVAL_COPY(&arg_write[0], g->db_handle);
+
+        call_php_fn(&g->cb, 1, arg_write, &retval_write, "db_write_wait");
+        if (Z_TYPE(retval_write) == IS_STRING) {
+
+            link = pgsql_link_from_obj(obj);
+            //ZVAL_COPY(&arg_write[0], db_data->db_handle);
+            char *query = Z_STRVAL(retval_write);
+
+            if (link->conn == NULL) {
+                zend_throw_error(NULL, "PostgreSQL connection has already been closed");
+
+            }
+            pgsql = link->conn;
+            if (!PQsendQuery(pgsql, query)) {
+                puts("Retrying");
+                if (PQgetResult(pgsql) == NULL) {
+                    if (!PQsendQuery(pgsql, query)) {
+                        zend_throw_error(NULL, "Query can't be sent");
+                        ZEND_ASSERT(EG(exception));
+                        return;
+                    }
+                }
+            }
+            pg_sent = PQflush(pgsql);
+            puts("Query sent");
+            printf("sent status %d\n", pg_sent);
+            g->written = 1;
+
+
+        } else {
+            zend_type_error("Return value should be a string");
+        }
+
+    } else if (event & UV_READABLE && g->written) {
+        puts("Readable");
+        uv_poll_stop(handle);
+        efree(handle);
+        zend_string * lcname;
+        switch (g->type) {
+            case PGSQL_DB:
+                link = pgsql_link_from_obj(obj);
+                if (link->conn == NULL) {
+                    zend_throw_error(NULL, "PostgreSQL connection has already been closed");
+                    ZVAL_FALSE(&arg_read[0]);
+                }
+                pgsql = link->conn;
+                PGresult *pgsql_result = PQgetResult(pgsql);
+//                PQgetResult(pgsql); //STUPID SOLUTION!
+                pgsql_result_handle *pg_result;
+                if (!pgsql_result) {
+                    zend_throw_error(NULL, "PostgreSQL no result closed");
+/* no result */
+                    ZVAL_FALSE(&arg_read[0]);
+                }
+                zend_class_entry * pgsql_result_ce;
+                char pg_name[] = "PgSql\\Result";
+                zend_string * pg_z_name = zend_string_init(pg_name, strlen(pg_name), 0);
+                if (1) {
+/* Ignore leading "\" */
+                    lcname = zend_string_tolower(pg_z_name);
+                    pgsql_result_ce = zend_hash_find_ptr(EG(class_table), lcname);
+                    zend_string_release_ex(lcname,
+                                           0);
+                } else {
+                    pgsql_result_ce = zend_lookup_class(pg_z_name);
+                }
+
+                if (!pgsql_result_ce) {
+                    zend_throw_error(NULL, "PostgreRes not found");
+/* no result */
+                    ZVAL_FALSE(&arg_read[0]);
+                }
+
+                object_init_ex(&arg_read[0], pgsql_result_ce);
+                pg_result = pgsql_result_from_obj(Z_OBJ(arg_read[0]));
+                pg_result->
+                        conn = pgsql;
+                pg_result->
+                        result = pgsql_result;
+                pg_result->
+                        row = 0;
+                break;
+        }
+        call_php_fn(&g->cb_read, 1, arg_read, &retval, "db_wait");
+        efree(g);
+    }
+}
+
+void my_poll_cb(uv_poll_t *handle, int status, int event) {
 //    printf("event name %d ", event);
 //    puts("polled");
     zval retval, retval_write;
@@ -64,7 +172,7 @@ void poll_cb(uv_poll_t *handle, int status, int event) {
                 case PGSQL_DB:
                     link = pgsql_link_from_obj(obj);
                     //ZVAL_COPY(&arg_write[0], db_data->db_handle);
-                    char * query = Z_STRVAL(retval_write);
+                    char *query = Z_STRVAL(retval_write);
 
                     if (link->conn == NULL) {
                         zend_throw_error(NULL, "PostgreSQL connection has already been closed");
@@ -73,7 +181,7 @@ void poll_cb(uv_poll_t *handle, int status, int event) {
                     pgsql = link->conn;
                     if (!PQsendQuery(pgsql, query)) {
                         puts("Retrying");
-                        if(PQgetResult(pgsql) == NULL) {
+                        if (PQgetResult(pgsql) == NULL) {
                             if (!PQsendQuery(pgsql, query)) {
                                 zend_throw_error(NULL, "Query can't be sent");
                                 ZEND_ASSERT(EG(exception));
@@ -199,7 +307,6 @@ void poll_cb(uv_poll_t *handle, int status, int event) {
     }
 }
 
-
 ZEND_FUNCTION(mysqli_wait) {
     //TODO TRY TO FETCH MYSQLI ISNTANSE
     MYSQLND *p = NULL;
@@ -243,8 +350,7 @@ ZEND_FUNCTION(pg_wait) {
         ZEND_PARSE_PARAMETERS_START(3, 3)
                 Z_PARAM_ZVAL(db)
                 Z_PARAM_FUNC(fci, fcc)
-                Z_PARAM_FUNC(fci_read, fcc_read)
-        ZEND_PARSE_PARAMETERS_END();
+                Z_PARAM_FUNC(fci_read, fcc_read)ZEND_PARSE_PARAMETERS_END();
         puts("pll satrr0");
         PGconn *pgsql;
         link = pgsql_link_from_obj(Z_OBJ_P(db));
@@ -277,36 +383,36 @@ ZEND_FUNCTION(pg_wait) {
         uv_poll_start(handle, UV_READABLE | UV_WRITABLE, poll_cb);
     //TODO rewrite to global struct with reqs number, fci, fcc's for writing and reading
 #else
-    if (!fd_map_has(fd_number)){
-        fd_map_add(fd_number);
-        cb_item item ={
-                .read=0,
-                .written=0,
-                .type=PGSQL_DB,
-                .db_handle = db
-        };
-        PQsetnonblocking(pgsql, 1);
-        uv_poll_t *handle = emalloc(sizeof(uv_poll_t));
-        printf("fd is %d\n", fd_number);
-        init_cb(&fci, &fcc, &item.cb);
-        init_cb(&fci_read, &fcc_read, &item.cb_read);
-        pg_add_item(fd_number, item);
-        uv_poll_init(MODULE_GL(loop), handle, fd_number);
-        handle->data = (void *) fd_number;
-        puts("pll satrr");
-        uv_poll_start(handle, UV_READABLE | UV_WRITABLE, poll_cb);
-    } else {
-        cb_item item ={
-                .read=0,
-                .written=0,
-                .type=PGSQL_DB,
-                .db_handle = db
-        };
-        init_cb(&fci, &fcc, &item.cb);
-        init_cb(&fci_read, &fcc_read, &item.cb_read);
-        pg_add_item(fd_number, item);
-        printf("fd is %d\n", fd_number);
-    }
+        if (!fd_map_has(fd_number)) {
+            fd_map_add(fd_number);
+            cb_item item = {
+                    .read=0,
+                    .written=0,
+                    .type=PGSQL_DB,
+                    .db_handle = db
+            };
+            PQsetnonblocking(pgsql, 1);
+            uv_poll_t *handle = emalloc(sizeof(uv_poll_t));
+            printf("fd is %d\n", fd_number);
+            init_cb(&fci, &fcc, &item.cb);
+            init_cb(&fci_read, &fcc_read, &item.cb_read);
+            pg_add_item(fd_number, item);
+            uv_poll_init(MODULE_GL(loop), handle, fd_number);
+            handle->data = (void *) fd_number;
+            puts("pll satrr");
+            uv_poll_start(handle, UV_READABLE | UV_WRITABLE, pg_poll_cb);
+        } else {
+            cb_item item = {
+                    .read=0,
+                    .written=0,
+                    .type=PGSQL_DB,
+                    .db_handle = db
+            };
+            init_cb(&fci, &fcc, &item.cb);
+            init_cb(&fci_read, &fcc_read, &item.cb_read);
+            pg_add_item(fd_number, item);
+            printf("fd is %d\n", fd_number);
+        }
 
 #endif
     } else {
