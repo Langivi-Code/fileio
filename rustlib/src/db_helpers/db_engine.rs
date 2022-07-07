@@ -22,7 +22,7 @@ impl DbEngine {
             Some(mut cb) => {
                let (numb, item) = &cb.iter().enumerate().next().unwrap();
                 cb.remove(&item);
-                value.unwrap()
+                *item
             }
         }
     }
@@ -32,7 +32,7 @@ impl DbEngine {
     }
 
     pub fn db_map_add(&'static mut self, fd: u16, function_item: cb_item) {
-        if !self::db_map_has(fd) {
+        if !self.unwrap().contains_key(&fd) {
             self.unwrap().insert(fd, HashSet::new());
         }
         self.unwrap().get(&fd).unwrap().insert( function_item);
