@@ -38,9 +38,10 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_file_put_contents_async, 0, 2, _
                 ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, flags, IS_LONG, 0, "0")
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_mysqla_query, 0, 2, IS_MIXED, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_mysqla_query, 0, 3, IS_MIXED, 0)
                 ZEND_ARG_TYPE_INFO(0, db, IS_MIXED, 0)
-                ZEND_ARG_TYPE_INFO(0, callback, IS_CALLABLE, 0)
+                ZEND_ARG_TYPE_INFO(0, write_callback, IS_CALLABLE, 0)
+                ZEND_ARG_TYPE_INFO(0, read_callback, IS_CALLABLE, 0)
 ZEND_END_ARG_INFO()
 
 

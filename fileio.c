@@ -31,6 +31,8 @@
 #include "./functions/net/server.h"
 #include "./functions/files/file_interface.h"
 #include "functions/web/http_server.h"
+#include "my_header.h"
+#include "rustlib/include/stdasync_lib.h"
 
 extern zend_class_entry *create_PromiseStatus_enum(void);
 
@@ -194,6 +196,7 @@ PHP_MINIT_FUNCTION (fileio) {
 /* {{{ PHP_RINIT_FUNCTION */
 PHP_RINIT_FUNCTION (fileio) {
 //    PG(auto_prepend_file)="Promise.php";
+    f();
     memset(timer_handle_map,0, HANDLE_MAP_SIZE * sizeof(handle_id_item_t));
     memset(fs_handle_map, 0, HANDLE_MAP_SIZE * sizeof(fs_handles_id_item_t));
     memset(php_servers, 0, sizeof(server_type) * 10);

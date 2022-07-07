@@ -20,4 +20,14 @@ typedef struct {
     zval * db_handle;
 } db_type_t;
 
+typedef struct {
+    struct {
+        uint_fast32_t id;
+        db_type_t db_request_data;
+
+    } * db_poll_item;
+    bool inited; //true
+    int fd; //12
+} db_poll_queue;
+
 #endif //FILEIO_DB_ASYNC_OVERRIDE_H

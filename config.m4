@@ -13,7 +13,7 @@ AX_CHECK_COMPILE_FLAG([-std=c11], [
   echo "C compiler cannot compile C11 code"
   exit -1
 ])
-
+AC_DEFINE($ext_shared,"yes")
 AC_DEFUN([GLOB_DIR],[
   get_abs_filename() {
   # $1 : relative filename
@@ -72,7 +72,7 @@ if test $PHP_UV != "no"; then
     # COMMON="$FUNCTIONS/common"
     # FILES="$FUNCTIONS/files"
     GLOB_DIR([FILE_IO],[.])
-    echo "$FILE_IO_DIR dir"
+
     PHP_EXPAND_PATH($PGSQL_INCLUDE, PGSQL_INCLUDE)
     PHP_ADD_INCLUDE($PGSQL_INCLUDE)
     # PHP_NEW_EXTENSION(fileio, fileio.c $COMMON/fill_event_handle.c $COMMON/callback.c $TIMERS/fill_timer_handle_with_data.c $TIMERS/set_timeout.c $TIMERS/set_interval.c $FILES/fs_handle_map.c $FILES/fill_fs_handle_with_data.c $FILES/file_get_contents_async.c $FILES/file_put_contents_async.c $FUNCTIONS/use_promise/use_promise.c $FUNCTIONS/idle/idle.c $SOURCES, $ext_shared)
@@ -81,6 +81,17 @@ if test $PHP_UV != "no"; then
 
     AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
 
+ AC_MSG_CHECKING(for rustlib)
+  PHP_ADD_INCLUDE("./rustlib/include","yes")
+  PHP_ADD_LIBPATH(./rustlib/target/debug)
+  PHP_CHECK_LIBRARY(rustlib, f,[
+    echo "GOOOOD"
+  ], [
+    exit -1;
+  ])
+  PHP_ADD_LIBRARY(rustlib)
+  
+  #PHP_INSTALL_HEADERS([ext/session/mod_mm.h])
     AC_MSG_CHECKING(for libuv)
     LIBPQ_INCLINE = `$PKG_CONFIG libpq --cflags`
     PHP_EVAL_INCLINE($LIBPQ_INCLINE)
@@ -130,11 +141,15 @@ if test $PHP_UV != "no"; then
     fi
       case $host in
           *linux*)
-              CFLAGS="$CFLAGS -I/usr/include/postgresql  -luv -std=gnu11"
+              CFLAGS="$CFLAGS -I/usr/include/postgresql -luv -lrustlib  -std=gnu11"
+              LDFLAGS="$LDFLAGS -L./rustlib/target/debug"
            ;;
            *darwin*)
-              CFLAGS="$CFLAGS -I/usr/include/postgresql  -luv -std=gnu11"
+              CFLAGS="$CFLAGS -I/usr/include/postgresql  -luv -lrustlib  -std=gnu11"
+              LDFLAGS="$LDFLAGS -L./rustlib/target/debug"
       esac
 	PHP_SUBST([CFLAGS])
-    PHP_SUBST(UV_SHARED_LIBADD)
+	PHP_SUBST([LDFLAGS])
+    PHP_SUBST(FILE_IO_SHARED_LIBADD)
+
 fi
