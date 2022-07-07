@@ -311,19 +311,22 @@ ZEND_FUNCTION(pg_wait) {
     zend_string_release(module_name);
 }
 
+
+
+
 ZEND_BEGIN_ARG_INFO(arginfo_promise_construct, 0)
-                ZEND_ARG_TYPE_INFO(0, closure, IS_CALLABLE, 0)
+ZEND_ARG_TYPE_INFO(0, closure, IS_CALLABLE, 0)
 ZEND_END_ARG_INFO()
 
 static const zend_function_entry class_Promise_methods[] = {
-        //   ZEND_ME_MAPPING(get_result, mysqli_query, arginfo_promise_construct, ZEND_ACC_PUBLIC)
-        PHP_FE_END
+	//   ZEND_ME_MAPPING(get_result, mysqli_query, arginfo_promise_construct, ZEND_ACC_PUBLIC)
+	PHP_FE_END
 };
 
 void register_Async_Mysqli() {
-    zend_class_entry ce;
-    zend_class_entry * mysqli_link_class_entry = zend_hash_str_find_ptr(CG(class_table), PROP("mysqli"));
-    zend_class_entry * mysqli_result_class_entrqy = zend_hash_str_find_ptr(CG(class_table), PROP("mysqli_result"));
-    INIT_CLASS_ENTRY(ce, "mysqli_async", class_Promise_methods);
-    MODULE_GL(mysqli_async_class) = zend_register_internal_class_ex(&ce, mysqli_link_class_entry);
+	zend_class_entry ce;
+	zend_class_entry* mysqli_link_class_entry = zend_hash_str_find_ptr(CG(class_table), PROP("mysqli"));
+	zend_class_entry* mysqli_result_class_entrqy = zend_hash_str_find_ptr(CG(class_table), PROP("mysqli_result"));
+	INIT_CLASS_ENTRY(ce, "mysqli_async", class_Promise_methods);
+	MODULE_GL(mysqli_async_class) = zend_register_internal_class_ex(&ce, mysqli_link_class_entry);
 }
