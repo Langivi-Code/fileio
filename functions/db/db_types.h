@@ -20,6 +20,7 @@ typedef struct cb_item{
     bool read;
     bool written;
     enum DB_TYPE type;
-    zval * db_handle;
+    zval db_handle;
+    void * conn;
 } cb_item;
 #endif //FILEIO_RUST_BINDING_H

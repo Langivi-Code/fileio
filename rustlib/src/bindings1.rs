@@ -7163,6 +7163,8 @@ pub type zend_uchar = ::std::os::raw::c_uchar;
 pub const ZEND_RESULT_CODE_SUCCESS: ZEND_RESULT_CODE = 0;
 pub const ZEND_RESULT_CODE_FAILURE: ZEND_RESULT_CODE = -1;
 pub type ZEND_RESULT_CODE = ::std::os::raw::c_int;
+
+use std::os::raw::c_void;
 pub use self::ZEND_RESULT_CODE as zend_result;
 pub type zend_intptr_t = isize;
 pub type zend_uintptr_t = usize;
@@ -15084,6 +15086,9 @@ extern "C" {
 }
 extern "C" {
     pub fn php_printf(format: *const ::std::os::raw::c_char, ...) -> size_t;
+}
+extern "C" {
+    pub fn php_var_dump(struc: *const zval, level:u8) -> c_void;
 }
 extern "C" {
     pub fn php_printf_unchecked(format: *const ::std::os::raw::c_char, ...) -> size_t;

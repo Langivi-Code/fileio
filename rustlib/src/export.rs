@@ -8,6 +8,19 @@ pub extern "C" fn pg_get_item(k: u16) -> &'static cb_item {
         Col::get_engine(&mut vars::ENGINES[0]).db_map_get(k)
     }
 }
+#[no_mangle]
+pub extern "C" fn pg_get_and_remove_item(k: u16)-> cb_item  {
+    unsafe {
+        Col::get_engine(&mut vars::ENGINES[0]).db_map_get_and_remove(k)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn pg_get_next_item(k: u16) -> &'static cb_item {
+    unsafe {
+        Col::get_engine(&mut vars::ENGINES[0]).db_map_get_next(k)
+    }
+}
 
 #[no_mangle]
 pub extern "C" fn pg_has_item(k: u16) -> bool {
