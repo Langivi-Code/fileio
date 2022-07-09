@@ -23,9 +23,15 @@
 #include <libpq/libpq-fs.h>
 #include <zend_exceptions.h>
 
+enum function_name {
+    QUERY,
+    PREPARE,
+    RUN_PREPARED
+};
 
 struct fd {
-    uint16_t fd
+    uint16_t fd;
+    enum function_name name;
 };
 
 void pg_poll_cb(uv_poll_t *handle, int status, int event) {
@@ -193,7 +199,7 @@ ZEND_FUNCTION(pg_query_async) {
             PQsetnonblocking(pgsql, 1);
             uv_poll_t *handle = emalloc(sizeof(uv_poll_t));
             uv_poll_init(MODULE_GL(loop), handle, fd_number);
-            struct fd fd_container = {.fd=fd_number};
+            struct fd fd_container = {.fd=fd_number, .name=QUERY};
             handle->data = emalloc(sizeof(struct fd));
             memcpy(handle->data, &fd_container, sizeof(struct fd));
             puts("poll started");
@@ -221,12 +227,12 @@ ZEND_FUNCTION(pg_prepare_async) {
         zend_fcall_info_cache fcc = empty_fcall_info_cache;
         zend_fcall_info fci_read = empty_fcall_info;
         zend_fcall_info_cache fcc_read = empty_fcall_info_cache;
-        char * name;
+        char *name;
         size_t str_len;
         pgsql_link_handle *link;
         ZEND_PARSE_PARAMETERS_START(3, 3)
                 Z_PARAM_ZVAL(db)
-                Z_PARAM_STRING(name,str_len)
+                Z_PARAM_STRING(name, str_len)
                 Z_PARAM_FUNC(fci, fcc)
                 Z_PARAM_FUNC(fci_read, fcc_read)ZEND_PARSE_PARAMETERS_END();
         PGconn *pgsql;
@@ -280,7 +286,7 @@ ZEND_FUNCTION(pg_prepare_async) {
             PQsetnonblocking(pgsql, 1);
             uv_poll_t *handle = emalloc(sizeof(uv_poll_t));
             uv_poll_init(MODULE_GL(loop), handle, fd_number);
-            struct fd fd_container = {.fd=fd_number};
+            struct fd fd_container = {.fd=fd_number, .name=PREPARE};
             handle->data = emalloc(sizeof(struct fd));
             memcpy(handle->data, &fd_container, sizeof(struct fd));
             puts("poll started");

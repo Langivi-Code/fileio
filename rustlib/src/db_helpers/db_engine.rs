@@ -12,7 +12,7 @@ impl DbEngine {
     fn unwrap(&'static mut self) -> &mut HashMap<u16, VecDeque<cb_item>> {
         match self {
             DbEngine::No => {
-                panic!("No data present");
+                panic!("Engine is not initialized");
             }
             DbEngine::Hash(val) => { val }
         }
@@ -22,23 +22,19 @@ impl DbEngine {
         let map = self.unwrap();
         match map.get(&k) {
             None => {
-                println!("in no item db_map_get_and_remove:FD {} queue size is", k);
+                println!("None::db_map_get: FD {} queue size is", k);
                 panic!("No item present")
             }
             Some(mut cb) => {
-                let item = cb.get(0).unwrap();
-                // println!("db_map_get:FD {} queue size is {}", k, cb.len());
-                item
+                 cb.get(0).unwrap()
             }
         }
     }
     pub fn db_map_get_next(&'static mut self, k: u16) -> &'static cb_item {
         match self.unwrap().get(&k) {
-            None => { panic!("No item present") }
+            None => { panic!("No next item present") }
             Some(mut cb) => {
-                &cb.iter().enumerate().next();
-                let (numb, item) = &cb.iter().enumerate().next().unwrap();
-                *item
+                cb.get(1).unwrap()
             }
         }
     }
@@ -51,11 +47,9 @@ impl DbEngine {
             }
             Some(cb) => {
                 for (numb, item) in cb.iter().enumerate() {
-                    println!(" element number! {}", numb);
+                    println!("Element number #{}", numb);
                     unsafe {
-                        println!("FROM remove RUST");
                         let zv = &item.borrow().db_handle as *const zval;
-
                         php_var_dump(zv, 1);
                     }
                 }
