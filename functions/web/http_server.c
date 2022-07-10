@@ -507,14 +507,14 @@ static bool on_ready_to_disconnect(uv_poll_t *handle, http_client_stream_id_item
     zval retval;
     zval obj[1];
     ZVAL_OBJ(&obj[0], ((ht_event_handle_item *) handle->data)->this);
-    printf("disconnect alive handles %d\n", uv_loop_alive(MODULE_GL(loop)));
+    LOG("disconnect alive handles %d\n", uv_loop_alive(MODULE_GL(loop)));
    unsigned int active_handles = MODULE_GL(loop)->active_handles - http_php_servers[cur_id].active_handles;
     bool should_wait = false;
     if (!event_handle->req_info.is_written && active_handles){
         should_wait = true;
     }
     LOG("size of ev-queue %d(Active = %d), loop address:=%p", uv_loop_alive(MODULE_GL(loop)), MODULE_GL(loop)->active_handles, MODULE_GL(loop));
-    printf("alive reqs %d\n", MODULE_GL(loop)->active_reqs.count);
+    LOG("alive reqs %d\n", MODULE_GL(loop)->active_reqs.count);
     http_php_servers[cur_id].on_disconnect.fci.params = NULL;
     http_php_servers[cur_id].on_disconnect.fci.param_count = 0;
 //    http_php_servers[cur_id].on_disconnect.fci.object = ((ht_event_handle_item *) handle->data)->this;

@@ -15,24 +15,21 @@ PHP_FUNCTION (set_timeout) {
     zend_fcall_info_cache fcc = empty_fcall_info_cache;
     zend_fcall_info fci = empty_fcall_info;
     zval return_val;
-    puts("timer0");
     //    object_init_ex(&fiber, zend_ce_fiber);
     ZEND_PARSE_PARAMETERS_START(2, 2)
             Z_PARAM_FUNC(fci, fcc)
             Z_PARAM_LONG(var)ZEND_PARSE_PARAMETERS_END();
-    puts("timer00");
     fci.retval = &return_val;
 
     fci.param_count = 0;
-    fci.params=NULL;
-    puts("timer000");
-    uv_timer_t * timerHandle =  NULL;
+    fci.params = NULL;
+    uv_timer_t *timerHandle = NULL;
     timerHandle = emalloc(sizeof(uv_timer_t));
-    timerData * timer_data =  emalloc(sizeof(timerData));
+    timerData *timer_data = emalloc(sizeof(timerData));
     puts("timer1");
 //    printf("Main thread id: %p\n", uv_thread_self());
     uv_timer_init(MODULE_GL(loop), timerHandle);
-    init_cb(&fci, &fcc,&timer_data->cb);
+    init_cb(&fci, &fcc, &timer_data->cb);
     timerHandle->data = timer_data;
 //    fill_event_handle(timerHandle, &fci, &fcc);
 //    uv_unref((uv_handle_t *) timerHandle);
@@ -65,7 +62,7 @@ PHP_FUNCTION (clear_timeout) {
     ZEND_PARSE_PARAMETERS_START(1, 1)
             Z_PARAM_LONG(timer_id)ZEND_PARSE_PARAMETERS_END();
 
-    printf("\nclearing timeout %lu\n",timer_id);
+    printf("\nclearing timeout %lu\n", timer_id);
     if (timer_id > 0) {
         handle_id_item_t *timer_handle = find_handle(timer_id);
         printf("$id = %llu", timer_handle->handle_id);

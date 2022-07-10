@@ -58,31 +58,6 @@ void fn(uv_timer_t *handle) {
     efree(timer_data);
 }
 
-void fn_idle(uv_idle_t *handle) {
-#define LOG_TAG "fn_idle"
-    uv_cb_type *uv = (uv_cb_type *) handle->data;
-    printf(" %lu \n", sizeof uv->fci);
-    //    memcpy(&uv, (uv_cb_t *) handle->data, sizeof(uv_cb_t));
-    zend_long error;
-
-    zval dstr;
-    ZVAL_STRING(&dstr, "callback fn");
-    //    zend_call_method_with_1_params(NULL, NULL, NULL, "print_r", &retval, &dstr);
-
-    if (ZEND_FCI_INITIALIZED(uv->fci)) {
-        LOG("Idle call back is called");
-        if (zend_call_function(&uv->fci, &uv->fcc) != SUCCESS) {
-            error = -1;
-        }
-
-    } else {
-        error = -2;
-    }
-    efree(uv->fci.params);
-    uv_idle_stop(handle);
-    efree(handle);
-}
-
 void fn_interval(uv_timer_t *handle) {
 #define LOG_TAG "fn_interval"
     uv_cb_type *uv = (uv_cb_type *) handle->data;
@@ -116,12 +91,10 @@ zend_long fn_fs(uv_fs_t *handle) {
     counter++;
 
     if (file_handle->read == true) {
-        char output_text[file_handle->buffer.len];
-//        strcat(dd, data);
-        strncat(output_text, file_handle->buffer.base, file_handle->buffer.len);
-        ZVAL_STRING(&args[0], &output_text);
+        printf("char len %zu %lu\n", file_handle->buffer.len, sizeof (file_handle->buffer.base));
+        ZVAL_STRINGL(&args[0], file_handle->buffer.base, file_handle->buffer.len-1);
     }
-//    printf("%s",file_handle->buffer.base);
+
 
     LOG("FS call back is initalized");
     call_php_fn(&file_handle->php_cb_data, file_handle->read ? 1 : 0, file_handle->read ? args : NULL, &retval,

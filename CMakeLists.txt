@@ -61,6 +61,7 @@ include_directories(
         "${PHP_SRC_PATH}/sapi"
         "/usr/local/Cellar/libuv/1.42.0/include/"
         "./3rd/llhttp"
+        "/usr/local/opt/libpq/include"
 )
 find_library(uvPath2 NAMES uv libuv)
 
@@ -75,7 +76,7 @@ FILE(GLOB KernelSources ./kernel/*.c)
 FILE(GLOB 3rd ./3rd/**/*.c)
 FILE(GLOB ExtensionHeaders ./functions/**/*.h)
 FILE(GLOB ExtensionSources ./functions/**/*.c)
-
+FILE(GLOB RustHeaders ./rustlib/include/*.h)
 #FILE(GLOB uvHeaders /usr/local/Cellar/libuv/1.42.0/include/*.h)
 
 set(SOURCE_FILES
@@ -85,6 +86,7 @@ set(SOURCE_FILES
         ${KernelSources}
         ${ExtensionHeaders}
         ${ExtensionSources}
+        ${RustHeaders}
         ${3rd}
         ${LIBUV_INCLUDE_DIR}
         constants.h)

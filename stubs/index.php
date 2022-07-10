@@ -1,9 +1,136 @@
 <?php
+// class ExtendedPromise extends \Promise
+// {
+//     public static function all (array $promises):\Promise
+//     {
+//         $bb = new \Promise(function($resolveAll, $rej) use(&$promises, &$bb){
+//             $promiseArray = array();
+//             $lengthPromises = count($promises);
+//             if($lengthPromises == 0){
+//                 $resolveAll($promiseArray);
+//             }
+//             foreach($promises as $key => $promise){
+//                 $promise->then(function($result) use(&$bb, &$lengthPromises,&$promiseArray, $resolveAll, $key){
+//                     var_dump('promise inside', $result, $key);
+//                     file_put_contents($result,'');
+//                     $promiseArray[$key] = $result;
+//                     $lengthPromises -= 1;
+//                     if ($lengthPromises == 0){
+//                         echo "promise all resolved\n";
+//                         var_dump($promiseArray);
+//                         $resolveAll($promiseArray);
+//                         echo "hello1\n";
+//                     }
+//
+//                 });
+// //                var_dump($promise);
+//             }
+//
+//         });
+//         return $bb;
+//     }
+// }
+
+//$pro = new \Promise(fn($res, $rej) => set_timeout(fn() => $res(-1), 1000));
+////var_dump($pro);
+//
+//$pro->then(function ($a) {
+//    var_dump("returned is" . $a);
+////    new Promise(function ($res, $rej){  $res(40);});
+////    $promise = (new \Promise(fn($res, $rej) => set_timeout(fn() => $res(1), 100)));
+////    var_dump($promise);
+////    $promise->then('var_dump');
+//return new Promise(function ($res, $rej){ $res(30);});
+////    set_timeout(function (){
+////    return Promise::resolve(2);
+////    var_dump($prms);
+////    },0);
+//})->then(function ($result){
+//    echo"-------------------------------------------------------";
+//    var_dump($result);
+//});
+//$pro2 =  ;
+////var_dump($pro);
+//$pro2->then(fn($do)=>2)->then(fn($do)=>3);
+// $promises = [
+//    new \Promise(fn($res, $rej) => set_timeout(fn() => $res(1), 100)),
+//    new \Promise(fn($res, $rej) => set_timeout(fn() => $res(2), 2000)),
+//    new \Promise(fn($res,$rej)=> set_timeout(fn()=>$res(3),3000)) ,
+//];
+////        var_dump($promises);
+//$a = ExtendedPromise::all($promises)->then(function (array $params) {
+//    echo "ExtendedPromise resolved\n\n\n";
+//    var_dump($params);
+////    return $params;
+//});
+
+//$a->then(function ($res) use ($a) {
+//    echo "qwreqr";
+//   var_dump($a, $res);
+//});
+//set_timeout(fn()=>100, 10000);
 function test(PromiseStatus $status)
 {
     var_dump($status, $status == PromiseStatus::Pending);
 }
 
+//$db = mysqli_connect("raspis00.mysql.tools", "raspis00_bd", "", "raspis00_bd");
+//mysqli_query($db, "select 1", MYSQLI_ASYNC);
+//function mysql_query(mysqli $coonection, string $query):Promise
+//{
+//    mysqli_query($coonection, $query, MYSQLI_ASYNC);
+//    return new Promise(fn($res, $rej) => mysql_wait($coonection, fn($arg) => $res(mysqli_reap_async_query($arg)))); //TODO rework to promise
+//}
+//mysql_query($db, "select 1");
+// $pg = pg_connect("host=0.0.0.0 user=root password=password");
+// pg_wait($pg,
+//     fn($connection) => "select 1",
+//     function ($connection) use ($pg) {
+//         var_dump(pg_fetch_all($connection));
+//         pg_wait($pg,
+//             fn($connection) => "select 2",
+//             function ($connection) use ($pg) {
+//                 var_dump(pg_fetch_all($connection));
+//                 pg_wait($pg,
+//                     fn($connection) => "select 3",
+//                     fn($res) => var_dump(pg_fetch_all($res)));
+//             } );
+// } );
+// pg_wait($pg,
+//     fn($connection) => "select 3", //WRITE SQL
+//     fn($res) => var_dump(pg_fetch_all($res))//READ RESULT
+//     );
+// });
+//pg_wait($pg,
+//    fn($connection) => "select 3",
+//    fn($connection) => var_dump(pg_fetch_all($connection)));
+//pg_wait($pg,
+//    fn($connection) => "select 4",
+//    fn($connection) => var_dump(pg_fetch_all($connection)));
+//function query(\PgSql\Connection $coonection, string $query):Promise
+//{
+//    pg_send_query($coonection, $query);
+//    return new Promise(fn($res, $rej) => pg_wait($coonection, fn($connection) => $res($connection))); //TODO rework to promise
+//}
+//
+//$promsie = query($pg, "select 1 as int");
+//var_dump($promsie);
+//var_dump($promsie->then(function (\PgSql\Result $arg) {
+//    var_dump($arg);
+//    var_dump(pg_fetch_all($arg));
+//}));
+
+//pg_send_query($pg, "select 1 as int");
+//
+//
+//pg_wait($pg, function ($arg) {
+//    var_dump(pg_fetch_all($arg));
+// echo "hello";
+//});
+
+//var_dump($pg);
+
+//mysqli_query($db, "select 1", MYSQLI_ASYNC | MYSQLI_STORE_RESULT);
 //$file = file_get_contents("./stubs/index.html");
 //$serv1 = new HttpServer(8001, "tcp://0.0.0.0", []);
 
@@ -74,7 +201,7 @@ function test(PromiseStatus $status)
 // //    var_dump($timerId);
 // });
 
- file_put_contents_async("try.php","dat1212a", fn()=>var_dump(1234));
+//  file_put_contents_async("try.php","dat1212a", fn()=>var_dump(1234));
 // } catch(Exception $e){
 // var_dump($e);
 // }
@@ -89,8 +216,8 @@ function test(PromiseStatus $status)
 //var_dump($timerId);
 
 
- //file_put_contents_async("compile2", "data");
- ////sleep(3);
+//file_put_contents_async("compile2", "data");
+////sleep(3);
 // file_get_contents_async("Makefile", fn($arg) => file_put_contents("dtad35", $arg)&&var_dump("second callback"));
 // //
 // file_get_contents_async("fileio.lo", function($arg){
@@ -138,9 +265,11 @@ function test(PromiseStatus $status)
 //}, 100);
 
 //
-//idle(function () {
+//$mysql = mysqla_query(123);
+
+// idle(function () {
 //    echo "idle111";
-//});
+// });
 //
 //idle(function () {
 //    echo setTimeout(function () {
@@ -170,6 +299,29 @@ function test(PromiseStatus $status)
 //    "compile",
 //    fn($arg) => var_dump("dtad336")&var_dump("third callback")
 //);
-
+// print_r($db);
 echo "sync exec ended.\n\n";
+//    file_get_contents_async("favicon.ico",
+//        fn(string $arg)=> print_r($arg));
+$promise = new Promise(function($res,$rej){
+    set_timeout(fn()=>$res(333),10000);
+});
+function await(): Generator
+{
+echo "hallo await";
+    yield;
+    echo "end await";
+}
+function async($Promise)
+{
+    $generator = await();
+    $Promise->then(function($res) use ($generator) {
+        var_dump($res);
+        echo "resolved\n";
+        var_dump($generator);
+        $generator->send($res??"in then......await");
+    });
+    return $generator;
+}
+var_dump(async($promise));
 
