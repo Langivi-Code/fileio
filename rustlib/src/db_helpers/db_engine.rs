@@ -5,11 +5,11 @@ use crate::ffi::{php_var_dump, zval};
 
 pub enum DbEngine {
     No,
-    Hash(HashMap<u16, VecDeque<cb_item>>),
+    Hash(HashMap<String, VecDeque<cb_item>>),
 }
 
 impl DbEngine {
-    fn unwrap(&'static mut self) -> &mut HashMap<u16, VecDeque<cb_item>> {
+    fn unwrap(&'static mut self) -> &mut HashMap<String, VecDeque<cb_item>> {
         match self {
             DbEngine::No => {
                 panic!("Engine is not initialized");
@@ -18,11 +18,11 @@ impl DbEngine {
         }
     }
 
-    pub fn db_map_get(&'static mut self, k: u16) -> &'static cb_item {
+    pub fn db_map_get(&'static mut self, fn_name: &str) -> &'static cb_item {
         let map = self.unwrap();
-        match map.get(&k) {
+        match map.get(&fn_name.to_string()) {
             None => {
-                println!("None::db_map_get: FD {} queue size is", k);
+                println!("None::db_map_get: FD {} queue size is", fn_name);
                 panic!("No item present")
             }
             Some(mut cb) => {
@@ -30,20 +30,20 @@ impl DbEngine {
             }
         }
     }
-    pub fn db_map_get_next(&'static mut self, k: u16) -> &'static cb_item {
-        match self.unwrap().get(&k) {
+    pub fn db_map_get_next(&'static mut self, fn_name: &str) -> &'static cb_item {
+        match self.unwrap().get(&fn_name.to_string()) {
             None => { panic!("No next item present") }
             Some(mut cb) => {
                 cb.get(1).unwrap()
             }
         }
     }
-    pub fn db_map_get_and_remove(&'static mut self, k: u16) -> cb_item {
-        let v = self.unwrap().get_mut(&k);
+    pub fn db_map_get_and_remove(&'static mut self, fn_name: &str) -> cb_item {
+        let v = self.unwrap().get_mut(&fn_name.to_string());
         match v {
             None => {
-                println!("in no item db_map_get_and_remove:FD {} queue size is {}", k, v.unwrap().len());
-                panic!("No item fff present {}", k);
+                println!("in no item db_map_get_and_remove:FD {} queue size is {}", fn_name, v.unwrap().len());
+                panic!("No item fff present {}", fn_name);
             }
             Some(cb) => {
                 for (numb, item) in cb.iter().enumerate() {
@@ -54,19 +54,20 @@ impl DbEngine {
                     }
                 }
                 let cb_item_ = cb.pop_front().unwrap();
-                println!("db_map_get_and_remove:FD {} queue size is {}", k, cb.len());
+                println!("db_map_get_and_remove:FD {} queue size is {}", fn_name, cb.len());
                 cb_item_
             }
         }
     }
 
-    pub fn db_map_has(&'static mut self, k: u16) -> bool {
+    pub fn db_map_has(&'static mut self, fn_name: &str) -> bool {
         let map = self.unwrap();
-        let fd = map.contains_key(&k);
+        let str_k = fn_name.to_string();
+        let fd = map.contains_key(&str_k);
         if !fd {
             return false;
         }
-        let vec = map.get(&k);
+        let vec = map.get(&str_k);
         let mut result = true;
         if let None = vec {
             result = false;
@@ -76,17 +77,18 @@ impl DbEngine {
         result
     }
 
-    pub fn db_map_add(&'static mut self, fd: u16, function_item: cb_item) {
+    pub fn db_map_add(&'static mut self, fn_name: &str, function_item: cb_item) {
         let hash = self.unwrap();
-        if !hash.contains_key(&fd) {
-            hash.insert(fd, VecDeque::with_capacity(10));
+        let str_k = fn_name.to_string();
+        if !hash.contains_key(&str_k) {
+            hash.insert(str_k.clone(), VecDeque::with_capacity(10));
         }
-        let vec = hash.get_mut(&fd).unwrap();
+        let vec = hash.get_mut(&str_k).unwrap();
         unsafe {
             println!("FROM ADD RUST");
             php_var_dump(function_item.borrow().db_handle.borrow() as *const zval, 1);
         }
         vec.push_back(function_item);
-        println!("db_map_add:FD {} queue size is {}", fd, vec.len());
+        println!("db_map_add:FD {} queue size is {}", fn_name, vec.len());
     }
 }

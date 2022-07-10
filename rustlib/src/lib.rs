@@ -1,3 +1,5 @@
+extern crate core;
+
 pub mod ffi;
 mod db_helpers;
 mod export;

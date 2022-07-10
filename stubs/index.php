@@ -101,17 +101,20 @@ $f =      function (\PgSql\Result $connection) use (&$pg) {// somewhy use change
 ////             } );
 // } );
 //var_dump($f);
-pg_query_async($pg,
-     fn($connection) => "select 3", //WRITE SQL
+pg_prepare_async($pg,
+     fn($connection) => ["sel", "select $1"], //WRITE SQL
      function($res) use ($pg)  {
-         var_dump(pg_fetch_all($res));
+            var_dump($res);
+         var_dump(pg_send_execute($pg, "sel",[3]));
+         var_dump("res", pg_fetch_all(pg_get_result($pg)));
      return 1;
 
      }//READ RESULT
  );
-//pg_wait($pg,
-//    fn($connection) => "select 3",
-//    fn($connection) => var_dump(pg_fetch_all($connection)));
+
+pg_query_async($pg,
+    fn($connection) => "select 1",
+    fn($connection) => var_dump(pg_fetch_all($connection)));
 //pg_wait($pg,
 //    fn($connection) => "select 4",
 //    fn($connection) => var_dump(pg_fetch_all($connection)));

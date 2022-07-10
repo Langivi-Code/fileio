@@ -53,7 +53,24 @@ void fn_idle(uv_idle_t *handle) {
 //    php_var_dump(params, 1);
     efree(handle);
 }
-
+void copy_promise_vals(zval *source, zend_object *target) {
+    zval * data_store_ret = zend_read_property(Z_OBJCE_P(source), Z_OBJ_P(source), PROP("dataStore"), 0,
+                                               NULL);
+    zval * status = zend_read_property(Z_OBJCE_P(source), Z_OBJ_P(source), PROP("status"), 0,
+                                       NULL);
+    zval * closure = zend_read_property(Z_OBJCE_P(source), Z_OBJ_P(source), PROP("closure"), 0,
+                                        NULL);
+    zval * finalized = zend_read_property(Z_OBJCE_P(source), Z_OBJ_P(source), PROP("promiseFinalised"), 0,
+                                          NULL);
+//    GC_TRY_ADDREF(Z_OBJ_P(data_store_ret));
+//    GC_TRY_ADDREF(Z_OBJ_P(status));
+//    GC_TRY_ADDREF(Z_OBJ_P(closure));
+//    GC_TRY_ADDREF(Z_OBJ_P(finalized));
+    zend_update_property(target->ce, target, PROP("dataStore"), data_store_ret);
+    zend_update_property(target->ce, target, PROP("status"), status);
+    zend_update_property(target->ce, target, PROP("closure"), closure);
+    zend_update_property(target->ce, target, PROP("promiseFinalised"), finalized);
+}
 //static zend_object_handlers enum_handlers;
 //zend_object *zend_enum_new(zval *result, zend_class_entry *ce, zend_string *case_name, zval *backing_value_zv)
 //{
@@ -222,24 +239,7 @@ PHP_METHOD (Promise, rejected) {
     RETURN_OBJ(rejected);
 }
 
-void copy_promise_vals(zval *source, zend_object *target) {
-    zval * data_store_ret = zend_read_property(Z_OBJCE_P(source), Z_OBJ_P(source), PROP("dataStore"), 0,
-                                               NULL);
-    zval * status = zend_read_property(Z_OBJCE_P(source), Z_OBJ_P(source), PROP("status"), 0,
-                                       NULL);
-    zval * closure = zend_read_property(Z_OBJCE_P(source), Z_OBJ_P(source), PROP("closure"), 0,
-                                        NULL);
-    zval * finalized = zend_read_property(Z_OBJCE_P(source), Z_OBJ_P(source), PROP("promiseFinalised"), 0,
-                                          NULL);
-//    GC_TRY_ADDREF(Z_OBJ_P(data_store_ret));
-//    GC_TRY_ADDREF(Z_OBJ_P(status));
-//    GC_TRY_ADDREF(Z_OBJ_P(closure));
-//    GC_TRY_ADDREF(Z_OBJ_P(finalized));
-    zend_update_property(target->ce, target, PROP("dataStore"), data_store_ret);
-    zend_update_property(target->ce, target, PROP("status"), status);
-    zend_update_property(target->ce, target, PROP("closure"), closure);
-    zend_update_property(target->ce, target, PROP("promiseFinalised"), finalized);
-}
+
 
 void then_cb(uv_prepare_t *handle) {
     then_t *data;

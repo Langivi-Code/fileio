@@ -372,7 +372,7 @@ version = "0.1.0"
 dependencies = [
  "bindgen",
  "cbindgen",
- "lazy_static",
+ "libc",
  "regex",
 ]
 
