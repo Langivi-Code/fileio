@@ -6,11 +6,7 @@
 #define FILEIO_DB_ASYNC_OVERRIDE_H
 
 #include "../common/callback_interface.h"
-
-enum DB_TYPE{
-    MYSQL_DB,
-    PGSQL_DB,
-};
+#include "db_types.h"
 
 typedef struct {
     uv_cb_type cb;

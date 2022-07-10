@@ -82,28 +82,39 @@ function test(PromiseStatus $status)
 //    return new Promise(fn($res, $rej) => mysql_wait($coonection, fn($arg) => $res(mysqli_reap_async_query($arg)))); //TODO rework to promise
 //}
 //mysql_query($db, "select 1");
-// $pg = pg_connect("host=0.0.0.0 user=root password=password");
-// pg_wait($pg,
+$f =      function (\PgSql\Result $connection) use (&$pg) {// somewhy use change value of pg
+    var_dump(pg_fetch_all($connection));
+} ;
+
+ $pg = pg_connect("host=0.0.0.0 user=postgres password=password");
+//pg_query_async($pg,
 //     fn($connection) => "select 1",
-//     function ($connection) use ($pg) {
-//         var_dump(pg_fetch_all($connection));
-//         pg_wait($pg,
-//             fn($connection) => "select 2",
-//             function ($connection) use ($pg) {
+//     function ($connection) use ($pg) {// somewhy use change value of pg
+//         var_dump(($connection));
+////         pg_wait($pg,
+////             fn($connection) => "select 2",
+////             function ($connection) use ($pg) {
 //                 var_dump(pg_fetch_all($connection));
-//                 pg_wait($pg,
-//                     fn($connection) => "select 3",
-//                     fn($res) => var_dump(pg_fetch_all($res)));
-//             } );
+////                 pg_wait($pg,
+////                     fn($connection) => "select 3",
+////                     fn($res) => var_dump(pg_fetch_all($res)));
+////             } );
 // } );
-// pg_wait($pg,
-//     fn($connection) => "select 3", //WRITE SQL
-//     fn($res) => var_dump(pg_fetch_all($res))//READ RESULT
-//     );
-// });
-//pg_wait($pg,
-//    fn($connection) => "select 3",
-//    fn($connection) => var_dump(pg_fetch_all($connection)));
+//var_dump($f);
+pg_prepare_async($pg,
+     fn($connection) => ["sel", "select $1"], //WRITE SQL
+     function($res) use ($pg)  {
+            var_dump($res);
+         var_dump(pg_send_execute($pg, "sel",[3]));
+         var_dump("res", pg_fetch_all(pg_get_result($pg)));
+     return 1;
+
+     }//READ RESULT
+ );
+
+pg_query_async($pg,
+    fn($connection) => "select 1",
+    fn($connection) => var_dump(pg_fetch_all($connection)));
 //pg_wait($pg,
 //    fn($connection) => "select 4",
 //    fn($connection) => var_dump(pg_fetch_all($connection)));
@@ -303,25 +314,25 @@ function test(PromiseStatus $status)
 echo "sync exec ended.\n\n";
 //    file_get_contents_async("favicon.ico",
 //        fn(string $arg)=> print_r($arg));
-$promise = new Promise(function($res,$rej){
-    set_timeout(fn()=>$res(333),10000);
-});
-function await(): Generator
-{
-echo "hallo await";
-    yield;
-    echo "end await";
-}
-function async($Promise)
-{
-    $generator = await();
-    $Promise->then(function($res) use ($generator) {
-        var_dump($res);
-        echo "resolved\n";
-        var_dump($generator);
-        $generator->send($res??"in then......await");
-    });
-    return $generator;
-}
-var_dump(async($promise));
+//$promise = new Promise(function($res,$rej){
+//    set_timeout(fn()=>$res(333),10000);
+//});
+//function await(): Generator
+//{
+//echo "hallo await";
+//    yield;
+//    echo "end await";
+//}
+//function async($Promise)
+//{
+//    $generator = await();
+//    $Promise->then(function($res) use ($generator) {
+//        var_dump($res);
+//        echo "resolved\n";
+//        var_dump($generator);
+//        $generator->send($res??"in then......await");
+//    });
+//    return $generator;
+//}
+//var_dump(async($promise));
 

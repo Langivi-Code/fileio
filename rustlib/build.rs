@@ -1,5 +1,11 @@
-use std::{env, path::{Path, PathBuf}, process::Command, str, fs, process};
 use cbindgen::Language::C;
+use std::{
+    env, fs,
+    path::{Path, PathBuf},
+    process,
+    process::Command,
+    str,
+};
 
 extern crate cbindgen;
 
@@ -90,10 +96,11 @@ fn main() {
     //     )
     //     .compile("wrapper");
 
-    let mut bindgen = bindgen::Builder::default()
+    let bindgen = bindgen::Builder::default()
         .header("wrapper.h")
         .clang_args(includes.split(' '))
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+        .header("/usr/local/Cellar/php/8.1.2/include/php/ext/standard/php_var.h")
         .rustfmt_bindings(true)
         .no_copy("_zval_struct")
         .no_copy("_zend_string")
@@ -110,7 +117,7 @@ fn main() {
 
     if !Path::new("./include").exists() {
         fs::create_dir("./include").unwrap_or_else(|e| {
-            println!("{}",e.to_string());
+            println!("{}", e.to_string());
             process::exit(-1);
         });
     }
@@ -118,10 +125,12 @@ fn main() {
         .with_crate(crate_dir)
         .with_language(C)
         .with_no_includes()
+        .with_sys_include("stdint.h")
+        .with_sys_include("stdbool.h")
+        .with_sys_include("php.h")
         .generate()
         .expect("Unable to generate bindings")
         .write_to_file("./include/stdasync_lib.h");
-
 
     let configure = Configure::get();
     println!("{}", configure.0);
@@ -163,4 +172,3 @@ impl Configure {
         self.0.contains("--enable-debug")
     }
 }
-
