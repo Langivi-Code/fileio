@@ -13,8 +13,8 @@ function clear_interval(int $timerId): bool {}
 function file_get_contents_async(string $filename, callable $cb, bool $use_include_path = false, int $offset = 0, int $maxlen = null): bool {}
 function file_put_contents_async(string $filename, string $data, callable $cb, bool $use_include_path = false, int $flags = 0): bool {}
 
-function pg_query_async(PgSql\Connection) $connection, callable $cb_to_write, callable $cb_to_read): bool {}
-
+function pg_query_async(PgSql\Connection $connection, callable $cb_to_write, callable $cb_to_read): bool {}
+function pg_prepare_async(PgSql\Connection $connection, callable $cb_to_write, callable $cb_to_read): bool {}
 
 function server(int $port, string $host):void{}
 

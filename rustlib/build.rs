@@ -100,7 +100,7 @@ fn main() {
         .header("wrapper.h")
         .clang_args(includes.split(' '))
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
-        .header("/usr/local/Cellar/php/8.1.2/include/php/ext/standard/php_var.h")
+        // .header("/usr/local/Cellar/php/8.1.2/include/php/ext/standard/php_var.h")
         .rustfmt_bindings(true)
         .no_copy("_zval_struct")
         .no_copy("_zend_string")
