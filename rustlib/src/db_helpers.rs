@@ -1,14 +1,14 @@
-pub mod db_engine;
 pub mod db_collection;
-pub mod vars;
-pub mod fd;
+pub mod db_engine;
 pub mod db_functions;
+pub mod fd;
 pub mod seq;
+pub mod vars;
 
+use crate::ffi::types::uv_cb_type;
+use crate::ffi::{false_, zval};
 use std::ffi::c_void;
 use std::hash::{Hash, Hasher};
-use crate::ffi::{false_, zval};
-use crate::ffi::types::uv_cb_type;
 
 /// cbindgen:ignore
 #[repr(C)]
@@ -57,4 +57,3 @@ pub struct cb_item {
 //         eq
 //     }
 // }
-

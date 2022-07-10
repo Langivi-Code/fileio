@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use crate::db_helpers::db_engine::DbEngine;
+use std::collections::HashMap;
 
 pub enum DbFunctions {
     No,
@@ -12,15 +12,14 @@ impl DbFunctions {
             DbFunctions::No => {
                 panic!("Engine is not initialized");
             }
-            DbFunctions::Hash(val) => { val }
+            DbFunctions::Hash(val) => val,
         }
     }
-    pub fn get_named_engine(&'static mut self , fd:u16)->&'static mut DbEngine {
+    pub fn get_named_engine(&'static mut self, fd: u16) -> &'static mut DbEngine {
         let map = self.unwrap();
         if !map.contains_key(&fd) {
             map.insert(fd, DbEngine::Hash(HashMap::new()));
         }
         map.get_mut(&fd).unwrap()
     }
-
 }

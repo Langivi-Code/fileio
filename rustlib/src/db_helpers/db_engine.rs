@@ -1,7 +1,7 @@
+use crate::db_helpers::cb_item;
+use crate::ffi::{php_var_dump, zval};
 use std::borrow::{Borrow, BorrowMut};
 use std::collections::{HashMap, VecDeque};
-use crate::db_helpers::{cb_item};
-use crate::ffi::{php_var_dump, zval};
 
 pub enum DbEngine {
     No,
@@ -14,7 +14,7 @@ impl DbEngine {
             DbEngine::No => {
                 panic!("Engine is not initialized");
             }
-            DbEngine::Hash(val) => { val }
+            DbEngine::Hash(val) => val,
         }
     }
 
@@ -25,24 +25,26 @@ impl DbEngine {
                 println!("None::db_map_get: FD {} queue size is", fn_name);
                 panic!("No item present")
             }
-            Some(mut cb) => {
-                 cb.get(0).unwrap()
-            }
+            Some(mut cb) => cb.get(0).unwrap(),
         }
     }
     pub fn db_map_get_next(&'static mut self, fn_name: &str) -> &'static cb_item {
         match self.unwrap().get(&fn_name.to_string()) {
-            None => { panic!("No next item present") }
-            Some(mut cb) => {
-                cb.get(1).unwrap()
+            None => {
+                panic!("No next item present")
             }
+            Some(mut cb) => cb.get(1).unwrap(),
         }
     }
     pub fn db_map_get_and_remove(&'static mut self, fn_name: &str) -> cb_item {
         let v = self.unwrap().get_mut(&fn_name.to_string());
         match v {
             None => {
-                println!("in no item db_map_get_and_remove:FD {} queue size is {}", fn_name, v.unwrap().len());
+                println!(
+                    "in no item db_map_get_and_remove:FD {} queue size is {}",
+                    fn_name,
+                    v.unwrap().len()
+                );
                 panic!("No item fff present {}", fn_name);
             }
             Some(cb) => {
@@ -54,7 +56,11 @@ impl DbEngine {
                     }
                 }
                 let cb_item_ = cb.pop_front().unwrap();
-                println!("db_map_get_and_remove:FD {} queue size is {}", fn_name, cb.len());
+                println!(
+                    "db_map_get_and_remove:FD {} queue size is {}",
+                    fn_name,
+                    cb.len()
+                );
                 cb_item_
             }
         }
