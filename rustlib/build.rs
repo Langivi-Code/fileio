@@ -96,22 +96,22 @@ fn main() {
     //     )
     //     .compile("wrapper");
 
-    let bindgen = bindgen::Builder::default()
-        // .header("wrapper.h")
-        .clang_args(includes.split(' '))
-        .parse_callbacks(Box::new(bindgen::CargoCallbacks))
-        // .header("/usr/local/Cellar/php/8.1.2/include/php/ext/standard/php_var.h")
-        .rustfmt_bindings(true)
-        .no_copy("_zval_struct")
-        .no_copy("_zend_string")
-        .no_copy("_zend_array")
-        .layout_tests(env::var("EXT_PHP_RS_TEST").is_ok());
-
-    bindgen
-        .generate()
-        .expect("Unable to generate bindings for PHP")
-        .write_to_file(out_path)
-        .expect("Unable to write bindings file.");
+    // let bindgen = bindgen::Builder::default()
+    //     // .header("wrapper.h")
+    //     .clang_args(includes.split(' '))
+    //     .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+    //     // .header("/usr/local/Cellar/php/8.1.2/include/php/ext/standard/php_var.h")
+    //     .rustfmt_bindings(true)
+    //     .no_copy("_zval_struct")
+    //     .no_copy("_zend_string")
+    //     .no_copy("_zend_array")
+    //     .layout_tests(env::var("EXT_PHP_RS_TEST").is_ok());
+    //
+    // bindgen
+    //     .generate()
+    //     .expect("Unable to generate bindings for PHP")
+    //     .write_to_file(out_path)
+    //     .expect("Unable to write bindings file.");
 
     let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
 
