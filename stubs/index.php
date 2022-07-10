@@ -30,7 +30,64 @@
 //         return $bb;
 //     }
 // }
+class ExtendedPromise
+{
+    public static function all(array $promises): \Promise
+    {
+        return new \Promise(function ($res, $rej) use (&$promises) {
+            $promiseArray = array();
+            $lengthPromises = count($promises);
+            // var_dump("length Promises Array", $lengthPromises);
+            if ($lengthPromises == 0) {
+                $res($promiseArray);
+            }
+            foreach ($promises as $key => $promise) {
+                echo  "in promise foreach";
+                $promise->then(function ($result) use (&$lengthPromises, &$promiseArray, $res, $key) {
+                    // var_dump("in Promise");
+                    $promiseArray[$key] = $result;
+                    $lengthPromises -= 1;
+                    if ($lengthPromises == 0) {
+                        echo "hello\n";
+                        // var_dump($promiseArray);
+                        $res($promiseArray);
+                        echo "hello1\n";
+                    }
 
+                });
+//                var_dump($promise);
+            }
+
+        });
+    }
+
+    public static function allTime(array $promises): \Promise
+    {
+        return new \Promise(function ($res, $rej) use (&$promises) {
+            $promiseArray = array();
+            $lengthPromises = count($promises);
+            $time = 1000;
+            // var_dump("length Promises Array", $lengthPromises);
+            if ($lengthPromises == 0) {
+                $res($promiseArray);
+            }
+            foreach ($promises as $key => $promise) {
+                set_timeout(function () use (&$lengthPromises, &$promiseArray, $res, $key, $promise) {
+                    $promise->then(function ($result) use (&$lengthPromises, &$promiseArray, $res, $key) {
+                        // var_dump("in Promise");
+                        $promiseArray[$key] = $result;
+                        $lengthPromises -= 1;
+                        if ($lengthPromises == 0) {
+                            $res($promiseArray);
+                        }
+
+                    });
+                }, $time);
+                $time += 1000;
+            }
+        });
+    }
+}
 //$pro = new \Promise(fn($res, $rej) => set_timeout(fn() => $res(-1), 1000));
 ////var_dump($pro);
 //
@@ -69,6 +126,8 @@
 //   var_dump($a, $res);
 //});
 //set_timeout(fn()=>100, 10000);
+use PgSql\Result;
+
 function test(PromiseStatus $status)
 {
     var_dump($status, $status == PromiseStatus::Pending);
@@ -82,9 +141,6 @@ function test(PromiseStatus $status)
 //    return new Promise(fn($res, $rej) => mysql_wait($coonection, fn($arg) => $res(mysqli_reap_async_query($arg)))); //TODO rework to promise
 //}
 //mysql_query($db, "select 1");
-$f =      function (\PgSql\Result $connection) use (&$pg) {// somewhy use change value of pg
-    var_dump(pg_fetch_all($connection));
-} ;
 
  $pg = pg_connect("host=0.0.0.0 user=postgres password=password");
 //pg_query_async($pg,
@@ -101,20 +157,38 @@ $f =      function (\PgSql\Result $connection) use (&$pg) {// somewhy use change
 ////             } );
 // } );
 //var_dump($f);
-pg_prepare_async($pg,
-     fn($connection) => ["sel", "select $1"], //WRITE SQL
-     function($res) use ($pg)  {
-            var_dump($res);
-         var_dump(pg_send_execute($pg, "sel",[3]));
-         var_dump("res", pg_fetch_all(pg_get_result($pg)));
-     return 1;
+function prepare($connectDB, string $statementName, string $statement): \Promise
+{
+    return new \Promise(fn($res, $rej) => pg_prepare_async($connectDB,
+        fn($connection) => [$statementName, $statement],
+        fn(Result|false $result) => $result ? $res($result) : $rej($result))
+    );
+}
+ExtendedPromise::all([prepare($pg, "some", "SELECT 1"),
+prepare($pg, "some2", "SELECT 2"),
+prepare($pg, "some3", "SELECT 3"),
+                   ])->then(function (array $result){
+                       echo "ExtendedPromise\n";
+                      $str =  var_export($result);
+                      echo $str;
+                      file_put_contents_async("log.log", "$str", fn()=>printf("DONE!!!!!!!!!!!! %s", $str));
+});
 
-     }//READ RESULT
- );
-
-pg_query_async($pg,
-    fn($connection) => "select 1",
-    fn($connection) => var_dump(pg_fetch_all($connection)));
+//
+//pg_prepare_async($pg,
+//     fn($connection) => ["sel", "select $1"], //WRITE SQL
+//     function($res) use ($pg)  {
+//            var_dump($res);
+//         var_dump(pg_send_execute($pg, "sel",[3]));
+//         var_dump("res", pg_fetch_all(pg_get_result($pg)));
+//     return 1;
+//
+//     }//READ RESULT
+// );
+//
+//pg_query_async($pg,
+//    fn($connection) => "select 1",
+//    fn($connection) => var_dump(pg_fetch_all($connection)));
 //pg_wait($pg,
 //    fn($connection) => "select 4",
 //    fn($connection) => var_dump(pg_fetch_all($connection)));

@@ -47,7 +47,6 @@ void fn_idle(uv_idle_t *handle) {
     LOG("Promise handler call back is called");
     call_php_fn(&data_handle->then_cb, 2, params, &retval, "promise_handler");
 
-
 //    efree(data_handle->then_cb.fci.params);
     efree(data_handle);
 //    php_var_dump(params, 1);
@@ -247,7 +246,7 @@ void then_cb(uv_prepare_t *handle) {
     zval * promiseFinalized, *status;
     short promiseFinalized_bool, status_val;
     puts("Uv loop in then cb");
-//    uv_prepare_stop(handle);
+    uv_prepare_stop(handle);
 
     then_start:
     puts("then_start label triggered");
@@ -265,7 +264,6 @@ void then_cb(uv_prepare_t *handle) {
             efree(data);
             efree(handle);
         } else if (status_val == Resolved) {
-            uv_prepare_stop(handle);
             printf("In resolve section of then_cb\n");
             zval * then_closures = zend_read_property(MODULE_GL(promise_class), data->this, PROP("thenClosures"), 0,
                                                       NULL);
@@ -351,7 +349,7 @@ void then_cb(uv_prepare_t *handle) {
 //            uv_prepare_init(MODULE_GL(loop), idleHandle);
 //            idleHandle->data = handle->data;
 //            efree(handle);
-//            uv_prepare_start(idleHandle, then_cb); /// how to pass smth from promise to promise
+            uv_prepare_start(handle, then_cb); /// how to pass smth from promise to promise
 //            puts("conflict3");
         }
     }

@@ -1,10 +1,10 @@
 use std::ffi::{CStr, CString};
-use libc::c_char;
+use std::os::raw::c_char;
 use crate::db_helpers::fd::DbFd;
 use crate::db_helpers::seq::{DbTime, EntryToPop};
 use super::db_helpers::{ cb_item, vars};
 use super::db_helpers::db_collection::DbCollection as Col;
-extern crate libc;
+
 #[no_mangle]
 pub extern "C" fn pg_get_item(k: u16) -> &'static cb_item {
     unsafe {
@@ -62,7 +62,7 @@ pub extern "C" fn pg_add_item(func_name:*const c_char, k: u16, function_item: cb
         Col::get_engine(&mut vars::ENGINES[0], k).get_named_engine(k).db_map_add(str.to_str().unwrap(), function_item);
     }
 }
-//
+// /// cbindgen:derive-eq
 // #[no_mangle]
 // pub extern "C" fn my_get_item(k: u16) -> &'static cb_item {
 //     unsafe {

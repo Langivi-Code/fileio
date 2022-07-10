@@ -1,6 +1,7 @@
 //
 // Created by admin on 09.07.2022.
 //
+#define MYSQLI_USE_MYSQLND
 #include <php.h>
 #include <uv.h>
 #include <zend_API.h>
