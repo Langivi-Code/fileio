@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 git clone https://github.com/LangiviTechnology/fileio.git -b dev
 cd fileio
+cd rustlib
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+cargo build
+cd ..
 phpize
 make clean
 ./configure --with-uv
