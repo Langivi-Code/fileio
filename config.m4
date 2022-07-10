@@ -84,12 +84,6 @@ if test $PHP_UV != "no"; then
  AC_MSG_CHECKING(for rustlib)
   PHP_ADD_INCLUDE("./rustlib/include","yes")
   PHP_ADD_LIBPATH(./rustlib/target/debug)
-  PHP_CHECK_LIBRARY(rustlib, f,[
-    echo "GOOOOD"
-  ], [
-    exit -1;
-  ])
-  PHP_ADD_LIBRARY(rustlib)
   
   #PHP_INSTALL_HEADERS([ext/session/mod_mm.h])
     AC_MSG_CHECKING(for libuv)
@@ -145,7 +139,7 @@ if test $PHP_UV != "no"; then
               LDFLAGS="$LDFLAGS -L./rustlib/target/debug"
            ;;
            *darwin*)
-              CFLAGS="$CFLAGS -I/usr/include/postgresql  -luv -lrustlib  -std=gnu11"
+              CFLAGS="$CFLAGS -I/usr/include/postgresql  -luv -lrustlib -std=gnu11"
               LDFLAGS="$LDFLAGS -L./rustlib/target/debug"
       esac
 	PHP_SUBST([CFLAGS])

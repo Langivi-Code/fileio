@@ -128,6 +128,7 @@ fn main() {
         .with_sys_include("stdint.h")
         .with_sys_include("stdbool.h")
         .with_sys_include("php.h")
+        .with_include("../../functions/db/db_types.h")
         .generate()
         .expect("Unable to generate bindings")
         .write_to_file("./include/stdasync_lib.h");
