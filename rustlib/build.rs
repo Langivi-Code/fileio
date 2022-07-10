@@ -97,7 +97,7 @@ fn main() {
     //     .compile("wrapper");
 
     let bindgen = bindgen::Builder::default()
-        .header("wrapper.h")
+        // .header("wrapper.h")
         .clang_args(includes.split(' '))
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         // .header("/usr/local/Cellar/php/8.1.2/include/php/ext/standard/php_var.h")
