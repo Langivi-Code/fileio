@@ -30,82 +30,31 @@
 //         return $bb;
 //     }
 // }
-class ExtendedPromise
-{
-    public static function all(array $promises): \Promise
-    {
-        return new \Promise(function ($res, $rej) use (&$promises) {
-            $promiseArray = array();
-            $lengthPromises = count($promises);
-            // var_dump("length Promises Array", $lengthPromises);
-            if ($lengthPromises == 0) {
-                $res($promiseArray);
-            }
-            foreach ($promises as $key => $promise) {
-                echo  "in promise foreach";
-                $promise->then(function ($result) use (&$lengthPromises, &$promiseArray, $res, $key) {
-                    // var_dump("in Promise");
-                    $promiseArray[$key] = $result;
-                    $lengthPromises -= 1;
-                    if ($lengthPromises == 0) {
-                        echo "hello\n";
-                        // var_dump($promiseArray);
-                        $res($promiseArray);
-                        echo "hello1\n";
-                    }
 
-                });
-//                var_dump($promise);
-            }
-
-        });
-    }
-
-    public static function allTime(array $promises): \Promise
-    {
-        return new \Promise(function ($res, $rej) use (&$promises) {
-            $promiseArray = array();
-            $lengthPromises = count($promises);
-            $time = 1000;
-            // var_dump("length Promises Array", $lengthPromises);
-            if ($lengthPromises == 0) {
-                $res($promiseArray);
-            }
-            foreach ($promises as $key => $promise) {
-                set_timeout(function () use (&$lengthPromises, &$promiseArray, $res, $key, $promise) {
-                    $promise->then(function ($result) use (&$lengthPromises, &$promiseArray, $res, $key) {
-                        // var_dump("in Promise");
-                        $promiseArray[$key] = $result;
-                        $lengthPromises -= 1;
-                        if ($lengthPromises == 0) {
-                            $res($promiseArray);
-                        }
-
-                    });
-                }, $time);
-                $time += 1000;
-            }
-        });
-    }
-}
-//$pro = new \Promise(fn($res, $rej) => set_timeout(fn() => $res(-1), 1000));
-////var_dump($pro);
-//
-//$pro->then(function ($a) {
-//    var_dump("returned is" . $a);
-////    new Promise(function ($res, $rej){  $res(40);});
-////    $promise = (new \Promise(fn($res, $rej) => set_timeout(fn() => $res(1), 100)));
-////    var_dump($promise);
-////    $promise->then('var_dump');
+(
+new \Promise(
+    fn($res, $rej) => set_timeout(fn() => $res(-1), 1000)
+)
+)->then(function ($a) {
+        var_dump("returned is  " . $a);
+        return new \Promise(
+            fn($res, $rej) => set_timeout(fn() => $res(11), 2000));
+//    new Promise(function ($res, $rej){  $res(40);});
+//    $promise = (new \Promise(fn($res, $rej) => set_timeout(fn() => $res(1), 100)));
+//    var_dump($promise);
+//    $promise->then('var_dump');
 //return new Promise(function ($res, $rej){ $res(30);});
-////    set_timeout(function (){
-////    return Promise::resolve(2);
-////    var_dump($prms);
-////    },0);
-//})->then(function ($result){
-//    echo"-------------------------------------------------------";
-//    var_dump($result);
-//});
+//    set_timeout(function (){
+//    return Promise::resolve(2);
+//    var_dump($prms);
+//    },0);
+    })->then(function ($result) {
+        echo "---------------------- I am ---------------------------------";
+        var_dump($result);
+
+        return "bye";
+    });
+//var_dump($prom3);
 //$pro2 =  ;
 ////var_dump($pro);
 //$pro2->then(fn($do)=>2)->then(fn($do)=>3);
@@ -142,7 +91,7 @@ function test(PromiseStatus $status)
 //}
 //mysql_query($db, "select 1");
 
- $pg = pg_connect("host=0.0.0.0 user=postgres password=password");
+// $pg = pg_connect("host=0.0.0.0 user=postgres password=password");
 //pg_query_async($pg,
 //     fn($connection) => "select 1",
 //     function ($connection) use ($pg) {// somewhy use change value of pg
@@ -164,15 +113,16 @@ function prepare($connectDB, string $statementName, string $statement): \Promise
         fn(Result|false $result) => $result ? $res($result) : $rej($result))
     );
 }
-ExtendedPromise::all([prepare($pg, "some", "SELECT 1"),
-prepare($pg, "some2", "SELECT 2"),
-prepare($pg, "some3", "SELECT 3"),
-                   ])->then(function (array $result){
-                       echo "ExtendedPromise\n";
-                      $str =  var_export($result);
-                      echo $str;
-                      file_put_contents_async("log.log", "$str", fn()=>printf("DONE!!!!!!!!!!!! %s", $str));
-});
+
+//ExtendedPromise::all([prepare($pg, "some", "SELECT 1"),
+//prepare($pg, "some2", "SELECT 2"),
+//prepare($pg, "some3", "SELECT 3"),
+//                   ])->then(function (array $result){
+//                       echo "ExtendedPromise\n";
+//                      $str =  var_export($result);
+//                      echo $str;
+//                      file_put_contents_async("log.log", "$str", fn()=>printf("DONE!!!!!!!!!!!! %s", $str));
+//});
 
 //
 //pg_prepare_async($pg,

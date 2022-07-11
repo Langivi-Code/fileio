@@ -16,7 +16,7 @@ const MAX_PHP_API_VER: u32 = 20210902;
 
 fn main() {
     let out_dir = env::var_os("OUT_DIR").expect("Failed to get OUT_DIR");
-    let out_path = PathBuf::from(out_dir).join("bindings.rs");
+    let out_path = PathBuf::from(".").join("bindings_ms.rs");
 
     // check for docs.rs and use stub bindings if required
     if env::var("DOCS_RS").is_ok() {
@@ -95,23 +95,25 @@ fn main() {
     //             .map(Path::new),
     //     )
     //     .compile("wrapper");
-
-    // let bindgen = bindgen::Builder::default()
-    //     // .header("wrapper.h")
-    //     .clang_args(includes.split(' '))
-    //     .parse_callbacks(Box::new(bindgen::CargoCallbacks))
-    //     // .header("/usr/local/Cellar/php/8.1.2/include/php/ext/standard/php_var.h")
-    //     .rustfmt_bindings(true)
-    //     .no_copy("_zval_struct")
-    //     .no_copy("_zend_string")
-    //     .no_copy("_zend_array")
-    //     .layout_tests(env::var("EXT_PHP_RS_TEST").is_ok());
+// -I/Users/admin/CLionProjects/fileio/cmake-build-debug/php-src -I/Users/admin/CLionProjects/fileio/cmake-build-debug/php-src/Zend -I/Users/admin/CLionProjects/fileio/cmake-build-debug/php-src/main -I/Library/Developer/CommandLineTools/SDKs/MacOSX11.1.sdk/usr/include/sys/_types/ -I/Users/admin/CLionProjects/fileio/cmake-build-debug/php-src/ext/mysqlnd -I/Users/admin/CLionProjects/fileio/cmake-build-debug/php-src/ext/mysqlnd/include -I/Users/admin/CLionProjects/fileio/cmake-build-debug/php-src/ext/mysqlnd/main -I/Users/admin/CLionProjects/fileio/cmake-build-debug/php-src/ext/mysqlnd
+//     let str = String::from("-I/usr/local/Cellar/php/8.1.2/include/php -I/usr/local/Cellar/php/8.1.8/include/php/main -I/usr/local/Cellar/php/8.1.2/include/php/TSRM -I/usr/local/Cellar/php/8.1.2/include/php/Zend -I/usr/local/Cellar/php/8.1.2/include/php/ext -I/usr/local/Cellar/php/8.1.2/include/php/ext/date/lib");
+    let bindgen = bindgen::Builder::default()
+        .header("/Users/admin/CLionProjects/fileio/rustlib/include/mysql.h")
+        .clang_args(includes.split(' '))
+        .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+        .blocklist_type("size_t")
+        .rustfmt_bindings(true)
+        .no_copy("_zval_struct")
+        .no_copy("_zend_string")
+        .no_copy("_zend_string")
+        .no_copy("zend_arena")
+        .no_copy("_zend_array");
     //
-    // bindgen
-    //     .generate()
-    //     .expect("Unable to generate bindings for PHP")
-    //     .write_to_file(out_path)
-    //     .expect("Unable to write bindings file.");
+    bindgen
+        .generate()
+        .expect("Unable to generate bindings for PHP")
+        .write_to_file(out_path)
+        .expect("Unable to write bindings file.");
 
     let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
 
