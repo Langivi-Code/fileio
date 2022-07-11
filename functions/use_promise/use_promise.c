@@ -100,20 +100,21 @@ void copy_promise_vals(zval *source, zend_object *target) {
 //
 //    return zobj;
 //}
-zend_object * create_new_promise(){
+zend_object * create_new_promise(zend_object *prev_object){
     zval status, promise;
     object_init_ex(&promise, MODULE_GL(promise_class));
     zend_object * pending = zend_enum_get_case_cstr(MODULE_GL(promise__status_enum), "None");
     ZVAL_OBJ(&status, pending);
 //    zend_update_property(MODULE_GL(promise_class), Z_OBJ(resolved_promise), PROP("dataStore"), param);
 //    Z_TYPE_INFO(resolved_promise) = IS_OBJECT;
-    printf("retval reslove %d\n",
-           Z_TYPE_INFO(promise)
-    );
+    printf("retval reslove %d\n",Z_TYPE_INFO(promise));
+    zval * my_val = zend_read_property(MODULE_GL(promise_class), prev_object, PROP("_list"), 0, NULL);
+    zend_update_property(MODULE_GL(promise_class), Z_OBJ(promise), PROP("_list"), my_val);
     zend_update_property(MODULE_GL(promise_class), Z_OBJ(promise), PROP("status"), &status);
     zend_object * obj = Z_OBJ(promise);
     return obj;
 }
+
 PHP_FUNCTION (use_promise) {
 //    zval property___status_default_value;
 //    zval back;
@@ -494,7 +495,7 @@ PHP_METHOD (Promise, then) {
 //    zend_update_property(MODULE_GL(promise_class), Z_OBJ_P(pending_promise), PROP("status"), &status_ret);
 //    zend_update_property(MODULE_GL(promise_class), Z_OBJ_P(pending_promise), PROP("allocated"), );
 //    zend_object * obj = Z_OBJ_P(pending_promise);
-    zend_object * next_promise = create_new_promise();
+    zend_object * next_promise = create_new_promise(Z_OBJ_P(ZEND_THIS));
     add_promise_to_list(Z_OBJ_P(ZEND_THIS), next_promise);
     RETURN_OBJ(next_promise);
 }
