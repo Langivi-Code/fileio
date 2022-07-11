@@ -496,7 +496,8 @@ PHP_METHOD (Promise, then) {
 //    zend_update_property(MODULE_GL(promise_class), Z_OBJ_P(pending_promise), PROP("allocated"), );
 //    zend_object * obj = Z_OBJ_P(pending_promise);
     zend_object * next_promise = create_new_promise(Z_OBJ_P(ZEND_THIS));
-    add_promise_to_list(Z_OBJ_P(ZEND_THIS), next_promise);
+    zval * res = zend_read_property(MODULE_GL(promise_class), Z_OBJ_P(ZEND_THIS), PROP("_list"), 0, NULL);
+    add_promise_to_list(zend_fetch_resource(Z_REF_P(res), "my_res", res_num), next_promise);
     RETURN_OBJ(next_promise);
 }
 
