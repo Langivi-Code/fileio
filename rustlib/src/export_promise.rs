@@ -5,7 +5,7 @@ use std::os::raw::c_void;
 use std::ptr::addr_of_mut;
 use crate::ffi::{php_var_dump, zend_object, zend_refcounted_h};
 use crate::promise_helpers::promise_list::PromiseList;
-use crate::promise_helpers::zend_gc_try_delref;
+use crate::promise_helpers::{update_zval, zend_gc_try_delref};
 
 #[no_mangle]
 pub extern "C" fn init_promise_list(initial: *mut zend_object) -> *const c_void {
@@ -101,6 +101,7 @@ pub extern "C" fn move_to_another_list(source_list: *const c_void, target_list: 
     let source_linked = PromiseList::get_storage().get(&source).unwrap();
     let target_linked = PromiseList::get_storage().get_mut(&target).unwrap();
     println!("Before move source_linked{:?} target_linked:{:?}", source_linked, target_linked);
+    let item = unsafe{target_linked.back().unwrap().as_mut().unwrap()};
     let mut should_move = false;
     if *(source_linked.back().unwrap()) == from {
         return false;
@@ -111,6 +112,8 @@ pub extern "C" fn move_to_another_list(source_list: *const c_void, target_list: 
                 continue;
             }
             if should_move  {
+                let target = unsafe{prev_in_list.as_mut().unwrap()};
+                update_zval(item, target);
                 target_linked.push_back(*prev_in_list);
             }
         }
